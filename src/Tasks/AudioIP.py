@@ -15,13 +15,41 @@
 
 class AudioIP:
 
-  """
-  :version:0.0.0
-  :author:Mattijs Snepvangers
-  """
+	"""
+	AudioIP is a class that handles the AudioIP protocol for streaming audio data.
+	It provides methods to connect to an AudioIP server, send audio data, and handle
+	incoming messages.
+	"""
 
-  # check for audio fingerprint
+	def __init__(self):
+		"""
+		Initializes the AudioIP class.
+		"""
+		pass
+		
+	def connect(self, host, port):
+		"""
+		Connects to the AudioIP server.
 
-  # generate audio fingerprint
+		:param host: The hostname or IP address of the AudioIP server.
+		:param port: The port number of the AudioIP server.
+		"""
+		pass
 
+	def send_audio_data(self, data):
+		"""
+		Sends audio data to the AudioIP server.
 
+		:param data: The audio data to be sent.
+		"""
+
+	def receive_message(self):
+		"""
+		Receives a message from the AudioIP server.
+		:return: The received message.
+		"""
+
+	def close(self):
+		"""
+		Closes the connection to the AudioIP server.
+		"""

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#  Copyleft 2021-2024 Mattijs Snepvangers.
+#  Copyleft 2021-2025 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
 #  AMM is free software: you can redistribute it and/or modify  it under the terms of the
@@ -15,7 +15,7 @@
 """Retrieves art from online archives."""
 
 from enum import Enum
-
+import musicbrainzngs
 
 class ArtType(Enum):
     """
@@ -29,19 +29,72 @@ class ArtGetter:
     This class retrieves art from online archives.
     """
 
-    def __init__(self):
+    def __init__(self, config):
         """
-        Initialize the ArtGetter class.
-        """
-        pass
+        Initializes the ArtGetter class.
 
-    def get_art(self, artist: str, album: str|None=None) -> None:
+        Args:
+            config: The configuration object.
         """
-        Get the art for a given artist and album.
+        self.config = config
+        self.musicbrainz = musicbrainzngs
+        self.musicbrainz.set_useragent("Audiophiles Music Manager", "0.1")
+        self.musicbrainz.set_rate_limit(True)
 
-        :param artist: The name of the artist.
-        :param album: The name of the album.
-        :return: The URL of the art.
+
+    def get_art(self, mbid:str, art_type:ArtType)->str:
         """
-        # Placeholder implementation
-        f"https://example.com/art/{artist}/{album}.jpg"
+        Retrieves art from online archives.
+
+        Args:
+            mbid: The MusicBrainz ID of the album or artist.
+            art_type: The type of art to retrieve (album or artist).
+
+        Returns:
+            The URL of the art.
+        """
+        if art_type == ArtType.ALBUM:
+            return self.get_album_art(mbid)
+        elif art_type == ArtType.ARTIST:
+            return self.get_artist_art(mbid)
+        else:
+            raise ValueError("Invalid art type. Use 'album' or 'artist'.")
+
+
+    def get_album_art(self, mbid):
+        """
+        Retrieves album art from online archives.
+
+        Args:
+            mbid: The MusicBrainz ID of the album.
+
+        Returns:
+            The URL of the album art.
+        """
+        try:
+            result = self.musicbrainz.get_release_group_by_id(mbid, includes=["release-group-rels"])
+            if "release-group" in result and "images" in result["release-group"]:
+                images = result["release-group"]["images"]
+                if images:
+                    return images[0]["image"]
+        except musicbrainzngs.WebServiceError as e:
+            print(f"Error retrieving album art: {e}")
+        return None
+
+    def get_artist_art(self, mbid):
+        """
+        Retrieves artist art from online archives.
+        Args:
+            mbid: The MusicBrainz ID of the artist.
+        Returns:
+            The URL of the artist art.
+        """
+        try:
+            result = self.musicbrainz.get_artist_by_id(mbid, includes=["artist-rels"])
+            if "artist" in result and "images" in result["artist"]:
+                images = result["artist"]["images"]
+                if images:
+                    return images[0]["image"]
+        except musicbrainzngs.WebServiceError as e:
+            print(f"Error retrieving artist art: {e}")
+        return None
