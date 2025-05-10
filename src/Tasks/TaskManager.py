@@ -13,27 +13,17 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
-from lib.SpecialTypes import ReadOnlyDict as RODict
-from amm.singletons import DataBase as DBase
+from ..Singletons.DB import DB as DBase
 
 
 def has_state(file_id: int, state_id: int):
-    """
-    Checks if a particular state is present
-    :param file_id: int     file ID
-    :param state_id: int    State ID
-    :return: bool
-    """
+    """Checks if a particular state is present."""
     return state_id in has_states(file_id)
 
 
 def has_states(file_id):
-    """
-    Gives list of set states for File_ID
-    :param file_id: file ID
-    :return: list
-    """
-    return DBase().get_list(get="states", table="files", where="file_id", equals=file_id)
+    """Gives list of set states for File_ID."""
+    return DBase.fetchone(query=f"GET states FROM `files` WHERE file_id EQUALS {file_id}")
 
 
 instance = None

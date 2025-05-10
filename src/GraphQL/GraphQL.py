@@ -17,10 +17,12 @@ GraphQL Server class for handling GraphQL queries and mutations.
 This class is used to add a GraphQL route to the FastAPI application.
 """
 
-
-from fastapi import FastAPI
 import uvicorn
+from fastapi import FastAPI
+from graphene import Schema
+from python_gql import GraphQLApp
 
+from Mapping import Query, Mutation
 
 class GraphQL:
     """
@@ -31,25 +33,16 @@ class GraphQL:
     def __init__(self, app: FastAPI):
         self.app = app
 
-    def add_graphql_route(self, path: str):
+    def add_graphql_route(self, path: str = "/"):
         """
         GraphQL Server class for handling GraphQL queries and mutations.
         This class is used to add a GraphQL route to the FastAPI application.
         """
-
-        @self.app.get(path)
-        async def graphql_endpoint():
-            return {"message": "GraphQL endpoint"}
-        # Here you would add the actual GraphQL logic, such as schema and resolvers
-        # For now, we just return a placeholder message
-        # You can also add a POST method for handling GraphQL queries
-
-        @self.app.post(path)
-        async def graphql_post_endpoint():
-            """GraphQL POST endpoint for handling GraphQL queries and mutations."""
-            #todo: how to get the json data?
-            return
-
+        self.app.add_route(
+            path,
+            GraphQLApp(schema=Schema(query=Query, mutation=Mutation)),
+            methods=["GET", "POST"],
+        )
     def run(self):
         """Run the GraphQL server."""
-        uvicorn.run(self.app, host="127.0.1", port=8000)
+        uvicorn.run(self.app, host="127.0.0.1", port=8000)

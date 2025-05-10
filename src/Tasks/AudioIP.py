@@ -12,6 +12,10 @@
 #
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
+from ..Singletons.config import Config
+from ..Singletons.logger import Logger
+
+
 
 class AudioIP:
 
@@ -21,7 +25,7 @@ class AudioIP:
 	incoming messages.
 	"""
 
-	def __init__(self):
+	def __init__(self, config:Config):
 		"""
 		Initializes the AudioIP class.
 		"""

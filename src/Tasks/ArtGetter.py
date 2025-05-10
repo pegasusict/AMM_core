@@ -15,7 +15,13 @@
 """Retrieves art from online archives."""
 
 from enum import Enum
-import musicbrainzngs
+import urllib.request
+            
+from .Task import Task, TaskType, TaskStatus
+from ..Singletons.config import Config
+from ..Singletons.Logger import Logger
+from ..Singletons.DB import DB
+from ..Clients.MB_Client import MusicBrainzClient as mbc
 
 class ArtType(Enum):
     """
@@ -24,77 +30,97 @@ class ArtType(Enum):
     ALBUM = "album"
     ARTIST = "artist"
 
-class ArtGetter:
+class ArtGetter(Task):
     """
     This class retrieves art from online archives.
     """
 
-    def __init__(self, config):
+    def __init__(self, batch:dict, config:Config):
         """
         Initializes the ArtGetter class.
 
         Args:
             config: The configuration object.
         """
+        super().__init__(config, task_name="ArtGetter", task_type=TaskType.ART_GETTER)
+        self.batch = batch
         self.config = config
-        self.musicbrainz = musicbrainzngs
-        self.musicbrainz.set_useragent("Audiophiles Music Manager", "0.1")
-        self.musicbrainz.set_rate_limit(True)
+        self.art_path = self.config.get("paths","base")+self.config.get("paths","art")+"/"
+        self.processed=0
 
-
-    def get_art(self, mbid:str, art_type:ArtType)->str:
+    def run(self) -> None:
         """
-        Retrieves art from online archives.
+        Runs the ArtGetter task.
+        """
+        Logger.info("Running ArtGetter task")
+        for mbid, art_type in self.batch:
+            if art_type == ArtType.ALBUM:
+                self.get_album_art(mbid)
+            elif art_type == ArtType.ARTIST:
+                self.get_artist_art(mbid)
+            else:
+                Logger.warning(f"Unknown art type: {art_type}")
+        Logger.info("ArtGetter task completed")
+        self.set_task_result("Art retrieval completed")
+        self.task_finished()
+
+    def get_album_art(self, mbid:str) -> None:
+        """
+        Retrieves album art for the given item.
 
         Args:
-            mbid: The MusicBrainz ID of the album or artist.
-            art_type: The type of art to retrieve (album or artist).
-
-        Returns:
-            The URL of the art.
+            item: The item to retrieve album art for.
         """
-        if art_type == ArtType.ALBUM:
-            return self.get_album_art(mbid)
-        elif art_type == ArtType.ARTIST:
-            return self.get_artist_art(mbid)
+        Logger.info(f"Retrieving album art for MBID {mbid}")
+        url = mbc.get_album_art(mbid)
+        if url:
+            Logger.info(f"Album art URL: {url}")
         else:
-            raise ValueError("Invalid art type. Use 'album' or 'artist'.")
+            Logger.warning(f"No album art found for MBID {mbid}")
+        self.processed += 1
+        self.task_progress = (self.processed / len(self.batch)) * 100
+        Logger.info(f"Progress: {self.task_progress:.2f}%")
 
-
-    def get_album_art(self, mbid):
+    def get_artist_art(self, mbid:str) -> None:
         """
-        Retrieves album art from online archives.
+        Retrieves artist art for the given item.
 
         Args:
-            mbid: The MusicBrainz ID of the album.
-
-        Returns:
-            The URL of the album art.
+            item: The item to retrieve artist art for.
         """
-        try:
-            result = self.musicbrainz.get_release_group_by_id(mbid, includes=["release-group-rels"])
-            if "release-group" in result and "images" in result["release-group"]:
-                images = result["release-group"]["images"]
-                if images:
-                    return images[0]["image"]
-        except musicbrainzngs.WebServiceError as e:
-            print(f"Error retrieving album art: {e}")
-        return None
+        Logger.info(f"Retrieving artist art for MBID {mbid}")
+        url = mbc.get_artist_art(mbid)
+        if url:
+            Logger.info(f"Artist art URL: {url}")
+        else:
+            Logger.warning(f"No artist art found for MBID {mbid}")
+        self.processed += 1
+        self.task_progress = (self.processed / len(self.batch)) * 100
+        Logger.info(f"Progress: {self.task_progress:.2f}%")
 
-    def get_artist_art(self, mbid):
+    async def save_art(self, url:str, mbid:str, art_type:ArtType) -> None:
         """
-        Retrieves artist art from online archives.
+        Saves the retrieved art to the local filesystem.
+
         Args:
-            mbid: The MusicBrainz ID of the artist.
-        Returns:
-            The URL of the artist art.
+            url: The URL of the art.
+            mbid: The MBID of the item.
+            art_type: The type of art (album or artist).
         """
-        try:
-            result = self.musicbrainz.get_artist_by_id(mbid, includes=["artist-rels"])
-            if "artist" in result and "images" in result["artist"]:
-                images = result["artist"]["images"]
-                if images:
-                    return images[0]["image"]
-        except musicbrainzngs.WebServiceError as e:
-            print(f"Error retrieving artist art: {e}")
-        return None
+        if url is None:
+            Logger.warning(f"No URL provided for MBID {mbid}")
+            return
+        if mbid is None:
+            Logger.warning(f"No MBID provided for URL {url}")
+            return
+        if art_type == ArtType.ALBUM:
+            Logger.info(f"Saving album art for MBID {mbid}")
+        elif art_type == ArtType.ARTIST:
+            Logger.info(f"Saving artist art for MBID {mbid}")
+        else:
+            Logger.warning(f"Unknown art type: {art_type}")
+            return
+        save_path = f"{self.art_path}{mbid}.jpg"
+        urllib.request.urlretrieve(url, save_path)
+        DB.register_picture(mbid, art_type, save_path)
+        Logger.info(f"Art saved to {save_path}")

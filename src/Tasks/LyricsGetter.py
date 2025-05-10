@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#  Copyleft 2021-2024 Mattijs Snepvangers.
+#  Copyleft 2021-2025 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
 #  AMM is free software: you can redistribute it and/or modify  it under the terms of the
@@ -12,4 +12,13 @@
 #
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
-# Retrieve Lyrics from internet
+
+"""This Module retrieves lyrics from internet"""
+
+from lyricsgenius import Genius
+
+genius = Genius()
+
+def get_lyrics(artist:str, title:str) -> str:
+    """Retrieve lyrics for said song."""
+    return genius.search_song(title, artist)
