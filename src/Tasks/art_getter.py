@@ -16,17 +16,15 @@
 
 from enum import Enum
 import urllib.request
-            
-from .Task import Task, TaskType, TaskStatus
+
+from .task import Task, TaskType
 from ..Singletons.config import Config
-from ..Singletons.Logger import Logger
-from ..Singletons.DB import DB
-from ..Clients.MB_Client import MusicBrainzClient as mbc
+from ..Singletons.logger import Logger
+from ..Singletons.database import DB
+from ..Clients.mb_client import MusicBrainzClient as mbclient
 
 class ArtType(Enum):
-    """
-    Enum for different types of art.
-    """
+    """Enum for different types of art."""
     ALBUM = "album"
     ARTIST = "artist"
 
@@ -47,22 +45,25 @@ class ArtGetter(Task):
         self.config = config
         self.art_path = self.config.get("paths","base")+self.config.get("paths","art")+"/"
         self.processed=0
+        self.logger = Logger(config)
+        self.mbc = mbclient(config)
+        self.database = DB()
 
     def run(self) -> None:
         """
         Runs the ArtGetter task.
         """
-        Logger.info("Running ArtGetter task")
+        self.logger.info("Running ArtGetter task")
         for mbid, art_type in self.batch:
             if art_type == ArtType.ALBUM:
                 self.get_album_art(mbid)
             elif art_type == ArtType.ARTIST:
                 self.get_artist_art(mbid)
             else:
-                Logger.warning(f"Unknown art type: {art_type}")
-        Logger.info("ArtGetter task completed")
-        self.set_task_result("Art retrieval completed")
-        self.task_finished()
+                self.logger.warning(f"Unknown art type: {art_type}")
+        self.logger.info("ArtGetter task completed")
+        self.set_result("Art retrieval completed")
+        self.set_finished()
 
     def get_album_art(self, mbid:str) -> None:
         """
@@ -71,15 +72,15 @@ class ArtGetter(Task):
         Args:
             item: The item to retrieve album art for.
         """
-        Logger.info(f"Retrieving album art for MBID {mbid}")
-        url = mbc.get_album_art(mbid)
+        self.logger.info(f"Retrieving album art for MBID {mbid}")
+        url = self.mbc.get_album_art(mbid)
         if url:
-            Logger.info(f"Album art URL: {url}")
+            self.logger.info(f"Album art URL: {url}")
         else:
-            Logger.warning(f"No album art found for MBID {mbid}")
+            self.logger.warning(f"No album art found for MBID {mbid}")
         self.processed += 1
         self.task_progress = (self.processed / len(self.batch)) * 100
-        Logger.info(f"Progress: {self.task_progress:.2f}%")
+        self.logger.info(f"Progress: {self.task_progress:.2f}%")
 
     def get_artist_art(self, mbid:str) -> None:
         """
@@ -88,15 +89,15 @@ class ArtGetter(Task):
         Args:
             item: The item to retrieve artist art for.
         """
-        Logger.info(f"Retrieving artist art for MBID {mbid}")
-        url = mbc.get_artist_art(mbid)
+        self.logger.info(f"Retrieving artist art for MBID {mbid}")
+        url = self.mbc.get_artist_art(mbid)
         if url:
-            Logger.info(f"Artist art URL: {url}")
+            self.logger.info(f"Artist art URL: {url}")
         else:
-            Logger.warning(f"No artist art found for MBID {mbid}")
+            self.logger.warning(f"No artist art found for MBID {mbid}")
         self.processed += 1
         self.task_progress = (self.processed / len(self.batch)) * 100
-        Logger.info(f"Progress: {self.task_progress:.2f}%")
+        self.logger.info(f"Progress: {self.task_progress:.2f}%")
 
     async def save_art(self, url:str, mbid:str, art_type:ArtType) -> None:
         """
@@ -108,19 +109,19 @@ class ArtGetter(Task):
             art_type: The type of art (album or artist).
         """
         if url is None:
-            Logger.warning(f"No URL provided for MBID {mbid}")
+            self.logger.warning(f"No URL provided for MBID {mbid}")
             return
         if mbid is None:
-            Logger.warning(f"No MBID provided for URL {url}")
+            self.logger.warning(f"No MBID provided for URL {url}")
             return
         if art_type == ArtType.ALBUM:
-            Logger.info(f"Saving album art for MBID {mbid}")
+            self.logger.info(f"Saving album art for MBID {mbid}")
         elif art_type == ArtType.ARTIST:
-            Logger.info(f"Saving artist art for MBID {mbid}")
+            self.logger.info(f"Saving artist art for MBID {mbid}")
         else:
-            Logger.warning(f"Unknown art type: {art_type}")
+            self.logger.warning(f"Unknown art type: {art_type}")
             return
         save_path = f"{self.art_path}{mbid}.jpg"
         urllib.request.urlretrieve(url, save_path)
-        DB.register_picture(mbid, art_type, save_path)
-        Logger.info(f"Art saved to {save_path}")
+        self.database.register_picture(mbid, art_type, save_path)
+        self.logger.info(f"Art saved to {save_path}")

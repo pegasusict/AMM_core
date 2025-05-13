@@ -13,11 +13,11 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 import os
-from ..Singletons.Stack import Stack
-from ..Singletons.Logger import Logger
-from ..Singletons.DB import DB
+from ..Singletons.stack import Stack
+from ..Singletons.logger import Logger
+from ..Singletons.database import DB
 from ..Singletons.config import Config
-from ..Tasks.Task import Task, TaskType, TaskStatus
+from .task import Task, TaskType, TaskStatus
 
 class Importer(Task):
     """

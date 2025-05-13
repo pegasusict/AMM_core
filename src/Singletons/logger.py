@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#  Copyleft 2021-2024 Mattijs Snepvangers.
+#  Copyleft 2021-2025 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
 #  AMM is free software: you can redistribute it and/or modify  it under the terms of the
@@ -13,7 +13,7 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
-from logging import getLogger, FileHandler, Formatter, StreamHandler, DEBUG, INFO, WARNING, ERROR, CRITICAL
+from logging import getLogger, FileHandler, Formatter, StreamHandler
 
 from config import Config
 
@@ -35,16 +35,18 @@ class Logger:
         self.log_level = self.config.get("logging", "level")
         self.log_format = "%(asctime)s - %(levelname)s - %(message)s"
         self.logger = self._setup_logger()
+
         self.logger.info("Logger initialized")
-        self.logger.info(f"Log file: {self.log_file}")
-        self.logger.info(f"Log level: {self.log_level}")
-        self.logger.info(f"Log format: {self.log_format}")
+        log_msg = f"Log file: {self.log_file}"
+        self.logger.info(log_msg)
+        log_msg = f"Log level: {self.log_level}"
+        self.logger.info(log_msg)
+        log_msg = f"Log format: {self.log_format}"
+        self.logger.info(log_msg)
         self.logger.info("Logger setup complete")
 
     def _setup_logger(self):
-        """
-        Sets up the logger with the specified log file, log level, and log format.
-        """
+        """Sets up the logger with the specified log file, log level, and log format."""
         logger = getLogger(__name__)
         logger.setLevel(self.log_level)
 
@@ -68,106 +70,77 @@ class Logger:
         logger.addHandler(console_handler)
 
         return logger
+
     def debug(self, message: str):
-        """
-        Logs a debug message.
-        Args:
-            message: The message to log.
-        """
+        """Logs a debug message."""
         self.logger.debug(message)
+
     def info(self, message: str):
-        """
-        Logs an info message.
-        Args:
-            message: The message to log.
-        """
+        """Logs an info message."""
         self.logger.info(message)
+
     def warning(self, message: str):
-        """
-        Logs a warning message.
-        Args:
-            message: The message to log.
-        """
+        """Logs a warning message."""
         self.logger.warning(message)
+
     def error(self, message: str):
-        """
-        Logs an error message.
-        Args:
-            message: The message to log.
-        """
+        """Logs an error message."""
         self.logger.error(message)
+
     def critical(self, message: str):
-        """
-        Logs a critical message.
-        Args:
-            message: The message to log.
-        """
+        """Logs a critical message."""
         self.logger.critical(message)
+
     def exception(self, message: str):
-        """
-        Logs an exception message.
-        Args:
-            message: The message to log.
-        """
+        """Logs an exception message."""
         self.logger.exception(message)
+
     def set_log_level(self, level: str):
-        """
-        Sets the log level for the logger.
-        Args:
-            level: The log level to set.
-        """
+        """Sets the log level for the logger."""
         self.log_level = level
         self.logger.setLevel(level)
+
         for handler in self.logger.handlers:
             handler.setLevel(level)
-        self.logger.info(f"Log level set to {level}")
+
+        log_msg = f"Log level set to {level}"
+        self.logger.info(log_msg)
+
     def set_log_file(self, log_file: str):
-        """
-        Sets the log file for the logger.
-        Args:
-            log_file: The log file to set.
-        """
+        """Sets the log file for the logger."""
         self.log_file = log_file
+
         for handler in self.logger.handlers:
             handler.close()
             self.logger.removeHandler(handler)
+
         self.logger = self._setup_logger()
-        self.logger.info(f"Log file set to {log_file}")
+
+        log_msg = f"Log file set to {log_file}"
+        self.logger.info(log_msg)
+
     def set_log_format(self, log_format: str):
-        """
-        Sets the log format for the logger.
-        Args:
-            log_format: The log format to set.
-        """
+        """Sets the log format for the logger."""
         self.log_format = log_format
+
         for handler in self.logger.handlers:
             handler.setFormatter(Formatter(log_format))
-        self.logger.info(f"Log format set to {log_format}")
+
+        log_msg = f"Log format set to {log_format}"
+        self.logger.info(log_msg)
+
     def get_log_file(self) -> str:
-        """
-        Returns the log file for the logger.
-        Returns:
-            The log file.
-        """
+        """Returns the log file for the logger."""
         return self.log_file
+
     def get_log_level(self) -> str:
-        """
-        Returns the log level for the logger.
-        Returns:
-            The log level.
-        """
+        """Returns the log level for the logger."""
         return self.log_level
+
     def get_log_format(self) -> str:
-        """
-        Returns the log format for the logger.
-        Returns:
-            The log format.
-        """
+        """Returns the log format for the logger."""
         return self.log_format
+
     def get_logger(self):
-        """
-        Returns the logger.
-        Returns:
-            The logger.
-        """
+        """Returns the logger."""
         return self.logger

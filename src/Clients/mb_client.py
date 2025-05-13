@@ -19,18 +19,18 @@ It is used to retrieve information about artists, albums, and tracks.
 It is also used to retrieve the cover art for albums and artists.
 It is used to retrieve the MusicBrainz ID for albums, artists and tracks.
 """
+
 import musicbrainzngs
+
+from src.Singletons.config import Config
+from src.Singletons.logger import Logger
 
 class MusicBrainzClient:
 	"""This Class communicates with the server of MusicBrainz."""
 
-	def __init__(self, config) -> None:
-		"""
-		Initializes the ArtGetter class.
-
-		Args:
-			config: The configuration object.
-		"""
+	def __init__(self, config:Config) -> None:
+		"""Initializes the ArtGetter class."""
+		self.logger = Logger(config)
 		self.config = config
 		self.musicbrainz = musicbrainzngs
 		self.musicbrainz.set_useragent("Audiophiles Music Manager", "0.1", "pegasus.ict@gmail.com")
@@ -53,10 +53,10 @@ class MusicBrainzClient:
 			else:
 				return None
 		except musicbrainzngs.NetworkError as e:
-			print(f"Network error retrieving album art: {e}")
+			self.logger.error(f"Network error retrieving album art: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			print(f"Error retrieving album art: {e}")
+			self.logger.error(f"Error retrieving album art: {e}")
 			return None
 
 	def get_artist_art(self, mbid:str) -> str|None:
@@ -75,14 +75,15 @@ class MusicBrainzClient:
 				return result['images'][0]['thumbnails']['large']
 			return None
 		except musicbrainzngs.ResponseError as e:
-			print(f"Error retrieving artist art: {e}")
+			self.logger.error(f"Error retrieving artist art: {e}")
 			return None
 		except musicbrainzngs.NetworkError as e:
-			print(f"Network error retrieving artist art: {e}")
+			self.logger.error(f"Network error retrieving artist art: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			print(f"Error retrieving artist art: {e}")
+			self.logger.error(f"Error retrieving artist art: {e}")
 			return None
+
 	def get_release_group_by_id(self, mbid:str) -> str|None:
 		"""
 		Retrieves release group information by MusicBrainz ID.
@@ -97,14 +98,15 @@ class MusicBrainzClient:
 			result = self.musicbrainz.get_release_group_by_id(mbid)
 			return result
 		except musicbrainzngs.ResponseError as e:
-			print(f"Error retrieving release group: {e}")
+			self.logger.error(f"Error retrieving release group: {e}")
 			return None
 		except musicbrainzngs.NetworkError as e:
-			print(f"Network error retrieving release group: {e}")
+			self.logger.error(f"Network error retrieving release group: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			print(f"Error retrieving release group: {e}")
+			self.logger.error(f"Error retrieving release group: {e}")
 			return None
+
 	def get_artist_by_id(self, mbid:str) -> str|None:
 		"""
 		Retrieves artist information by MusicBrainz ID.
@@ -119,13 +121,13 @@ class MusicBrainzClient:
 			result = self.musicbrainz.get_artist_by_id(mbid)
 			return result
 		except musicbrainzngs.ResponseError as e:
-			print(f"Error retrieving artist: {e}")
+			self.logger.error(f"Error retrieving artist: {e}")
 			return None
 		except musicbrainzngs.NetworkError as e:
-			print(f"Network error retrieving artist: {e}")
+			self.logger.error(f"Network error retrieving artist: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			print(f"Error retrieving artist: {e}")
+			self.logger.error(f"Error retrieving artist: {e}")
 			return None
 
 	def get_release_by_id(self, mbid:str) -> str|None:
@@ -142,13 +144,13 @@ class MusicBrainzClient:
 			result = self.musicbrainz.get_release_by_id(mbid)
 			return result
 		except musicbrainzngs.ResponseError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 		except musicbrainzngs.NetworkError as e:
-			print(f"Network error retrieving release: {e}")
+			self.logger.error(f"Network error retrieving release: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 
 	def get_recording_by_id(self, mbid:str) -> str|None:
@@ -165,13 +167,13 @@ class MusicBrainzClient:
 			result = self.musicbrainz.get_recording_by_id(mbid)
 			return result
 		except musicbrainzngs.ResponseError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 		except musicbrainzngs.NetworkError as e:
-			print(f"Network error retrieving release: {e}")
+			self.logger.error(f"Network error retrieving release: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 
 	def get_track_by_id(self, mbid:str) -> str|None:
@@ -188,13 +190,13 @@ class MusicBrainzClient:
 			result = self.musicbrainz.get_recording_by_id(mbid)
 			return result
 		except musicbrainzngs.ResponseError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 		except musicbrainzngs.NetworkError as e:
-			print(f"Network error retrieving release: {e}")
+			self.logger.error(f"Network error retrieving release: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 
 	def get_album_by_id(self, mbid:str) -> str|None:
@@ -211,13 +213,13 @@ class MusicBrainzClient:
 			result = self.musicbrainz.get_release_by_id(mbid)
 			return result
 		except musicbrainzngs.ResponseError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 		except musicbrainzngs.NetworkError as e:
-			print(f"Network error retrieving release: {e}")
+			self.logger.error(f"Network error retrieving release: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 
 	def get_artist_by_name(self, name:str) -> str|None:
@@ -234,13 +236,13 @@ class MusicBrainzClient:
 			result = self.musicbrainz.search_artists(name=name)
 			return result
 		except musicbrainzngs.ResponseError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 		except musicbrainzngs.NetworkError as e:
-			print(f"Network error retrieving release: {e}")
+			self.logger.error(f"Network error retrieving release: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 
 	def get_album_by_name(self, name:str) -> str|None:
@@ -257,13 +259,13 @@ class MusicBrainzClient:
 			result = self.musicbrainz.search_releases(name=name)
 			return result
 		except musicbrainzngs.ResponseError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 		except musicbrainzngs.NetworkError as e:
-			print(f"Network error retrieving release: {e}")
+			self.logger.error(f"Network error retrieving release: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 
 	def get_track_by_name(self, name:str) -> str|None:
@@ -280,13 +282,13 @@ class MusicBrainzClient:
 			result = self.musicbrainz.search_recordings(name=name)
 			return result
 		except musicbrainzngs.ResponseError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 		except musicbrainzngs.NetworkError as e:
-			print(f"Network error retrieving release: {e}")
+			self.logger.error(f"Network error retrieving release: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 
 	def get_release_group_by_name(self, name:str) -> str|None:
@@ -303,13 +305,13 @@ class MusicBrainzClient:
 			result = self.musicbrainz.search_release_groups(name=name)
 			return result
 		except musicbrainzngs.ResponseError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 		except musicbrainzngs.NetworkError as e:
-			print(f"Network error retrieving release: {e}")
+			self.logger.error(f"Network error retrieving release: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 
 	def get_recording_by_name(self, name:str) -> str|None:
@@ -326,13 +328,13 @@ class MusicBrainzClient:
 			result = self.musicbrainz.search_recordings(name=name)
 			return result
 		except musicbrainzngs.ResponseError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 		except musicbrainzngs.NetworkError as e:
-			print(f"Network error retrieving release: {e}")
+			self.logger.error(f"Network error retrieving release: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 
 	def get_release_by_name(self, name:str) -> str|None:
@@ -349,13 +351,13 @@ class MusicBrainzClient:
 			result = self.musicbrainz.search_releases(name=name)
 			return result
 		except musicbrainzngs.ResponseError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 		except musicbrainzngs.NetworkError as e:
-			print(f"Network error retrieving release: {e}")
+			self.logger.error(f"Network error retrieving release: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 
 	def get_track_by_audio_fingerprint(self, fingerprint:str) -> str|None:
@@ -372,13 +374,13 @@ class MusicBrainzClient:
 			result = self.musicbrainz.search_recordings(fingerprint=fingerprint)
 			return result
 		except musicbrainzngs.ResponseError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 		except musicbrainzngs.NetworkError as e:
-			print(f"Network error retrieving release: {e}")
+			self.logger.error(f"Network error retrieving release: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 
 	def get_release_by_audio_fingerprint(self, fingerprint:str) -> str|None:
@@ -395,13 +397,13 @@ class MusicBrainzClient:
 			result = self.musicbrainz.search_releases(fingerprint=fingerprint)
 			return result
 		except musicbrainzngs.ResponseError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 		except musicbrainzngs.NetworkError as e:
-			print(f"Network error retrieving release: {e}")
+			self.logger.error(f"Network error retrieving release: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 
 	def get_recording_by_audio_fingerprint(self, fingerprint:str) -> str|None:
@@ -418,11 +420,11 @@ class MusicBrainzClient:
 			result = self.musicbrainz.search_recordings(fingerprint=fingerprint)
 			return result
 		except musicbrainzngs.ResponseError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None
 		except musicbrainzngs.NetworkError as e:
-			print(f"Network error retrieving release: {e}")
+			self.logger.error(f"Network error retrieving release: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			print(f"Error retrieving release: {e}")
+			self.logger.error(f"Error retrieving release: {e}")
 			return None

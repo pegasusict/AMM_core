@@ -17,10 +17,10 @@
 It uses the mutagen library to read and write metadata to media files.
 """
 
-from .Task import Task, TaskType
+from .task import Task, TaskType
 from ..Singletons.config import Config
-from ..Singletons.DB import DB
-from ..Singletons.Logger import Logger
+from ..Singletons.database import DB
+from ..Singletons.logger import Logger
 from ..Utils.MediaParser import MediaParser
 
 class Parser(Task):

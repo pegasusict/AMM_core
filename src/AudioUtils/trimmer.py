@@ -14,18 +14,19 @@
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
 """Trims silences of start and end of songs."""
+
 from pathlib import Path
 
 from pydub import AudioSegment
 
-from ..models import Codecs
+from src.models import Codecs
 
 class SilenceTrimmer:
     """Trims the silences of the start and end of an audiofile."""
     file: Path = None
     codec: Codecs = None
     threshold: int = -50
-    chunk_size: int = 10
+    chunk: int = 10
     sound: AudioSegment = None
     duration: int = 0
     start_trim: int = 0
@@ -38,7 +39,7 @@ class SilenceTrimmer:
         self.threshold = threshold
         if chunk_size < 10:
             raise ValueError("Chunksize must be at least 10 ms.")
-        self.chunk_size = chunk_size
+        self.chunk = chunk_size
 
         self.sound = AudioSegment.from_file(self.file, format=self.codec)
         self.duration = len(self.sound)
@@ -59,8 +60,8 @@ class SilenceTrimmer:
         else:
             sound = self.sound.reverse()
 
-        while sound[trim_ms:trim_ms+self.chunk_size].dBFS < self.threshold and trim_ms < self.duration:
-            trim_ms += self.chunk_size
+        while sound[trim_ms:trim_ms+self.chunk].dBFS < self.threshold and trim_ms < self.duration:
+            trim_ms += self.chunk
 
         if begin:
             self.start_trim = trim_ms

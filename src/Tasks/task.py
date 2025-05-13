@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#  Copyleft 2021-2024 Mattijs Snepvangers.
+#  Copyleft 2021-2025 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
 #  AMM is free software: you can redistribute it and/or modify  it under the terms of the
@@ -12,6 +12,7 @@
 #
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
+
 """Task class for managing tasks in the application.
 This module defines the Task class and its subclasses for different types of tasks.
 It also defines the TaskType and TaskStatus enums for task management."""
@@ -19,6 +20,7 @@ It also defines the TaskType and TaskStatus enums for task management."""
 from enum import Enum
 import time
 from multiprocessing import Process
+
 
 class TaskType(Enum):
     """Enum for different task types."""
@@ -57,26 +59,22 @@ class Task():
     task_duration = None
     task_progress:int = 0
 
-
     def __init__(self, config, task_name=None, task_type=None):
         """Initializes the Task class."""
         self.config = config
         self.task_name = task_name
         self.task_type = task_type
         self.task_status = TaskStatus.PENDING
+        TaskManager().register_task(self)
 
     def run(self):
-        """
-        Runs the task.
-        """
+        """Runs the task."""
         raise NotImplementedError("Subclasses must implement this method")
 
     def start(self):
-        """
-        Starts the task.
-        """
+        """Starts the task."""
         self.task_start_time = time.time()
-        self.task_status = TaskStatus.RUNNING
+        self.update_status(TaskStatus.RUNNING)
         self.process = Process(target=self.run)
         self.process.start()
         return True
@@ -112,54 +110,25 @@ class Task():
             return True
         return False
 
-    def get_task_status(self):
+    def get_status(self):
         """
         Returns the status of the task.
         """
-        return {
-            "task_id": self.task_id,
-            "task_name": self.task_name,
-            "task_type": self.task_type,
-            "task_status": self.task_status,
-            "task_result": self.task_result,
-            "task_error": self.task_error,
-            "task_start_time": self.task_start_time,
-            "task_end_time": self.task_end_time,
-            "task_duration": self.task_duration,
-            "task_progress": self.task_progress
-        }
+        return self.task_status
 
-    def set_task_progress(self, progress):
-        """
-        Sets the progress of the task.
-        """
-        if 0 <= progress <= 100:
-            self.task_progress = progress
-            if progress >= 100:
-                self.task_status = TaskStatus.COMPLETED
-                self.task_end_time = time.time()
-                self.task_duration = self.task_end_time - self.task_start_time
-            elif progress < 0:
-                self.task_progress = 0
-            elif progress > 100:
-                self.task_progress = 100
-            self.task_status = TaskStatus.RUNNING
-        else:
-            raise ValueError("Progress must be between 0 and 100")
-
-    def get_task_progress(self):
+    def get_progress(self):
         """
         Returns the progress of the task.
         """
         return self.task_progress
 
-    def get_task_result(self):
+    def get_result(self):
         """
         Returns the result of the task.
         """
         return self.task_result or False
 
-    def set_task_result(self, result):
+    def set_result(self, result):
         """
         Sets the result of the task.
         """
@@ -178,13 +147,13 @@ class Task():
             return True
         return False
 
-    def get_task_error(self):
+    def get_error(self):
         """
         Returns the error of the task.
         """
         return self.task_error
 
-    def set_task_error(self, error):
+    def set_error(self, error):
         """
         Sets the error of the task.
         """
@@ -196,30 +165,16 @@ class Task():
         self.process = None
         return True
 
-    def get_task_id(self) -> str:
+    def get_id(self) -> str:
         """
         Returns the task ID.
         """
         return self.task_id
 
-    def set_task_id(self) -> None:
-        """
-        Sets the task ID.
-        """
-        self.task_id = self.task_name + "_" + str(int(time.time()))
-        self.task_id = self.task_id.replace(" ", "_")
-
-    def get_task_name(self) -> str:
-        """
-        Returns the task name.
-        """
-        return self.task_name
-
-    def set_task_status(self, task_status: TaskStatus) -> None:
-        """
-        Sets the task status.
-        """
-        self.task_status = task_status
+    def set_status(self, task_status: TaskStatus) -> None:
+        """Sets the task status."""
+        self.old_status = self.status
+        self.status = task_status
         if task_status == TaskStatus.COMPLETED:
             self.task_end_time = time.time()
             self.task_duration = self.task_end_time - self.task_start_time
@@ -229,14 +184,19 @@ class Task():
             self.task_duration = self.task_end_time - self.task_start_time
             self.task_progress = 100
             self.process = None
+        TaskManager().update_task_status(self)
 
-    def get_task_type(self) -> str:
+    def get_old_status(self) -> TaskStatus:
+        """Gets the old status of the Task."""
+        return self.old_status
+
+    def get_type(self) -> str:
         """
         Returns the task type.
         """
         return self.task_type
 
-    def set_task_type(self, task_type: TaskType) -> None:
+    def set_type(self, task_type: TaskType) -> None:
         """
         Sets the task type.
         """
@@ -244,13 +204,13 @@ class Task():
             raise ValueError("task_type a valid TaskType")
         self.task_type = task_type
 
-    def set_task_process(self, process: Process|None) -> None:
+    def set_process(self, process: Process|None) -> None:
         """
         Sets the task process.
         """
         self.process = process
 
-    def task_finished(self) -> None:
+    def set_finished(self) -> None:
         """
         Sets the task end time, duration, and progress to 100%.
         Unstes Process and sets the task status to COMPLETED.
@@ -270,3 +230,30 @@ class Task():
         """
         self.processed += 1
         self.task_progress = (self.processed / len(self.batch)) * 100
+
+class TaskManager:
+    """TaskManager."""
+
+    # class singleton instance
+    instance = None
+    tasks = []
+
+    def __new__(cls):
+        if not hasattr(cls, 'instance'):
+            cls.instance = super().__new__(cls)
+        return cls.instance
+
+    def register_task(self, task:Task) -> None:
+        """Registers a Task in de TaskManager."""
+        self.tasks[task.get_status][task.get_id] = task
+
+    def update_task_status(self, task:Task) -> None:
+        """Updates de listing of a Task whose status has been changed."""
+        self.unregister_task(task.get_id(), task.get_old_status())
+        self.register_task(task)
+
+    def unregister_task(self, task_id:str, status:TaskStatus) -> None:
+        """Unregisters a Task."""
+        self.tasks[status].remove(task_id)
+
+

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#  Copyleft 2021-2024 Mattijs Snepvangers.
+#  Copyleft 2021-2025 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
 #  AMM is free software: you can redistribute it and/or modify  it under the terms of the
@@ -15,6 +15,9 @@
 
 
 import os
+from enum import Enum
+from pathlib import Path
+
 from mutagen import File
 from mutagen.mp4 import MP4
 from mutagen.apev2 import APEv2
@@ -25,8 +28,19 @@ from mutagen.wavpack import WavPack
 from mutagen.asf import ASF
 from mutagen.id3 import ID3NoHeaderError
 from mutagen.flac import FLACNoHeaderError
-from ..Singletons.config import Config
-from ..Singletons.Logger import Logger
+
+from src.Singletons.config import Config
+from src.Singletons.logger import Logger
+
+class FileTypes(Enum):
+	"""FileType Enums"""
+	MP3 = MP3
+	MP4 = MP4
+	FLAC = FLAC
+	WAV = WavPack
+	OGG = OggVorbis
+	APE = APEv2
+	ASF = ASF
 
 class MediaParser:
 	"""
@@ -35,33 +49,12 @@ class MediaParser:
 	"""
 
 	def __init__(self, config:Config):
-		"""
-		Initializes the MediaParser class.
-
-		Args:
-			config: The configuration object.
-		"""
+		"""Initializes the MediaParser class."""
 		self.config = config
-		self.file_types = {
-			'mp3': MP3,
-			'mp4': MP4,
-			'flac': FLAC,
-			'wav': WavPack,
-			'ogg': OggVorbis,
-			'ape': APEv2,
-			'asf': ASF
-		}
+		self.logger = Logger(config)
 
-	def parse(self, file_path) -> dict:
-		"""
-		Parses the media file and returns the metadata.
-
-		Args:
-			file_path: The path to the media file.
-
-		Returns:
-			dict: A dictionary containing the metadata.
-		"""
+	def parse(self, file_path:Path) -> dict:
+		"""Parses the media file and returns the metadata."""
 		file_type = self.get_file_type(file_path)
 		if file_type is None:
 			return None
@@ -79,12 +72,12 @@ class MediaParser:
 			metadata['file_extension'] = self.get_file_extension(file_path)
 
 		except (ID3NoHeaderError, FLACNoHeaderError) as e:
-			Logger.error(f"Error parsing file {file_path}: {e}")
+			self.logger.error(f"Error parsing file {file_path}: {e}")
 			return None
 
 		return metadata
 
-	def get_file_type(self, file_path) -> str:
+	def get_file_type(self, file_path:Path) -> str:
 		"""
 		Returns the file type of the media file.
 
@@ -95,13 +88,13 @@ class MediaParser:
 			str: The file type of the media file.
 		"""
 		file_extension = self.get_file_extension(file_path)
-		if file_extension in self.file_types:
+		if file_extension.upper in FileTypes:
 			return file_extension
 		else:
-			Logger.error(f"Unsupported file type: {file_extension}")
+			self.logger.error(f"Unsupported file type: {file_extension}")
 			return None
 
-	def get_file_extension(self, file_path) -> str:
+	def get_file_extension(self, file_path:Path) -> str:
 		"""
 		Returns the file extension of the media file.
 
@@ -113,7 +106,7 @@ class MediaParser:
 		"""
 		return file_path.split('.')[-1].lower()
 
-	def get_file_name(self, file_path) -> str:
+	def get_file_name(self, file_path:Path) -> str:
 		"""
 		Returns the file name of the media file.
 		Args:
@@ -123,7 +116,7 @@ class MediaParser:
 		"""
 		return file_path.split('/')[-1].split('.')[0]
 
-	def get_file_size(self, file_path) -> int:
+	def get_file_size(self, file_path:Path) -> int:
 		"""
 		Returns the file size of the media file.
 		Args:
@@ -133,7 +126,7 @@ class MediaParser:
 		"""
 		return os.path.getsize(file_path)
 
-	def get_bitrate(self, file_path) -> int:
+	def get_bitrate(self, file_path:Path) -> int:
 		"""
 		Returns the bitrate of the media file.
 		Args:
@@ -145,25 +138,25 @@ class MediaParser:
 		if audio is not None:
 			return audio.info.bitrate
 		else:
-			Logger.error(f"Error getting bitrate for file {file_path}")
+			self.logger.error(f"Error getting bitrate for file {file_path}")
 			return None
 
-	def get_duration(self, file_path) -> float:
+	def get_duration(self, file_path:Path) -> int:
 		"""
-		Returns the duration of the media file.
+		Returns the duration in seconds of the media file.
 		Args:
 			file_path: The path to the media file.
 		Returns:
-			float: The duration of the media file.
+			int: The duration of the media file.
 		"""
 		audio = File(file_path)
 		if audio is not None:
 			return audio.info.length
 		else:
-			Logger.error(f"Error getting duration for file {file_path}")
+			self.logger.error(f"Error getting duration for file {file_path}")
 			return None
 
-	def get_sample_rate(self, file_path) -> int:
+	def get_sample_rate(self, file_path:Path) -> int:
 		"""
 		Returns the sample rate of the media file.
 		Args:
@@ -175,10 +168,10 @@ class MediaParser:
 		if audio is not None:
 			return audio.info.sample_rate
 		else:
-			Logger.error(f"Error getting sample rate for file {file_path}")
+			self.logger.error(f"Error getting sample rate for file {file_path}")
 			return None
 
-	def get_channels(self, file_path) -> int:
+	def get_channels(self, file_path:Path) -> int:
 		"""
 		Returns the number of channels of the media file.
 		Args:
@@ -190,10 +183,10 @@ class MediaParser:
 		if audio is not None:
 			return audio.info.channels
 		else:
-			Logger.error(f"Error getting channels for file {file_path}")
+			self.logger.error(f"Error getting channels for file {file_path}")
 			return None
 
-	def get_codec(self, file_path) -> str:
+	def get_codec(self, file_path:Path) -> str:
 		"""
 		Returns the codec of the media file.
 		Args:
@@ -205,5 +198,5 @@ class MediaParser:
 		if audio is not None:
 			return audio.info.codec
 		else:
-			Logger.error(f"Error getting codec for file {file_path}")
+			self.logger.error(f"Error getting codec for file {file_path}")
 			return None

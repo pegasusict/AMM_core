@@ -15,20 +15,11 @@ DEFAULT_CONFIG = {
     "musicbrainz": {
         "host": "musicbrainz.org",
         "port": 443,
-    },
-    "lastfm": {
-        "host": "ws.audioscrobbler.com",
-        "port": 80,
-    },
-    "database": {
-        "host": "localhost",
-        "port": 5432,
-        "user": "amm",
-        "password": "password",
-        "database": "amm"
+        "ignore_existing_acoustid_fingerprints": False,
+        
     },
     "logging": {
-        "level": "INFO",
+        "level": "DEBUG",
         "file": "amm.log"
     },
     "paths": {
@@ -37,9 +28,6 @@ DEFAULT_CONFIG = {
         "export": "export/",
         "music": "music/",
         "art": "art/",
-    },
-    "api_keys": {
-        "lastfm": "your_lastfm_api_key"
     },
     "features": {
         "art_getter": True,
