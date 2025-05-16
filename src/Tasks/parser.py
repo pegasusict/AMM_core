@@ -13,20 +13,20 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Parses media fiules and extracts metadata from them.
+"""Parses media files and extracts metadata from them.
 It uses the mutagen library to read and write metadata to media files.
 """
 
+from pathlib import Path
 from .task import Task, TaskType
 from ..Singletons.config import Config
 from ..Singletons.database import DB
 from ..Singletons.logger import Logger
-from ..Utils.MediaParser import MediaParser
+from ..AudioUtils.media_parser import MediaParser
 
 class Parser(Task):
     """
     This class is used to parse media files and extract metadata from them.
-    It uses the mutagen library to read and write metadata to media files.
     """
 
     def __init__(self, config:Config, batch:list):
@@ -36,27 +36,24 @@ class Parser(Task):
         Args:
             config: The configuration object.
         """
-        super().__init__(config, task_name="Parser", task_type=TaskType.PARSER)
+        super().__init__(config, task_type=TaskType.PARSER)
         self.config = config
         self.batch = batch
         self.db = DB()
-        self.media_parser = MediaParser(config)
         self.logger = Logger(config)
+        self.media_parser = MediaParser(config)
 
     def run(self) -> None:
         """
         Runs the parser task.
-        It parses the media files in the import path and extracts metadata from them.
         """
         for file in self.batch:
             # Parse the media file
             try:
-                metadata = self.media_parser.parse(file)
+                metadata = self.media_parser.parse(Path(file))
+                self.db.register_file(str(file), metadata) # type: ignore
             except Exception as e:
-                self.logger.error(f"Error parsing file {file}: {e}")
+                self.logger.error(f"Error processing file {file}: {e}")
                 continue
-
-            # Add the metadata to the database
-            self.db.register_file(file, metadata)
 
             self.set_progress()

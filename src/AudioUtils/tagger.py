@@ -13,7 +13,7 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Write tags of songs."""
+"""Write and read tags of songs."""
 
 from pathlib import Path
 
@@ -22,6 +22,7 @@ from mutagen.oggvorbis import OggVorbis
 from mutagen.flac import FLAC
 from mutagen.id3 import ID3
 from mutagen.asf import ASF
+from collections.abc import Iterable
 
 # from ..Singletons.config import Config
 # from ..Singletons.logger import Logger
@@ -54,9 +55,20 @@ class Tagger():
         return self.audio["acoustid"] or None
 
     def get_all(self) -> dict:
-        """Retrieve all tags."""
-        return self.audio
+        """Retrieve all tags as a dictionary."""
+        return dict(self.audio)
 
-    def get(self, tag:str) -> str:
+    def get(self, tag:str) -> str|None:
         """Retrieve the requested Tag or None if not available."""
         return self.audio[tag] or None
+
+    def set_tag(self, tag: str, value: str) -> None:
+        """Set the value of a tag and save to file."""
+        self.audio[tag] = value
+        self.audio.save()
+
+    def set_tags(self, tags: Iterable[tuple[str, str]]) -> None:
+        """Sets the value of several tags and save to file"""
+        for tag, value in tags:
+            self.audio[tag] = value
+        self.audio.save()

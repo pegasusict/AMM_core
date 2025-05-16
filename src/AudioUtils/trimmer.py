@@ -19,19 +19,20 @@ from pathlib import Path
 
 from pydub import AudioSegment
 
-from src.models import Codecs
+from ..Exceptions import OperationFailedError
+from ..models import Codecs
 
 class SilenceTrimmer:
     """Trims the silences of the start and end of an audiofile."""
-    file: Path = None
-    codec: Codecs = None
+    file: Path|None = None
+    codec: Codecs|None = None
     threshold: int = -50
     chunk: int = 10
-    sound: AudioSegment = None
+    sound: AudioSegment|None = None
     duration: int = 0
     start_trim: int = 0
     end_trim: int = 0
-    trimmed_sound: AudioSegment = None
+    trimmed_sound: AudioSegment|None = None
 
     def __init__(self, file:Path, codec:Codecs, threshold:int=-50, chunk_size:int=10) -> None:
         self.file = file
@@ -42,7 +43,10 @@ class SilenceTrimmer:
         self.chunk = chunk_size
 
         self.sound = AudioSegment.from_file(self.file, format=self.codec)
-        self.duration = len(self.sound)
+        if self.sound is not None:
+            self.duration = len(self.sound)
+        else:
+            self.duration = 0
 
 
     def _detect_silence(self, begin: bool) -> None:
@@ -53,14 +57,26 @@ class SilenceTrimmer:
         silence_threshold in dB
         chunk_size in ms
         """
+        if self.sound is None:
+            raise OperationFailedError("empty file")
         trim_ms = 0
 
         if begin:
             sound = self.sound
         else:
-            sound = self.sound.reverse()
+            sound = self.sound.reverse() if self.sound is not None else None
 
-        while sound[trim_ms:trim_ms+self.chunk].dBFS < self.threshold and trim_ms < self.duration:
+        if sound is None:
+            if begin:
+                self.start_trim = 0
+            else:
+                self.end_trim = 0
+            return
+
+        while trim_ms < self.duration:
+            segment = sound[trim_ms:trim_ms+self.chunk]
+            if not isinstance(segment, AudioSegment) or len(segment) == 0 or segment.dBFS >= self.threshold:
+                break
             trim_ms += self.chunk
 
         if begin:
@@ -74,7 +90,13 @@ class SilenceTrimmer:
         self._detect_silence(True)
         self._detect_silence(False)
 
-        self.trimmed_sound = self.sound[self.start_trim:self.duration-self.end_trim]
-
-        # save the audio in the original format
-        self.trimmed_sound.export(self.file, format=self.codec)
+        if self.sound is not None:
+            self.trimmed_sound = self.sound[self.start_trim:self.duration-self.end_trim] # type: ignore
+            # save the audio in the original format
+            if self.trimmed_sound is not None:
+                self.trimmed_sound.export(self.file, format=str(self.codec))
+            else:
+                raise OperationFailedError("Trimming resulted in no audio data to export.")
+        else:
+            self.trimmed_sound = None
+            raise OperationFailedError("No audio data loaded to trim.")

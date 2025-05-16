@@ -14,10 +14,12 @@
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
 """Database Models for the application."""
+
 from __future__ import annotations
 from enum import Enum
-from datetime import datetime
+import datetime
 from typing import List, Optional
+from multiprocessing import Process
 
 from sqlmodel import SQLModel, Field, Relationship, String
 
@@ -27,7 +29,7 @@ class UserRole(Enum):
     ADMIN = "admin"
     USER = "user"
     GUEST = "guest"
-    
+
     @classmethod
     def get_choices(cls):
         """
@@ -45,14 +47,56 @@ class User(SQLModel, table=True):
     first_name: str = Field(default="")
     middle_name: str = Field(default="")
     last_name: str = Field(default="")
-    date_of_birth: datetime
+    date_of_birth: datetime.datetime
     is_active: bool
     role: Enum = Field(default=UserRole.USER.value)  # Default role is USER
-    created_at: datetime = Field(default=datetime.utcnow)
-    updated_at: datetime = Field(default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+    updated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc), sa_column_kwargs={"onupdate": lambda: datetime.datetime.now(datetime.timezone.utc)})
 
     def __repr__(self):
         return f"<User(id={self.id}, username={self.username}, email={self.email}, role={self.role})>"
+
+class TaskType(Enum):
+    """Enum for different task types."""
+    ART_GETTER = "art_getter"
+    IMPORTER = "importer"
+    TAGGER = "tagger"
+    FINGERPRINTER = "fingerprinter"
+    EXPORTER = "exporter"
+    LYRICS_GETTER = "lyrics_getter"
+    ALBUM_COVER_GETTER = "album_cover_getter"
+    NORMALIZER = "normalizer"
+    TRIMMER = "trimmer"
+    CONVERTER = "converter"
+    PARSER = "parser"
+    FILE_RENAME = "file_rename"
+    FILE_MOVE = "file_move"
+    FILE_DELETE = "file_delete"
+class TaskStatus(Enum):
+    """Enum for different task statuses."""
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+class Task(SQLModel, table=True):
+    id: int = Field(int, primary_key=True, unique=True)
+    task_id:str = Field(String, nullable=False)
+    start_time:datetime.datetime
+    end_time:datetime.datetime
+    duration:int
+    batch_files:List["File"] = Relationship(back_populates="task")
+    batch_tracks:List["Track"] = Relationship(back_populates="task")
+    batch_albums:List["Album"] = Relationship(back_populates="task")
+    batch_persons:List["Person"] = Relationship(back_populates="task")
+    processed:int
+    progress:float
+    process:Process
+    result:str
+    error:str
+    status:Enum = Field(Enum(TaskStatus))
+    task_type:Enum = Field(Enum(TaskType))
 
 ########################################################################
 class ItemBase(SQLModel):
@@ -67,7 +111,7 @@ class Stat(ItemBase, table=True):
 
     name: str = Field(String(30))
     value: int = Field(default=0)
-    range: Optional[StatRange] = Relationship(back_populates="stat", cascade="all, delete-orphan")
+    range: Optional[StatRange] = Relationship(back_populates="stat")
 
     def __repr__(self) -> str:
         return f"Stat {self.name}"
@@ -84,17 +128,14 @@ class Codecs(Enum):
     """Codec types for audio files."""
     WAV = 0
     WMA = 1
-    MP2 = 2
-    MP3 = 3
-    MP4 = 4
-    M4A = 5
-    FLAC = 6
-    ASF = 7
-    OGG = 8
-    AAC = 9
-    APE = 10
-    AIFF = 11
-    WAVE = 12
+    MP3 = 2
+    MP4 = 3
+    FLAC = 4
+    ASF = 5
+    OGG = 6
+    AAC = 7
+    APE = 8
+    AIFF = 9
 
 class PersonNameTypes(Enum):
     """Types of person names."""
@@ -119,8 +160,11 @@ class File(ItemBase, table=True):
     """File information."""
 
     audio_ip: str
-    imported: datetime = Field(default=datetime.utcnow())
-    processed: datetime = Field(onupdate=datetime.utcnow())
+    imported: datetime.datetime = Field(default=datetime.datetime.now(datetime.timezone.utc))
+    processed: datetime.datetime = Field(
+        default=None,
+        sa_column_kwargs={"onupdate": datetime.datetime.now(datetime.timezone.utc)}
+    )
     bitrate: int
     sample_rate: int
     channels: int
@@ -133,6 +177,7 @@ class File(ItemBase, table=True):
     stage: int = Field(default=0)
     track: Track = Relationship(back_populates="files")
     paths: List["FilePath"] = Relationship(back_populates="file")
+    task: Task = Relationship(back_populates="batch_files")
 
     def __repr__(self) -> str:
         return f"File {self.id}"
@@ -151,6 +196,7 @@ class Track(ItemBase, table=True):
     composers: List["Person"] = Relationship(back_populates="composed_tracks")
     lyricists: List["Person"] = Relationship(back_populates="lyric_tracks")
     producers: List["Person"] = Relationship(back_populates="produced_tracks")
+    task: Task = Relationship(back_populates="batch_tracks")
 
     def __repr__(self) -> str: return f"Track {self.id}"
 
@@ -170,6 +216,7 @@ class Album(ItemBase, table=True):
     lyricists: List["Person"] = Relationship(back_populates="lyric_albums")
     producers: List["Person"] = Relationship(back_populates="produced_albums")
     picture: "Picture" = Relationship(back_populates="album")
+    task: Task = Relationship(back_populates="batch_albums")
 
     def __repr__(self) -> str:
         return f"Album {self.id}"
@@ -190,6 +237,7 @@ class Person(ItemBase, table=True):
     composed_albums: List["Album"] = Relationship(back_populates="composers")
     lyric_albums: List["Album"] = Relationship(back_populates="lyricists")
     produced_albums: List["Album"] = Relationship(back_populates="producers")
+    task: Task = Relationship(back_populates="batch_persons")
 
     def __repr__(self) -> str:
         return f"Person {self.id}"
@@ -233,7 +281,7 @@ class FilePath(OptFieldBase, table=True):
 
 class Date(OptFieldBase, table=True):
     """Date information."""
-    date: datetime
+    date: datetime.date
     type: Enum = Field(Enum(DateTypes))
     person: "Person" = Relationship(back_populates="dates")
     track: "Track" = Relationship(back_populates="dates")

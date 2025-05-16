@@ -15,8 +15,6 @@
 """Module to define mappings between schemas and queries."""
 from __future__ import annotations
 
-from graphene import ObjectType, Field, ID
-
 from .Schemas import Track, Album, User, Person, Label, Stat, File, Genre
 
 class Query(ObjectType):

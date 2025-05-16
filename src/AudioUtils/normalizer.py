@@ -19,7 +19,6 @@ from pathlib import Path
 
 from pydub import AudioSegment, effects
 
-
 def normalize(file:Path, file_type:str) -> None:
     """Analyse the audio volume."""
     rawsound = AudioSegment.from_file(file, file_type)

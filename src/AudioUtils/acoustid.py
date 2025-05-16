@@ -14,28 +14,34 @@
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
 """This Module generates a Acoustid fingerprint if needed."""
+
 from os import getenv
 from pathlib import Path
 
-import pyacoustid
+import acoustid
+from Exceptions import FileError
 
 from ..Singletons.logger import Logger
 from ..Singletons.config import Config
+from ..AudioUtils.tagger import Tagger
 from ..AudioUtils.media_parser import MediaParser as Parser
+from . import get_file_type
 
 class AcoustID():
     """This class generates a AcoustID fingerprint if one is needed."""
     fileinfo = {}
+    duration:int|None
+    fingerprint:str|None
 
     def __init__(self, path:Path):
         self.config = Config()
         self.log = Logger(self.config)
-        ACOUSTID_APIKEY = getenv('ACOUSTID_APIKEY')
-        if not ACOUSTID_APIKEY:
+        self.api_key = getenv('ACOUSTID_APIKEY')
+        if not self.api_key:
             raise EnvironmentError("Environment variable 'ACOUSTID_APIKEY' is not set.")
         self.path = path
 
-    def _scan_file(self, path):
+    def _scan_file(self, path:Path):
         """
         Generates audio fingerprint.
 
@@ -45,27 +51,35 @@ class AcoustID():
         Returns:
             int, str    tracklength, fingerprint
         """
-        self.duration, self.fingerprint = pyacoustid.fingerprint_file(path)
+        result = acoustid.fingerprint_file(path) # type: ignore
+        if isinstance(result, tuple) and len(result) == 2:
+            self.duration, self.fingerprint = int(result[0]), str(result[1])
+        else:
+            raise RuntimeError("acoustid.fingerprint_file did not return (duration, fingerprint) tuple")
 
     def _get_track_info(self) -> None:
         """Retrieves track information from AcoustID Server."""
-        response = pyacoustid.lookup(ACOUSTID_APIKEY, self.fingerprint, self.duration)
-        if isinstance(response, dict):
-            response = (response)
-        for datadict in response:
-            for key, value in datadict:
-                if value is not None:
-                    self.fileinfo[key] = value
+        response = acoustid.lookup(self.api_key, self.fingerprint, self.duration)
+        score, mbid, title, artist = acoustid.parse_lookup_result(response)
+        self.fileinfo["fingerprint"] = self.fingerprint
+        self.fileinfo["score"] = score
+        self.fileinfo["mbid"] = mbid
+        self.fileinfo["title"] = title
+        self.fileinfo["artist"] = artist
 
     def process(self) -> dict:
-        """Processes the given file, returning the MBID"""
-        parser = Parser()
-        mbid = parser
-        self.fingerprint = parser.get("acoustid",False)
-        self.duration = None
+        """Processes the given file, returning the MBID and the fingerprint"""
+        file_type = get_file_type(self.path)
+        if file_type is None:
+            raise FileError("Invalid or non-existing file extension")
+        tagger = Tagger(self.path, file_type)
+        mbid = tagger.get_mbid()
+        if not mbid:
+            self.fingerprint = tagger.get_acoustid()
         if not self.fingerprint:
-            self._scan_file()
-        self._get_track_info()
-        return {
-            "mbid" : self.fileinfo["mbid"]
-        }
+            self._scan_file(self.path)
+        elif self.duration is None:
+            parser = Parser()
+            self.duration = parser.get_duration(self.path)
+            self._get_track_info()
+        return self.fileinfo

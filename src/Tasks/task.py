@@ -17,95 +17,79 @@
 This module defines the Task class and its subclasses for different types of tasks.
 It also defines the TaskType and TaskStatus enums for task management."""
 
-from enum import Enum
 import time
+import datetime
 from multiprocessing import Process
+from pathlib import Path
 
-
-class TaskType(Enum):
-    """Enum for different task types."""
-    ART_GETTER = "art_getter"
-    IMPORTER = "importer"
-    TAGGER = "tagger"
-    EXPORTER = "exporter"
-    LYRICS_GETTER = "lyrics_getter"
-    ALBUM_COVER_GETTER = "album_cover_getter"
-    NORMALIZER = "normalizer"
-    TRIMMER = "trimmer"
-    CONVERTER = "converter"
-    PARSER = "parser"
-    FILE_RENAME = "file_rename"
-    FILE_MOVE = "file_move"
-    FILE_DELETE = "file_delete"
-
-class TaskStatus(Enum):
-    """Enum for different task statuses."""
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
+from ..models import TaskType, TaskStatus
+from ..Singletons.config import Config
 
 class Task():
     """Task Parent class to be used by tasks which are managed by TaskManager."""
     processed:int = 0
-    batch:dict = {}
-    process:Process = None
-    task_id:str = None
-    task_result:str = None
-    task_error:str = None
-    task_start_time = None
-    task_end_time = None
-    task_duration = None
-    task_progress:int = 0
+    batch:dict[str, str]|list[str]|list[Path]
+    process:Process|None
+    task_id:str
+    result:str|None
+    error:str
+    start_time:float
+    end_time:float
+    duration: float
+    progress: float = 0
+    status:TaskStatus = TaskStatus.PENDING
+    task_type:TaskType
 
-    def __init__(self, config, task_name=None, task_type=None):
+    def __init__(self, config:Config, task_type:TaskType):
         """Initializes the Task class."""
         self.config = config
-        self.task_name = task_name
         self.task_type = task_type
         self.task_status = TaskStatus.PENDING
-        TaskManager().register_task(self)
 
-    def run(self):
+        task_name = task_type.value
+        timestamp = datetime.datetime.now(datetime.timezone.utc)
+        self.task_id = f"{task_name}_{timestamp}"
+
+        TaskManager().register_task(self) # type: ignore
+
+    def run(self) -> None:
         """Runs the task."""
         raise NotImplementedError("Subclasses must implement this method")
 
-    def start(self):
+    def start(self) -> None:
         """Starts the task."""
-        self.task_start_time = time.time()
-        self.update_status(TaskStatus.RUNNING)
+        self.start_time = time.time()
+        self.set_status(TaskStatus.RUNNING)
         self.process = Process(target=self.run)
         self.process.start()
-        return True
 
-    def wait(self):
+    def wait(self) -> bool:
         """
         Waits for the task to complete.
         """
         if self.process and self.process.is_alive():
             self.process.join()
-            self.task_end_time = time.time()
-            self.task_duration = self.task_end_time - self.task_start_time
+            self.end_time = time.time()
+            self.duration = self.end_time - self.start_time
             if self.process.exitcode == 0:
-                self.task_status = TaskStatus.COMPLETED
+                self.set_status(TaskStatus.COMPLETED)
             else:
-                self.task_status = TaskStatus.FAILED
-                self.task_error = "Task failed"
+                self.set_status(TaskStatus.FAILED)
+                self.error = "Task failed"
         return True
 
-    def cancel(self):
+    def cancel(self) -> bool:
         """
         Cancels the task.
         """
         if self.process and self.process.is_alive():
             self.process.terminate()
-            self.task_status = TaskStatus.CANCELLED
-            self.task_end_time = time.time()
-            self.task_duration = self.task_end_time - self.task_start_time
-            self.task_progress = 100
-            self.task_result = None
-            self.task_error = "Task cancelled"
+            self.set_status(TaskStatus.CANCELLED)
+            self.end_time = time.time()
+            self.duration = self.end_time - self.start_time
+            self.progress = 100
+            self.result = None
+            self.error = "Task cancelled"
             self.process = None
             return True
         return False
@@ -120,50 +104,47 @@ class Task():
         """
         Returns the progress of the task.
         """
-        return self.task_progress
+        return self.progress
 
-    def get_result(self):
+    def get_result(self) -> str|bool:
         """
         Returns the result of the task.
         """
-        return self.task_result or False
+        return self.result or False
 
-    def set_result(self, result):
+    def set_result(self, result:str|None) -> None:
         """
         Sets the result of the task.
         """
-        self.task_result = result
         if result is not None:
-            self.task_status = TaskStatus.COMPLETED
-            self.task_end_time = time.time()
-            self.task_duration = self.task_end_time - self.task_start_time
+            self.result = result
+            self.set_status(TaskStatus.COMPLETED)
+            self.end_time = time.time()
+            self.duration = self.end_time - self.start_time
         else:
-            self.task_status = TaskStatus.FAILED
-            self.task_error = "Task failed"
-            self.task_end_time = time.time()
-            self.task_duration = self.task_end_time - self.task_start_time
-            self.task_progress = 100
+            self.set_status(TaskStatus.FAILED)
+            self.error = "Task failed"
+            self.end_time = time.time()
+            self.duration = self.end_time - self.start_time
+            self.progress = 100
             self.process = None
-            return True
-        return False
 
-    def get_error(self):
+    def get_error(self) -> str:
         """
         Returns the error of the task.
         """
-        return self.task_error
+        return self.error
 
-    def set_error(self, error):
+    def set_error(self, error:str) -> None:
         """
         Sets the error of the task.
         """
-        self.task_error = error
-        self.task_status = TaskStatus.FAILED
-        self.task_end_time = time.time()
-        self.task_duration = self.task_end_time - self.task_start_time
-        self.task_progress = 100
+        self.error = error
+        self.set_status(TaskStatus.FAILED)
+        self.end_time = time.time()
+        self.duration = self.end_time - self.start_time
+        self.progress = 100
         self.process = None
-        return True
 
     def get_id(self) -> str:
         """
@@ -176,13 +157,13 @@ class Task():
         self.old_status = self.status
         self.status = task_status
         if task_status == TaskStatus.COMPLETED:
-            self.task_end_time = time.time()
-            self.task_duration = self.task_end_time - self.task_start_time
+            self.end_time = time.time()
+            self.duration = self.end_time - self.start_time
         elif task_status == TaskStatus.FAILED:
-            self.task_error = "Task failed"
-            self.task_end_time = time.time()
-            self.task_duration = self.task_end_time - self.task_start_time
-            self.task_progress = 100
+            self.error = "Task failed"
+            self.end_time = time.time()
+            self.duration = self.end_time - self.start_time
+            self.progress = 100
             self.process = None
         TaskManager().update_task_status(self)
 
@@ -194,7 +175,7 @@ class Task():
         """
         Returns the task type.
         """
-        return self.task_type
+        return self.task_type.value
 
     def set_type(self, task_type: TaskType) -> None:
         """
@@ -215,9 +196,9 @@ class Task():
         Sets the task end time, duration, and progress to 100%.
         Unstes Process and sets the task status to COMPLETED.
         """
-        self.task_end_time = time.time()
-        self.task_duration = self.task_end_time - self.task_start_time
-        self.task_progress = 100
+        self.end_time = time.time()
+        self.duration = self.end_time - self.start_time
+        self.progress = 100
         self.process = None
         self.task_status = TaskStatus.COMPLETED
 
@@ -229,23 +210,29 @@ class Task():
             progress: The progress of the task.
         """
         self.processed += 1
-        self.task_progress = (self.processed / len(self.batch)) * 100
+        self.progress = (self.processed / len(self.batch)) * 100
 
 class TaskManager:
     """TaskManager."""
 
     # class singleton instance
     instance = None
-    tasks = []
+
+    tasks:dict[str, list[str]]
 
     def __new__(cls):
-        if not hasattr(cls, 'instance'):
+        if not hasattr(cls, 'instance') or cls.instance is None:
             cls.instance = super().__new__(cls)
+            cls.instance.tasks = {}
         return cls.instance
 
-    def register_task(self, task:Task) -> None:
+    @classmethod
+    def register_task(cls, task:Task) -> None:
         """Registers a Task in de TaskManager."""
-        self.tasks[task.get_status][task.get_id] = task
+        status = str(task.get_status())
+        if status not in cls.tasks:
+            cls.tasks[status] = []
+        cls.tasks[status][task.get_id()] = task # type: ignore
 
     def update_task_status(self, task:Task) -> None:
         """Updates de listing of a Task whose status has been changed."""
@@ -254,6 +241,8 @@ class TaskManager:
 
     def unregister_task(self, task_id:str, status:TaskStatus) -> None:
         """Unregisters a Task."""
-        self.tasks[status].remove(task_id)
+        status_str = str(status)
+        if status_str in self.tasks and task_id in self.tasks[status_str]:
+            self.tasks[status_str].remove(task_id)
 
 

@@ -20,6 +20,7 @@ It uses the SQLalchemy library to connect to the database and perform operations
 from sqlmodel import SQLModel
 from sqlmodel import create_engine, Session
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
 
 class DB:
     """
@@ -45,18 +46,19 @@ class DB:
 
     def create_db_and_tables(self):
         """Create DB and Tables."""
-        SQLModel.metadata.create_all(self._engine)
+        if self._engine is not None:
+            SQLModel.metadata.create_all(bind=self._engine)
+        else:
+            raise RuntimeError("Database engine is not initialized.")
 
     def get_session(self):
         """Get the database session."""
         with Session(self._engine) as session:
-            yield session
+            return session
 
     def close(self):
         """Close the database session."""
-        if self._session:
-            self._session.close()
-            self._session = None
+        self._session = None
         if self._engine:
             self._engine.dispose()
             self._engine = None
@@ -68,61 +70,65 @@ class DB:
 
     def execute(self, query: str):
         """Execute a query on the database."""
-        session = self.get_session()
-        result = session.execute(query)
-        session.commit()
-        return result
+        with Session(self._engine) as session:
+            result = session.execute(text(query))
+            session.commit()
+            return result
 
     def fetchall(self, query: str):
         """Fetch all results from a query."""
-        session = self.get_session()
-        result = session.execute(query).fetchall()
-        session.commit()
-        return result
+        with Session(self._engine) as session:
+            result = session.execute(text(query)).fetchall()
+            session.commit()
+            return result
 
     def fetchone(self, query: str):
         """Fetch one result from a query."""
-        session = self.get_session()
-        result = session.execute(query).fetchone()
-        session.commit()
-        return result
+        with Session(self._engine) as session:
+            result = session.execute(text(query)).fetchone()
+            session.commit()
+            return result
 
-    def insert(self, table: str, values: dict):
+    def insert(self, table, values: dict):
         """Insert a record into a table."""
-        session = self.get_session()
-        result = session.execute(table.insert().values(values))
-        session.commit()
-        return result
+        with Session(self._engine) as session:
+            result = session.execute(table.insert().values(values))
+            session.commit()
+            return result
 
-    def update(self, table: str, values: dict, where: str):
+    def update(self, table, values: dict, where):
         """Update a record in a table."""
-        session = self.get_session()
-        result = session.execute(table.update().values(values).where(where))
-        session.commit()
-        return result
+        with Session(self._engine) as session:
+            result = session.execute(table.update().values(values).where(where))
+            session.commit()
+            return result
 
-    def delete(self, table: str, where: str):
+    def delete(self, table, where):
         """Delete a record from a table."""
-        session = self.get_session()
-        result = session.execute(table.delete().where(where))
-        session.commit()
-        return result
+        with Session(self._engine) as session:
+            result = session.execute(table.delete().where(where))
+            session.commit()
+            return result
 
     def get_table_row_count(self, table: str):
         """Get the number of rows in a table."""
-        session = self.get_session()
-        result = session.execute(f"SELECT COUNT(*) FROM {table}")
-        session.commit()
-        return result.fetchone()[0]
+        with Session(self._engine) as session:
+            result = session.execute(text(f"SELECT COUNT(*) FROM {table}"))
+            session.commit()
+            row = result.fetchone()
+            return row[0] if row is not None else 0
 
 ########################################################################
     def set_fields(self, data:dict, subject:object|None=None) -> object|dict:
         """Setting the nonempty values to the object."""
         if subject is None:
             subject = {}
-        for key, value in data:
+        for key, value in data.items():
             if value is not None:
-                subject.key = value
+                if isinstance(subject, dict):
+                    subject[key] = value
+                else:
+                    setattr(subject, key, value)
         return subject
 
 ########################################################################
@@ -134,5 +140,7 @@ class DB:
     def register_file(self, filepath:str, metadata:dict):
         """Register metadata in the database."""
         values = self.set_fields(metadata)
-        values.filepath = filepath
+        if not isinstance(values, dict):
+            values = vars(values)
+        values["filepath"] = filepath
         return self.insert(table="files",values=values)

@@ -13,29 +13,36 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 import os
-from ..Singletons.stack import Stack
-from ..Singletons.logger import Logger
-from ..Singletons.database import DB
-from ..Singletons.config import Config
-from .task import Task, TaskType, TaskStatus
+
+from Singletons.stack import Stack
+from Singletons.logger import Logger
+from Singletons.config import Config
+from task import Task, TaskType
+from parser import Parser
 
 class Importer(Task):
     """
     This class is used to import files from a directory.
     It scans the directory and returns a list of files to be imported.
     """
-    def __init__(self, config: Config, task_name="Importer", task_type=TaskType.IMPORTER):
+    def __init__(self, config: Config):
         """
         Initializes the Importer class.
 
         Args:
             config: The configuration object.
         """
-        super().__init__(config, task_name=task_name, task_type=task_type)
+        super().__init__(config, task_type=TaskType.IMPORTER)
         self.config = config
         self.base_path = self.config.get("paths", "import")
-        self.ext = self.config.get("extensions", "import")
-        self.clean = self.config.get("clean", False)
+        ext_val = self.config.get("extensions", "import")
+        if isinstance(ext_val, list):
+            self.ext = ext_val
+        elif ext_val is None:
+            self.ext = []
+        else:
+            self.ext = list(ext_val) if hasattr(ext_val, '__iter__') else [str(ext_val)] # type: ignore
+        self.clean = self.config.get("import", "clean", False)
         self.stack = Stack()
         self.stack.add_counter('all_files', 0)
         self.stack.add_counter('all_folders', 0)
@@ -50,7 +57,12 @@ class Importer(Task):
         optionally removes any files not included in the filter."""
         files, _ = self.fast_scan(self.base_path)
         # create task for files list to be processed by the parser
-        if len(files) > 0:
+        if files is not None and len(files) > 0:
+            task = Parser(self.config, files)
+            task.start()
+            task.wait()
+        _, files = self.fast_scan(self.base_path)
+        if files is not None and len(files) > 0:
             task = Parser(self.config, files)
             task.start()
             task.wait()
@@ -76,7 +88,7 @@ class Importer(Task):
         clean = self.clean
 
         if not os.path.exists(path):
-            Logger.error(f"Base path {path} does not exist")
+            Logger(Config()).error(f"Base path {path} does not exist")
             return None, None
 
         for file in os.scandir(path):
@@ -84,7 +96,7 @@ class Importer(Task):
                 folders.append(file.path)
                 stack.add_counter('all_folders')
             elif file.is_file(follow_symlinks=False):
-                if ext.len < 1 or os.path.splitext(file.name)[1].lower() in ext:
+                if len(ext) < 1 or os.path.splitext(file.name)[1].lower() in ext:
                     files.append(file.path)
                     stack.add_counter('all_files')
                 elif clean and os.path.splitext(file.name)[1].lower() not in ext:
@@ -92,6 +104,7 @@ class Importer(Task):
                     stack.add_counter('removed_files')
         stack.add_counter('scanned_folders')
         for path in list(folders):
+            # TODO: pop path
             folders2,files2 = self.fast_scan(path)
             if folders2:
                 folders.extend(folders2)
@@ -99,4 +112,3 @@ class Importer(Task):
                 files.extend(files2)
 
         return folders, files
-

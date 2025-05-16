@@ -1,12 +1,25 @@
+# -*- coding: utf-8 -*-
+#  Copyleft 2021-2025 Mattijs Snepvangers.
+#  This file is part of Audiophiles' Music Manager, hereafter named AMM.
+#
+#  AMM is free software: you can redistribute it and/or modify  it under the terms of the
+#   GNU General Public License as published by  the Free Software Foundation, either version 3
+#   of the License or any later version.
+#
+#  AMM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+#   PURPOSE.  See the GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
+
 """Configuration Management Module"""
 
 import os
 import json
 import logging
 from pathlib import Path
-from encodings import utf_8
-
-ENCODING=utf_8
+ENCODING = "utf-8"
 
 DEFAULT_CONFIG = {
     "general": {
@@ -86,7 +99,7 @@ class Config:
             logging.info(f"Configuration saved to {self.config_file}")
         self.load_config()
 
-    def get(self, section:str, key:str, default=None) -> str|int|bool:
+    def get(self, section: str, key: str, default=None) -> str | int | bool | list[str] | None:
         """
         Gets a configuration value.
 
@@ -97,7 +110,7 @@ class Config:
         Returns:
             The configuration value.
         """
-        return self.config.get(section[key], default)
+        return self.config[section].get(key, default)
 
     def set(self, section:str, key:str, value):
         """
@@ -108,5 +121,5 @@ class Config:
         """
         self.config[section][key] = value
         self.save_config()
-        logging.info(f"Configuration value {section[key]} set to {value}")
+        logging.info(f"Configuration value {section}[{key}] set to {value}")
         self.load_config()

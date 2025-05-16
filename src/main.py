@@ -18,6 +18,7 @@
 from fastapi import FastAPI
 from dotenv import load_dotenv
 
+
 from .Singletons.stack import Stack
 
 

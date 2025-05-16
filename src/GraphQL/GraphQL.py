@@ -19,8 +19,7 @@ This class is used to add a GraphQL route to the FastAPI application.
 
 import uvicorn
 from fastapi import FastAPI
-from graphene import Schema
-from ariadne import graphql
+
 
 from Mapping import Query, Mutation
 

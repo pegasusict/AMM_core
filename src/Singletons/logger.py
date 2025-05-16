@@ -13,6 +13,7 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
+import logging
 from logging import getLogger, FileHandler, Formatter, StreamHandler
 
 from config import Config
@@ -48,15 +49,27 @@ class Logger:
     def _setup_logger(self):
         """Sets up the logger with the specified log file, log level, and log format."""
         logger = getLogger(__name__)
-        logger.setLevel(self.log_level)
-
-        # Create file handler
-        file_handler = FileHandler(self.log_file)
-        file_handler.setLevel(self.log_level)
+        level = self.log_level
+        if isinstance(level, str):
+            level = logging._nameToLevel.get(level.upper(), logging.INFO)
+        if not isinstance(level, int):
+            level = logging.INFO
+        file_handler = FileHandler(str(self.log_file))
+        file_handler.setLevel(level)
 
         # Create console handler
         console_handler = StreamHandler()
-        console_handler.setLevel(self.log_level)
+        console_handler.setLevel(level)
+
+        # Create console handler
+        console_handler = StreamHandler()
+        # Ensure log level is an int or valid string
+        level_for_console = self.log_level
+        if isinstance(level_for_console, str):
+            level_for_console = logging._nameToLevel.get(level_for_console.upper(), logging.INFO)
+        if not isinstance(level_for_console, int):
+            level_for_console = logging.INFO
+        console_handler.setLevel(level_for_console)
 
         # Create formatter
         formatter = Formatter(self.log_format)
@@ -92,19 +105,8 @@ class Logger:
         self.logger.critical(message)
 
     def exception(self, message: str):
-        """Logs an exception message."""
+        """Logs an exception message with traceback."""
         self.logger.exception(message)
-
-    def set_log_level(self, level: str):
-        """Sets the log level for the logger."""
-        self.log_level = level
-        self.logger.setLevel(level)
-
-        for handler in self.logger.handlers:
-            handler.setLevel(level)
-
-        log_msg = f"Log level set to {level}"
-        self.logger.info(log_msg)
 
     def set_log_file(self, log_file: str):
         """Sets the log file for the logger."""
@@ -131,11 +133,11 @@ class Logger:
 
     def get_log_file(self) -> str:
         """Returns the log file for the logger."""
-        return self.log_file
+        return str(self.log_file) if self.log_file is not None else ""
 
     def get_log_level(self) -> str:
         """Returns the log level for the logger."""
-        return self.log_level
+        return str(self.log_level) if self.log_level is not None else ""
 
     def get_log_format(self) -> str:
         """Returns the log format for the logger."""

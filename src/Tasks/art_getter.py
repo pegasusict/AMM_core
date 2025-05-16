@@ -17,11 +17,11 @@
 from enum import Enum
 import urllib.request
 
-from .task import Task, TaskType
-from ..Singletons.config import Config
-from ..Singletons.logger import Logger
-from ..Singletons.database import DB
-from ..Clients.mb_client import MusicBrainzClient as mbclient
+from task import Task, TaskType
+from Singletons.config import Config
+from Singletons.logger import Logger
+from Singletons.database import DB
+from Clients.mb_client import MusicBrainzClient as mbclient
 
 class ArtType(Enum):
     """Enum for different types of art."""
@@ -33,17 +33,17 @@ class ArtGetter(Task):
     This class retrieves art from online archives.
     """
 
-    def __init__(self, batch:dict, config:Config):
+    def __init__(self, batch:dict[str,str], config:Config):
         """
         Initializes the ArtGetter class.
 
         Args:
             config: The configuration object.
         """
-        super().__init__(config, task_name="ArtGetter", task_type=TaskType.ART_GETTER)
+        super().__init__(config, task_type=TaskType.ART_GETTER)
         self.batch = batch
         self.config = config
-        self.art_path = self.config.get("paths","base")+self.config.get("paths","art")+"/"
+        self.art_path = self.config.get("paths","art")
         self.processed=0
         self.logger = Logger(config)
         self.mbc = mbclient(config)
@@ -54,7 +54,7 @@ class ArtGetter(Task):
         Runs the ArtGetter task.
         """
         self.logger.info("Running ArtGetter task")
-        for mbid, art_type in self.batch:
+        for mbid, art_type in self.batch: # type: ignore
             if art_type == ArtType.ALBUM:
                 self.get_album_art(mbid)
             elif art_type == ArtType.ARTIST:
@@ -79,8 +79,8 @@ class ArtGetter(Task):
         else:
             self.logger.warning(f"No album art found for MBID {mbid}")
         self.processed += 1
-        self.task_progress = (self.processed / len(self.batch)) * 100
-        self.logger.info(f"Progress: {self.task_progress:.2f}%")
+        self.progress = (self.processed / len(self.batch)) * 100
+        self.logger.info(f"Progress: {self.progress:.2f}%")
 
     def get_artist_art(self, mbid:str) -> None:
         """
@@ -96,8 +96,8 @@ class ArtGetter(Task):
         else:
             self.logger.warning(f"No artist art found for MBID {mbid}")
         self.processed += 1
-        self.task_progress = (self.processed / len(self.batch)) * 100
-        self.logger.info(f"Progress: {self.task_progress:.2f}%")
+        self.progress = (self.processed / len(self.batch)) * 100
+        self.logger.info(f"Progress: {self.progress:.2f}%")
 
     async def save_art(self, url:str, mbid:str, art_type:ArtType) -> None:
         """
@@ -123,5 +123,5 @@ class ArtGetter(Task):
             return
         save_path = f"{self.art_path}{mbid}.jpg"
         urllib.request.urlretrieve(url, save_path)
-        self.database.register_picture(mbid, art_type, save_path)
+        self.database.register_picture(mbid, art_type.value, save_path)
         self.logger.info(f"Art saved to {save_path}")
