@@ -15,23 +15,18 @@
 
 """Base file for AMM core functionality."""
 
-from fastapi import FastAPI
 from dotenv import load_dotenv
+from fastapi import FastAPI
 
-
-from .Singletons.stack import Stack
-
+from GraphQL.GraphQL import GraphQL
 
 def main():
     """Main function to run the AMM core functionality."""
     load_dotenv(".env")
 
-    stack = Stack()
+    app = FastAPI()
 
-
-
-    fastapi = FastAPI()
-    graphql = GraphQL(fastapi)
+    graphql = GraphQL(app)
     graphql.add_graphql_route("/")
     graphql.run()
 

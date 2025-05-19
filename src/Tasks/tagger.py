@@ -14,25 +14,23 @@
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
 """Writes tags of tracks to files.
-It uses the mutagen library to write metadata to media files.
-"""
+It uses the mutagen library to write metadata to media files."""
 
 from pathlib import Path
-from .task import Task, TaskType
-from ..Singletons.config import Config
-from ..Singletons.database import DB
-from ..Singletons.logger import Logger
-from ..models import Track
-from ..AudioUtils.tagger import Tagger as Tag
-from ..AudioUtils.media_parser import get_file_type
+
+from task import Task, TaskType
+from Singletons.config import Config
+from Singletons.database import DB
+from Singletons.logger import Logger
+from models import Track
+from AudioUtils.tagger import Tagger as Tag
+from AudioUtils.media_parser import get_file_type
 
 
 class Tagger(Task):
-    """
-    This class is used to write tags to media files.
-    """
+    """This class is used to write tags to media files."""
 
-    def __init__(self, config:Config, batch:list):
+    def __init__(self, config:Config, batch:list[Path]):
         """
         Initializes the Parser class.
 
@@ -56,12 +54,12 @@ class Tagger(Task):
                 # get all tags for said track
                 # Ensure track_id is an int, even if it's a Path or str
                 if isinstance(track_id, int):
-                    track = Track(id=track_id)
+                    track = Track(track_id)
                 else:
-                    track = Track(id=int(str(track_id)))
-                tags = track["tags"] # TODO: make a dict with tags in Track
+                    track = Track(int(str(track_id)))
+                tags = track.get_tags()
                 # get file associated with track
-                file = track.files[0].paths[0].path
+                file = track.file
                 file_type = get_file_type(Path(file))
                 # write all tags to file
                 tagger = Tag(Path(file), str(file_type))

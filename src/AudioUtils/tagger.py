@@ -15,6 +15,7 @@
 
 """Write and read tags of songs."""
 
+import datetime
 from pathlib import Path
 
 from mutagen.apev2 import APEv2
@@ -22,10 +23,6 @@ from mutagen.oggvorbis import OggVorbis
 from mutagen.flac import FLAC
 from mutagen.id3 import ID3
 from mutagen.asf import ASF
-from collections.abc import Iterable
-
-# from ..Singletons.config import Config
-# from ..Singletons.logger import Logger
 
 class Tagger():
     """Reads and writes tags in audiofiles."""
@@ -67,7 +64,7 @@ class Tagger():
         self.audio[tag] = value
         self.audio.save()
 
-    def set_tags(self, tags: Iterable[tuple[str, str]]) -> None:
+    def set_tags(self, tags: dict[str, str|int|datetime.date]) -> None:
         """Sets the value of several tags and save to file"""
         for tag, value in tags:
             self.audio[tag] = value

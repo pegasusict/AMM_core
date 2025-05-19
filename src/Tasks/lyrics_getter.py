@@ -20,7 +20,7 @@ from Singletons.config import Config
 from Singletons.database import DB
 from Singletons.logger import Logger
 from AudioUtils.lyrics_getter import get_lyrics
-from models import TrackLyric, Track
+from models import DBTrackLyric, DBTrack
 
 class LyricsGetter(Task):
     """This Task is aimed at getting the lyrics
@@ -48,12 +48,12 @@ class LyricsGetter(Task):
         """
         try:
             for track_id, mbid in self.batch.items():
-                track = Track(id=int(track_id))
+                track = DBTrack(id=int(track_id))
                 track_title = track.titles[0].title
                 track_artist = track.performers[0].names[0].name
                 lyrics = get_lyrics(artist=track_artist, title=track_title)
-                track = Track(id=int(track_id))
-                object = TrackLyric(id=0, Lyric=lyrics, track=track)
+                track = DBTrack(id=int(track_id))
+                object = DBTrackLyric(id=0, Lyric=lyrics, track=track)
                 session = DB().get_session()
                 session.add(object)
                 session.commit()

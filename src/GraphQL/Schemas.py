@@ -13,172 +13,166 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
+from datetime import datetime, date
+from pathlib import Path
+from typing import List
 
-from ..models import UserRole, Codecs, DateTypes
+import strawberry
+from pydantic import EmailStr
 
-class User(ObjectType):
+from ..models import Stages, UserRole, Codecs, DateTypes
+
+@strawberry.type()
+class User():
     """User type for GraphQL schema."""
-    id = ID()
-    username = String()
-    email = String()
-    first_name = String()
-    middle_name = String()
-    last_name = String()
-    role = Enum(UserRole)
-    created_at = DateTime()
-    updated_at = DateTime()
-    is_active = Boolean()
-class UserInput(InputObjectType):
-    """Input type for creating or updating a user."""
-    username = String(required=True)
-    email = String(required=True)
-    password_hash = String(required=True)
-    first_name = String()
-    middle_name = String()
-    last_name = String()
-    role = String()
-    is_active = Boolean()
-    updated_at = DateTime()
-    id = ID()
+    id:int|None = None
+    username:str|None = None
+    password_hash:str|None = None
+    email:EmailStr|None = None
+    first_name:str|None = None
+    middle_name:str|None = None
+    last_name:str|None = None
+    role:UserRole|None = None
+    created_at:datetime|None = None
+    updated_at:datetime|None = None
+    is_active:bool|None = None
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.id = kwargs.get('id', None)
-        self.username = kwargs.get('username', None)
-        self.email = kwargs.get('email', None)
-        self.password_hash = kwargs.get('password_hash', None)
-        self.first_name = kwargs.get('first_name', None)
-        self.middle_name = kwargs.get('middle_name', None)
-        self.last_name = kwargs.get('last_name', None)
-        self.role = kwargs.get('role', None)
-        self.is_active = kwargs.get('is_active', None)
-        self.created_at = kwargs.get('created_at', None)
-        self.updated_at = kwargs.get('updated_at', None)
-
-class Stat(ObjectType):
+@strawberry.type()
+class Stat():
     """Stat type for GraphQL schema."""
-    id = ID()
-    name = String()
-    value = Float()
-    range_start = Float()
-    range_end = Float()
-    created_at = DateTime()
-    updated_at = DateTime()
+    id:int|None = None
+    name:str|None = None
+    value:int|float|None = None
+    range_start:int|float|None = None
+    range_end:int|float|None = None
+    created_at:datetime|None = None
+    updated_at:datetime|None = None
 
-class File(ObjectType):
+@strawberry.type()
+class File():
     """File type for GraphQL schema."""
-    id = ID()
-    imported = DateTime()
-    processed = DateTime()
-    file_path = String()
-    file_name = String()
-    file_type = String()
-    file_extension = String()
-    size = Int()
-    created_at = DateTime()
-    updated_at = DateTime()
-    codec = Enum(Codecs)
-    bitrate = Int()
-    sample_rate = Int()
-    channels = Int()
-    length = Int()
-    stage = Int()
+    id:int|None = None
+    imported:datetime|None = None
+    processed:datetime|None = None
+    file_path:Path|None = None
+    file_name:str|None = None
+    file_type:str|None = None
+    size:int|None = None
+    created_at:datetime|None = None
+    updated_at:datetime|None = None
+    codec:Codecs|None = None
+    bitrate:int|None = None
+    sample_rate:int|None = None
+    channels:int|None = None
+    duration:int|None = None
+    stage:Stages|None = None
 
-class Track(ObjectType):
+@strawberry.type()
+class Track():
     """Track type for GraphQL schema."""
-    id = ID()
-    title = String()
-    subtitle = String()
-    artists = List(Person)
-    year = Int()
-    albums = List(Album)
-    files = List(File)
-    key = String()
-    dates = List(Date)
-    genres = List(Genre)
-    mbid = String(MBid)
-    label = String()
-    lyrics = String()
+    id:int|None = None
+    title:str|None = None
+    title_sort:str|None = None
+    subtitle:str|None = None
+    artists:List[int]|None = None # artist name
+    year:int|None = None
+    albums:List[int]|None = None # album id
+    files:List[int]|None = None # File id
+    key:str|None = None
+    releasedate:date|None = None
+    genres:List[int]|None = None # genre id
+    mbid:str|None = None
+    label:str|None = None
+    lyrics:str|None = None
 
-class Album(ObjectType):
+@strawberry.type()
+class Album():
     """Album type for GraphQL schema."""
-    id = ID()
-    title = String()
-    subtitle = String()
-    artists = List(Person)
-    tracks = List(Track)
-    key = String()
-    dates = List(Date)
-    genres = List(Genre)
-    mbid = String()
-    label = String()
-    picture = String()
-    disc_count = Int()
-    track_count = Int()
-    picture = String()
-    release_date = Date()
-    release_country = String()
+    id:int|None = None
+    title:str|None = None
+    subtitle:str|None = None
+    artists:List[int]|None = None # artist id
+    tracks:List[int]|None = None # track id
+    key:str|None = None
+    releasedate:date|None = None
+    genres:List[int]|None = None # genre id
+    mbid:str|None = None
+    label:str|None = None
+    picture:Path|None = None
+    disc_count:int|None = None
+    track_count:int|None = None
+    release_country:str|None = None
 
-class Genre(ObjectType):
+@strawberry.type()
+class Genre():
     """Genre type for GraphQL schema."""
-    id = ID()
-    name = String()
-    description = String()
-    created_at = DateTime()
-    updated_at = DateTime()
-    albums = List(Album)
-    tracks = List(Track)
+    id:int|None = None
+    name:str|None = None
+    description:str|None = None
+    created_at:datetime|None = None
+    updated_at:datetime|None = None
+    albums:List[int]|None = None # album id
+    tracks:List[int]|None = None # track id
+    parents:List[int]|None = None # Genre id
+    children:List[int]|None = None # Genre id
 
-class Person(ObjectType):
+@strawberry.type()
+class Person():
     """Person type for GraphQL schema."""
-    id = ID()
-    first_name = String()
-    middle_name = String()
-    last_name = String()
-    alias = String()
-    nick_name = String()
-    date_of_birth = date()
-    date_of_death = date()
-    picture = String()
-    mbid = String()
-    performed_tracks = List(Track)
-    performed_albums = List(Album)  
+    id: int|None = None
+    first_name: str|None = None
+    middle_name: str|None = None
+    last_name: str|None = None
+    alias: str|None = None
+    nick_name: str|None = None
+    sort_name: str|None = None
+    date_of_birth: date|None = None
+    date_of_death: date|None = None
+    picture: Path|None = None
+    mbid: str|None = None
+    performed_tracks: List[int]|None = None # Track id
+    performed_albums: List[int]|None = None # Album id
 
-class Date(ObjectType):
+@strawberry.type()
+class Date():
     """Date type for GraphQL schema."""
-    id = ID()
-    date = date()
-    type = Enum(DateTypes)
-    person = Field(Person)
-    track = Field(Track)
-    album = Field(Album)
+    id: int|None = None
+    date: date|None = None
+    type: DateTypes|None = None
+    person: int|None = None # Person id
+    track: int|None = None # Track id
+    album: int|None = None # Album id
 
-class Label(ObjectType):
+@strawberry.type()
+class Label():
     """Label type for GraphQL schema."""
-    id = ID()
-    name = String()
-    description = String()
-    created_at = DateTime()
-    updated_at = DateTime()
-    albums = List(Album)
+    id: int|None = None
+    name: str|None = None
+    description: str|None = None
+    created_at: datetime|None = None
+    updated_at: datetime|None = None
+    albums: List[int]|None = None # Album id
 
-class Key(ObjectType):
+@strawberry.type()
+class Key():
     """Key type for GraphQL schema."""
-    id = ID()
-    name = String()
+    id: int|None = None
+    name: str|None = None
 
-class FilePath(ObjectType):
+@strawberry.type()
+class FilePath():
     """FilePath type for GraphQL schema."""
-    id = ID()
-    path = String()
-    definitive = Boolean()
-    file = Field(File)
+    id: int|None = None
+    path: Path|None = None
+    definitive:bool|None = None # TODO: do we need this field?
+    file: int|None = None # File id
 
-class MBid(ObjectType):
+@strawberry.type()
+class MBid():
     """MBid type for GraphQL schema."""
-    id = ID()
-    mbid = String()
-    track = Field(Track)
-    album = Field(Album)
-    person = Field(Person)
-    label = Field(Label)
+    id: int|None = None
+    mbid: str|None = None
+    track: int|None = None # Track id
+    album: int|None = None # Album id
+    person: int|None = None # Person id
+    label: int|None = None # Label id

@@ -21,7 +21,10 @@ import datetime
 from typing import List, Optional
 from multiprocessing import Process
 
+from pydantic import BaseModel
 from sqlmodel import SQLModel, Field, Relationship, String
+
+from .Singletons.database import DB
 
 
 class UserRole(Enum):
@@ -37,24 +40,6 @@ class UserRole(Enum):
         """
         return [(role.value, role.name) for role in cls]
 
-class User(SQLModel, table=True):
-    """User model."""
-
-    id: Optional[int] = Field(primary_key=True, index=True)
-    username: str = Field(unique=True)
-    email: str = Field(unique=True)
-    password_hash : str
-    first_name: str = Field(default="")
-    middle_name: str = Field(default="")
-    last_name: str = Field(default="")
-    date_of_birth: datetime.datetime
-    is_active: bool
-    role: Enum = Field(default=UserRole.USER.value)  # Default role is USER
-    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
-    updated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc), sa_column_kwargs={"onupdate": lambda: datetime.datetime.now(datetime.timezone.utc)})
-
-    def __repr__(self):
-        return f"<User(id={self.id}, username={self.username}, email={self.email}, role={self.role})>"
 
 class TaskType(Enum):
     """Enum for different task types."""
@@ -64,14 +49,11 @@ class TaskType(Enum):
     FINGERPRINTER = "fingerprinter"
     EXPORTER = "exporter"
     LYRICS_GETTER = "lyrics_getter"
-    ALBUM_COVER_GETTER = "album_cover_getter"
     NORMALIZER = "normalizer"
     TRIMMER = "trimmer"
     CONVERTER = "converter"
     PARSER = "parser"
-    FILE_RENAME = "file_rename"
-    FILE_MOVE = "file_move"
-    FILE_DELETE = "file_delete"
+
 class TaskStatus(Enum):
     """Enum for different task statuses."""
     PENDING = "pending"
@@ -80,50 +62,6 @@ class TaskStatus(Enum):
     FAILED = "failed"
     CANCELLED = "cancelled"
 
-class Task(SQLModel, table=True):
-    id: int = Field(int, primary_key=True, unique=True)
-    task_id:str = Field(String, nullable=False)
-    start_time:datetime.datetime
-    end_time:datetime.datetime
-    duration:int
-    batch_files:List["File"] = Relationship(back_populates="task")
-    batch_tracks:List["Track"] = Relationship(back_populates="task")
-    batch_albums:List["Album"] = Relationship(back_populates="task")
-    batch_persons:List["Person"] = Relationship(back_populates="task")
-    processed:int
-    progress:float
-    process:Process
-    result:str
-    error:str
-    status:Enum = Field(Enum(TaskStatus))
-    task_type:Enum = Field(Enum(TaskType))
-
-########################################################################
-class ItemBase(SQLModel):
-    """ base class for item tables """
-    id: int = Field(primary_key=True, index=True)
-class OptFieldBase(SQLModel):
-    """ base class for optional fields """
-    id: int = Field(primary_key=True, index=True)
-#######################################################################
-class Stat(ItemBase, table=True):
-    """Statistics for the application."""
-
-    name: str = Field(String(30))
-    value: int = Field(default=0)
-    range: Optional[StatRange] = Relationship(back_populates="stat")
-
-    def __repr__(self) -> str:
-        return f"Stat {self.name}"
-
-class StatRange(OptFieldBase, table=True):
-    """Range for statistics."""
-
-    range_start: float = Field(default=0)
-    range_end: float = Field(default=None)
-
-    stat: Optional["Stat"] = Relationship(back_populates="range")
-#######################################################################
 class Codecs(Enum):
     """Codec types for audio files."""
     WAV = 0
@@ -136,6 +74,20 @@ class Codecs(Enum):
     AAC = 7
     APE = 8
     AIFF = 9
+    UNKNOWN = 99
+
+class Stages(Enum):
+    """Stages of processing."""
+    NONE = 0
+    IMPORTED = 1
+    FINGERPRINTED = 2
+    TAGS_RETRIEVED = 3
+    ART_RETRIEVED = 4
+    LYRICS_RETRIEVED = 5
+    TRIMMED = 6
+    NORMALIZED = 7
+    TAGGED = 8
+    SORTED = 9
 
 class PersonNameTypes(Enum):
     """Types of person names."""
@@ -155,167 +107,282 @@ class DateTypes(Enum):
     LEFT = 3
     BORN = 4
     DECEASED = 5
+
+class TitleType(Enum):
+    TITLE = 0
+    TITLE_SORT = 1
+    SUB_TITLE = 2
+
+######################################################################
+class DBUser(SQLModel, table=True):
+    """User model."""
+
+    id: Optional[int] = Field(primary_key=True, index=True, default=None)
+    username: str = Field(unique=True, default="")
+    email: str = Field(unique=True, default="")
+    password_hash : str = Field(default="")
+    first_name: str = Field(default="")
+    middle_name: str = Field(default="")
+    last_name: str = Field(default="")
+    date_of_birth: datetime.datetime = Field(default="")
+    is_active: bool = Field(default=True)
+    role: Enum = Field(default=UserRole.USER.value)  # Default role is USER
+    created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+    updated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc), sa_column_kwargs={"onupdate": lambda: datetime.datetime.now(datetime.timezone.utc)})
+
+    def __repr__(self):
+        return f"<User(id={self.id}, username={self.username}, email={self.email}, role={self.role})>"
 #######################################################################
-class File(ItemBase, table=True):
+class DBTask(SQLModel, table=True):
+    id: int = Field(int, primary_key=True, unique=True)
+    task_id:str = Field(String, nullable=False)
+    start_time:datetime.datetime
+    end_time:datetime.datetime
+    duration:int
+    batch_files:List["DBFile"] = Relationship(back_populates="task")
+    batch_tracks:List["DBTrack"] = Relationship(back_populates="task")
+    batch_albums:List["DBAlbum"] = Relationship(back_populates="task")
+    batch_persons:List["DBPerson"] = Relationship(back_populates="task")
+    processed:int
+    progress:float
+    process:Process
+    result:str
+    error:str
+    status:Enum = Field(Enum(TaskStatus))
+    task_type:Enum = Field(Enum(TaskType))
+########################################################################
+class ItemBase(SQLModel):
+    """ base class for item tables """
+    id: int = Field(primary_key=True, index=True)
+class OptFieldBase(SQLModel):
+    """ base class for optional fields """
+    id: int = Field(primary_key=True, index=True)
+#######################################################################
+class DBStat(ItemBase, table=True):
+    """Statistics for the application."""
+
+    name: str = Field(String(30))
+    value: int = Field(default=0)
+    range: Optional[DBStatRange] = Relationship(back_populates="stat")
+
+    def __repr__(self) -> str:
+        return f"Stat {self.name}"
+class DBStatRange(OptFieldBase, table=True):
+    """Range for statistics."""
+
+    range_start: float = Field(default=0)
+    range_end: float = Field(default=None)
+
+    stat: Optional["DBStat"] = Relationship(back_populates="range")
+#######################################################################
+class DBFile(ItemBase, table=True):
     """File information."""
 
-    audio_ip: str
+    audio_ip: str = Field(default = None)
     imported: datetime.datetime = Field(default=datetime.datetime.now(datetime.timezone.utc))
     processed: datetime.datetime = Field(
         default=None,
         sa_column_kwargs={"onupdate": datetime.datetime.now(datetime.timezone.utc)}
     )
-    bitrate: int
-    sample_rate: int
-    channels: int
-    file_type: str
-    file_size: int
-    file_name: str
-    file_extension: str
-    codec: Enum = Field(Enum(Codecs))
-    length: int
-    stage: int = Field(default=0)
-    track: Track = Relationship(back_populates="files")
-    paths: List["FilePath"] = Relationship(back_populates="file")
-    task: Task = Relationship(back_populates="batch_files")
+    bitrate: int = Field(default = None)
+    sample_rate: int = Field(default = None)
+    channels: int = Field(default = None)
+    file_type: str = Field(default = None)
+    file_size: int = Field(default = None)
+    file_name: str = Field(default = None)
+    file_extension: str = Field(default = None)
+    codec: Enum = Field(Enum(Codecs), default=Codecs.UNKNOWN) # type: ignore
+    length: int = Field(default = None)
+    track: DBTrack = Relationship(back_populates="files")
+    paths: List["DBFilePath"] = Relationship(back_populates="file")
+    task: DBTask = Relationship(back_populates="batch_files")
+    stage: Enum = Field(Enum(Stages),default = Stages.NONE) # type: ignore
 
     def __repr__(self) -> str:
         return f"File {self.id}"
 
-class Track(ItemBase, table=True):
+class Track(BaseModel):
+    """Operational Track Data class."""
+    id:Optional[int]
+    title:str = ""
+    title_sort:str = ""
+    subtitle:Optional[str] = ""
+    artists:List[str] = [""]
+    albums:List[str] = [""]
+    key:str = ""
+    genres:List[str] = [""]
+    fingerprint:str = "" # get from filedata
+    mbid:str = ""
+    conductors:List[str] = [""]
+    composers:List[str] = [""]
+    lyricists:List[str] = [""]
+    releasedate:datetime.date = datetime.date(1900,1,1)
+    producers:List[str] = [""]
+    task:str = ""
+    file:str = ""
+
+    def __init__(self, track_id:int|None) -> None:
+        if track_id is not None:
+            session = DB().get_session()
+            trackdata = session.get_one(DBTrack, track_id)
+            for key, value in trackdata:
+                setattr(self, key, value)
+
+    def get_tags(self) -> dict[str, str|int|datetime.date]:
+        """Gets all the tagdata, converts if nessecary and 
+        returns it as a dictionairy"""
+        result = {}
+
+        result["title"] = self.title
+        result["subtitle"] = self.subtitle
+        result["artists"] = ','.join(map(str, self.artists))
+        result["albums"] = ','.join(map(str, self.albums))
+        result["key"] = self.key
+        result["genres"] = ','.join(map(str, self.genres))
+        result["fingerprint"] = self.fingerprint
+        result["mbid"] = self.mbid
+        result["conductors"] = ','.join(map(str, self.conductors))
+        result["composers"] = ','.join(map(str, self.composers))
+        result["lyricists"] = ','.join(map(str, self.lyricists))
+        result["releasedate"] = self.releasedate
+        result["producers"] = ','.join(map(str, self.producers))
+
+        return result
+
+class DBTrack(ItemBase, table=True):
     """Track information."""
-    dates: List["Date"] = Relationship(back_populates="track")
-    files: List["File"] = Relationship(back_populates="track")
-    albums: List["Album"] = Relationship(back_populates="tracks")
-    key: "Key" = Relationship(back_populates="tracks")
-    genres: List["Genre"] = Relationship(back_populates="tracks")
-    titles: List["Title"] = Relationship(back_populates="track")
-    mbid: "MBid" = Relationship(back_populates="track")
-    performers: List["Person"] = Relationship(back_populates="performed_tracks")
-    conductors: List["Person"] = Relationship(back_populates="conducted_tracks")
-    composers: List["Person"] = Relationship(back_populates="composed_tracks")
-    lyricists: List["Person"] = Relationship(back_populates="lyric_tracks")
-    producers: List["Person"] = Relationship(back_populates="produced_tracks")
-    task: Task = Relationship(back_populates="batch_tracks")
+    dates: List["DBDate"] = Relationship(back_populates="track")
+    files: List["DBFile"] = Relationship(back_populates="track")
+    albums: List["DBAlbum"] = Relationship(back_populates="tracks")
+    key: "DBKey" = Relationship(back_populates="tracks")
+    genres: List["DBGenre"] = Relationship(back_populates="tracks")
+    titles: List["DBTitle"] = Relationship(back_populates="track")
+    mbid: "DBMBid" = Relationship(back_populates="track")
+    performers: List["DBPerson"] = Relationship(back_populates="performed_tracks")
+    conductors: List["DBPerson"] = Relationship(back_populates="conducted_tracks")
+    composers: List["DBPerson"] = Relationship(back_populates="composed_tracks")
+    lyricists: List["DBPerson"] = Relationship(back_populates="lyric_tracks")
+    producers: List["DBPerson"] = Relationship(back_populates="produced_tracks")
+    task: DBTask = Relationship(back_populates="batch_tracks")
 
     def __repr__(self) -> str: return f"Track {self.id}"
 
-class Album(ItemBase, table=True):
+class DBAlbum(ItemBase, table=True):
     """Album information."""
-    disc_count: int
-    track_count: int
-    mbid: "MBid" = Relationship(back_populates="album")
-    titles: List["Title"] = Relationship(back_populates="album")
-    dates: List["Date"] = Relationship(back_populates="album")
-    label: "Label" = Relationship(back_populates="albums")
-    tracks: List["Track"] = Relationship(back_populates="albums")
-    genres: List["Genre"] = Relationship(back_populates="albums")
-    performers: List["Person"] = Relationship(back_populates="performed_albums")
-    conductors: List["Person"] = Relationship(back_populates="conducted_albums")
-    composers: List["Person"] = Relationship(back_populates="composed_albums")
-    lyricists: List["Person"] = Relationship(back_populates="lyric_albums")
-    producers: List["Person"] = Relationship(back_populates="produced_albums")
-    picture: "Picture" = Relationship(back_populates="album")
-    task: Task = Relationship(back_populates="batch_albums")
+    disc_count: int = Field(default=0)
+    track_count: int = Field(default=0)
+    mbid: "DBMBid" = Relationship(back_populates="album")
+    titles: List["DBTitle"] = Relationship(back_populates="album")
+    dates: List["DBDate"] = Relationship(back_populates="album")
+    label: "DBLabel" = Relationship(back_populates="albums")
+    tracks: List["DBTrack"] = Relationship(back_populates="albums")
+    genres: List["DBGenre"] = Relationship(back_populates="albums")
+    performers: List["DBPerson"] = Relationship(back_populates="performed_albums")
+    conductors: List["DBPerson"] = Relationship(back_populates="conducted_albums")
+    composers: List["DBPerson"] = Relationship(back_populates="composed_albums")
+    lyricists: List["DBPerson"] = Relationship(back_populates="lyric_albums")
+    producers: List["DBPerson"] = Relationship(back_populates="produced_albums")
+    picture: "DBPicture" = Relationship(back_populates="album")
+    task: DBTask = Relationship(back_populates="batch_albums")
 
     def __repr__(self) -> str:
         return f"Album {self.id}"
 
-class Person(ItemBase, table=True):
+class DBPerson(ItemBase, table=True):
     """Person information."""
-    dates: List["Date"] = Relationship(back_populates="person")
-    mbid: "MBid" = Relationship(back_populates="person")
-    names: List["PersonName"] = Relationship(back_populates="person")
-    picture: "Picture" = Relationship(back_populates="person")
-    performed_tracks: List["Track"] = Relationship(back_populates="performers")
-    conducted_tracks: List["Track"] = Relationship(back_populates="conductors")
-    composed_tracks: List["Track"] = Relationship(back_populates="composers")
-    lyric_tracks: List["Track"] = Relationship(back_populates="lyricists")
-    produced_tracks: List["Track"] = Relationship(back_populates="producers")
-    performed_albums: List["Album"] = Relationship(back_populates="performers")
-    conducted_albums: List["Album"] = Relationship(back_populates="conductors")
-    composed_albums: List["Album"] = Relationship(back_populates="composers")
-    lyric_albums: List["Album"] = Relationship(back_populates="lyricists")
-    produced_albums: List["Album"] = Relationship(back_populates="producers")
-    task: Task = Relationship(back_populates="batch_persons")
+    dates: List["DBDate"] = Relationship(back_populates="person")
+    mbid: "DBMBid" = Relationship(back_populates="person")
+    names: List["DBPersonName"] = Relationship(back_populates="person")
+    picture: "DBPicture" = Relationship(back_populates="person")
+    performed_tracks: List["DBTrack"] = Relationship(back_populates="performers")
+    conducted_tracks: List["DBTrack"] = Relationship(back_populates="conductors")
+    composed_tracks: List["DBTrack"] = Relationship(back_populates="composers")
+    lyric_tracks: List["DBTrack"] = Relationship(back_populates="lyricists")
+    produced_tracks: List["DBTrack"] = Relationship(back_populates="producers")
+    performed_albums: List["DBAlbum"] = Relationship(back_populates="performers")
+    conducted_albums: List["DBAlbum"] = Relationship(back_populates="conductors")
+    composed_albums: List["DBAlbum"] = Relationship(back_populates="composers")
+    lyric_albums: List["DBAlbum"] = Relationship(back_populates="lyricists")
+    produced_albums: List["DBAlbum"] = Relationship(back_populates="producers")
+    task: DBTask = Relationship(back_populates="batch_persons")
 
     def __repr__(self) -> str:
         return f"Person {self.id}"
 
-class Label(ItemBase, table=True):
+class DBLabel(ItemBase, table=True):
     """Label information."""
-    name: str
-    mbid: "MBid" = Relationship(back_populates="label")
-    albums: List["Album"] = Relationship(back_populates="label")
-    owner: "Person" = Relationship(back_populates="labels")
-    parent: "Label" = Relationship(back_populates="children")
-    children: List["Label"] = Relationship(back_populates="parent")
+    name: str = Field(default="")
+    mbid: "DBMBid" = Relationship(back_populates="label")
+    albums: List["DBAlbum"] = Relationship(back_populates="label")
+    owner: "DBPerson" = Relationship(back_populates="labels")
+    parent: "DBLabel" = Relationship(back_populates="children")
+    children: List["DBLabel"] = Relationship(back_populates="parent")
 
     def __repr__(self) -> str:
         return f"Label {self.id}"
 
-class Key(ItemBase, table=True):
+class DBKey(ItemBase, table=True):
     """In which key the track is composed."""
     key: str
-    tracks: List["Track"] = Relationship(back_populates="key")
+    tracks: List["DBTrack"] = Relationship(back_populates="key")
 
     def __repr__(self) -> str:
         return f"Key {self.id}"
 
-class Genre(ItemBase, table=True):
+class DBGenre(ItemBase, table=True):
     """Genre information."""
-    genre: str
-    tracks: List["Track"] = Relationship(back_populates="genres")
-    albums: List["Album"] = Relationship(back_populates="genres")
-    parents: List["Genre"] = Relationship(back_populates="children")
-    children: List["Genre"] = Relationship(back_populates="parents")
+    genre: str = Field(default="")
+    tracks: List["DBTrack"] = Relationship(back_populates="genres")
+    albums: List["DBAlbum"] = Relationship(back_populates="genres")
+    parents: List["DBGenre"] = Relationship(back_populates="children")
+    children: List["DBGenre"] = Relationship(back_populates="parents")
 
     def __repr__(self) -> str:
         return f"Genre {self.id}"
 #######################################################################
-class FilePath(OptFieldBase, table=True):
+class DBFilePath(OptFieldBase, table=True):
     """File path information."""
     path: str = Field(unique=True)
     definitive: bool
-    file: "File" = Relationship(back_populates="paths")
+    file: "DBFile" = Relationship(back_populates="paths")
 
-class Date(OptFieldBase, table=True):
+class DBDate(OptFieldBase, table=True):
     """Date information."""
     date: datetime.date
     type: Enum = Field(Enum(DateTypes))
-    person: "Person" = Relationship(back_populates="dates")
-    track: "Track" = Relationship(back_populates="dates")
-    album: "Album" = Relationship(back_populates="dates")
+    person: "DBPerson" = Relationship(back_populates="dates")
+    track: "DBTrack" = Relationship(back_populates="dates")
+    album: "DBAlbum" = Relationship(back_populates="dates")
 
-class MBid(OptFieldBase, table=True):
+class DBMBid(OptFieldBase, table=True):
     """MusicBrainz ID coupling."""
     mbid: str = Field(String(40), unique=True)
-    track: "Track" = Relationship(back_populates="mbid")
-    album: "Album" = Relationship(back_populates="mbid")
-    person: "Person" = Relationship(back_populates="mbid")
-    label: "Label" = Relationship(back_populates="mbid")
+    track: "DBTrack" = Relationship(back_populates="mbid")
+    album: "DBAlbum" = Relationship(back_populates="mbid")
+    person: "DBPerson" = Relationship(back_populates="mbid")
+    label: "DBLabel" = Relationship(back_populates="mbid")
 
-class TrackLyric(OptFieldBase, table=True):
+class DBTrackLyric(OptFieldBase, table=True):
     """Track lyrics."""
     Lyric: str
-    track: "Track" = Relationship(back_populates="lyric")
+    track: "DBTrack" = Relationship(back_populates="lyric")
 
-class Title(OptFieldBase, table=True):
+class DBTitle(OptFieldBase, table=True):
     """Title information."""
     title: str
-    main: bool = Field(primary_key=True)
-    track: "Track" = Relationship(back_populates="titles")
-    album: "Album" = Relationship(back_populates="titles")
+    title_type:Enum=Field(Enum(TitleType))
+    track: "DBTrack" = Relationship(back_populates="titles")
+    album: "DBAlbum" = Relationship(back_populates="titles")
 
-class Picture(OptFieldBase, table=True):
+class DBPicture(OptFieldBase, table=True):
     """Album/Person Pictures"""
     picture_path: str = Field(unique=True)
-    album: "Album" = Relationship(back_populates="picture")
-    person: "Person" = Relationship(back_populates="picture")
+    album: "DBAlbum" = Relationship(back_populates="picture")
+    person: "DBPerson" = Relationship(back_populates="picture")
 
-class PersonName(OptFieldBase, table=True):
+class DBPersonName(OptFieldBase, table=True):
     """Person name information."""
     name: str
     name_type: Enum = Field(Enum(PersonNameTypes))
-    person: "Person" = Relationship(back_populates="names")
+    person: "DBPerson" = Relationship(back_populates="names")
 

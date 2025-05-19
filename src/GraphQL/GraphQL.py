@@ -17,9 +17,10 @@ GraphQL Server class for handling GraphQL queries and mutations.
 This class is used to add a GraphQL route to the FastAPI application.
 """
 
+import strawberry
 import uvicorn
 from fastapi import FastAPI
-
+from strawberry.fastapi import GraphQLRouter
 
 from Mapping import Query, Mutation
 
@@ -36,11 +37,9 @@ class GraphQL:
         GraphQL Server class for handling GraphQL queries and mutations.
         This class is used to add a GraphQL route to the FastAPI application.
         """
-        self.app.add_route(
-            path,
-            graphql(schema=Schema(query=Query, mutation=Mutation)),
-            methods=["GET", "POST"],
-        )
+        schema = strawberry.Schema(Query, Mutation)
+        graphql_app = GraphQLRouter(schema)
+        self.app.include_router(graphql_app, prefix=path)
 
     def run(self):
         """Run the GraphQL server."""

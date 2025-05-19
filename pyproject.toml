@@ -17,7 +17,7 @@ dependencies = [
     "pydantic>=2.11.4",
     "pydub>=0.25.1",
     "sqlmodel>=0.0.24",
-    "strawberry",
+    "strawberry-graphql[fastapi]",
     "uvicorn[standard]>=0.34.2",
 ]
 
