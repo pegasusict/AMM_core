@@ -27,7 +27,7 @@ from mutagen.asf import ASF
 class Tagger():
     """Reads and writes tags in audiofiles."""
 
-    def __init__(self, file_path:Path, file_type:str):
+    def __init__(self, file_path: Path, file_type: str):
         self.file_path = file_path
         self.file_type = file_type
 
@@ -43,11 +43,11 @@ class Tagger():
             case _:
                 self.audio = ID3(file=self.file_path)
 
-    def get_mbid(self) -> str|None:
+    def get_mbid(self) -> str | None:
         """Retrieve the MBid tag if it exists."""
         return self.audio["mbid"] or None
 
-    def get_acoustid(self) -> str|None:
+    def get_acoustid(self) -> str | None:
         """Retrieve the acoustid tag if it exists."""
         return self.audio["acoustid"] or None
 
@@ -55,7 +55,7 @@ class Tagger():
         """Retrieve all tags as a dictionary."""
         return dict(self.audio)
 
-    def get(self, tag:str) -> str|None:
+    def get(self, tag:str) -> str | None:
         """Retrieve the requested Tag or None if not available."""
         return self.audio[tag] or None
 
@@ -64,7 +64,7 @@ class Tagger():
         self.audio[tag] = value
         self.audio.save()
 
-    def set_tags(self, tags: dict[str, str|int|datetime.date]) -> None:
+    def set_tags(self, tags: dict[str, str | int | datetime.date]) -> None:
         """Sets the value of several tags and save to file"""
         for tag, value in tags:
             self.audio[tag] = value

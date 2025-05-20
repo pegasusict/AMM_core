@@ -29,7 +29,6 @@ DEFAULT_CONFIG = {
         "host": "musicbrainz.org",
         "port": 443,
         "ignore_existing_acoustid_fingerprints": False,
-        
     },
     "logging": {
         "level": "DEBUG",

@@ -19,6 +19,6 @@ from lyricsgenius import Genius # type: ignore
 
 genius = Genius() # type: ignore
 
-def get_lyrics(artist:str, title:str) -> str:
+def get_lyrics(artist: str, title: str) -> str:
     """Retrieve lyrics for said song."""
     return genius.search_song(title, artist) # type: ignore

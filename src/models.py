@@ -128,7 +128,8 @@ class DBUser(SQLModel, table=True):
     is_active: bool = Field(default=True)
     role: Enum = Field(default=UserRole.USER.value)  # Default role is USER
     created_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
-    updated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc), sa_column_kwargs={"onupdate": lambda: datetime.datetime.now(datetime.timezone.utc)})
+    updated_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
+                                        sa_column_kwargs={"onupdate": lambda: datetime.datetime.now(datetime.timezone.utc)})
 
     def __repr__(self):
         return f"<User(id={self.id}, username={self.username}, email={self.email}, role={self.role})>"
@@ -229,7 +230,7 @@ class Track(BaseModel):
                 setattr(self, key, value)
 
     def get_tags(self) -> dict[str, str|int|datetime.date]:
-        """Gets all the tagdata, converts if nessecary and 
+        """Gets all the tagdata, converts if nessecary and
         returns it as a dictionairy"""
         result = {}
 
@@ -265,7 +266,8 @@ class DBTrack(ItemBase, table=True):
     producers: List["DBPerson"] = Relationship(back_populates="produced_tracks")
     task: DBTask = Relationship(back_populates="batch_tracks")
 
-    def __repr__(self) -> str: return f"Track {self.id}"
+    def __repr__(self) -> str:
+        return f"Track {self.id}"
 
 class DBAlbum(ItemBase, table=True):
     """Album information."""

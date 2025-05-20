@@ -13,6 +13,8 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 import os
+from pathlib import Path
+from typing import List
 
 from Singletons.stack import Stack
 from Singletons.logger import Logger
@@ -25,6 +27,9 @@ class Importer(Task):
     This class is used to import files from a directory.
     It scans the directory and returns a list of files to be imported.
     """
+    files: List[Path] = []
+    folders: List[Path] = []
+
     def __init__(self, config: Config):
         """
         Initializes the Importer class.
@@ -57,13 +62,11 @@ class Importer(Task):
         optionally removes any files not included in the filter."""
         files, _ = self.fast_scan(self.base_path)
         # create task for files list to be processed by the parser
-        if files is not None and len(files) > 0:
-            task = Parser(self.config, files)
-            task.start()
-            task.wait()
-        _, files = self.fast_scan(self.base_path)
-        if files is not None and len(files) > 0:
-            task = Parser(self.config, files)
+        # TODO: check how to hand this off to the TaskManager
+
+        self.fast_scan(self.base_path)
+        if self.files is not None and len(self.files) > 0:
+            task = Parser(self.config, self.files)
             task.start()
             task.wait()
 
@@ -74,18 +77,15 @@ class Importer(Task):
 
         TODO: what happens if file list exceeds physical capabilities?
 
-        :param stack:       object      Stack Object to store
-        :param path:   string      Base path to start scan from
-        :param ext: list:   [ string, ] List of extension to import
-        :param clean:       bool        Remove any files whose extension is not listed in ext
+        Parameters:
+        stack: (object)          Stack Object to store
+        path:  (string)          Base path to start scan from
+        ext:   (list:[string])   List of extension to import
+        clean: (bool)            Remove any files whose extension is not listed in ext
                                         !!! USE WITH CARE !!!
-        :return:
-        """
-        folders, files = [], []
 
-        stack = self.stack
-        ext = self.ext
-        clean = self.clean
+        returns: folders: List[str], files: List[str]
+        """
 
         if not os.path.exists(path):
             Logger(Config()).error(f"Base path {path} does not exist")
@@ -93,22 +93,19 @@ class Importer(Task):
 
         for file in os.scandir(path):
             if file.is_dir(follow_symlinks=False):
-                folders.append(file.path)
-                stack.add_counter('all_folders')
+                self.folders.append(Path(file.path))
+                self.stack.add_counter('all_folders')
             elif file.is_file(follow_symlinks=False):
-                if len(ext) < 1 or os.path.splitext(file.name)[1].lower() in ext:
-                    files.append(file.path)
-                    stack.add_counter('all_files')
-                elif clean and os.path.splitext(file.name)[1].lower() not in ext:
+                if len(self.ext) < 1 or os.path.splitext(file.name)[1].lower() in self.ext:
+                    self.files.append(Path(file.path))
+                    self.stack.add_counter('all_files')
+                elif self.clean:
                     os.remove(file)
-                    stack.add_counter('removed_files')
-        stack.add_counter('scanned_folders')
-        for path in list(folders):
-            # TODO: pop path
-            folders2,files2 = self.fast_scan(path)
-            if folders2:
-                folders.extend(folders2)
-            if files2:
-                files.extend(files2)
+                    self.stack.add_counter('removed_files')
+        self.stack.add_counter('scanned_folders')
+        # TODO: Path is not iterable?!
+        for index, path in list(self.folders): # type: ignore
+            self.folders.pop(index)
+            self.fast_scan(path)
 
-        return folders, files
+        return self.folders, self.files

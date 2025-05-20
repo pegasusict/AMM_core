@@ -20,6 +20,7 @@ from fastapi import FastAPI
 
 from GraphQL.GraphQL import GraphQL
 
+
 def main():
     """Main function to run the AMM core functionality."""
     load_dotenv(".env")

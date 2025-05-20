@@ -27,7 +27,7 @@ class LyricsGetter(Task):
     corresponding with the current Track."""
     batch:dict[str,str]
 
-    def __init__(self, config:Config, batch:dict[str, str]):
+    def __init__(self, config: Config, batch: dict[str, str]):
         """
         Initializes the LyricsGetter class.
 
@@ -53,9 +53,9 @@ class LyricsGetter(Task):
                 track_artist = track.performers[0].names[0].name
                 lyrics = get_lyrics(artist=track_artist, title=track_title)
                 track = DBTrack(id=int(track_id))
-                object = DBTrackLyric(id=0, Lyric=lyrics, track=track)
+                obj = DBTrackLyric(id=0, Lyric=lyrics, track=track)
                 session = DB().get_session()
-                session.add(object)
+                session.add(obj)
                 session.commit()
         except Exception as e:
             self.logger.error(f"Error processing track {mbid}: {e}") # type: ignore

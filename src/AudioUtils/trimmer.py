@@ -24,17 +24,28 @@ from ..models import Codecs
 
 class SilenceTrimmer:
     """Trims the silences of the start and end of an audiofile."""
-    file: Path|None = None
-    codec: Codecs|None = None
+    file: Path | None = None
+    codec: Codecs | None = None
     threshold: int = -50
     chunk: int = 10
-    sound: AudioSegment|None = None
+    sound: AudioSegment | None = None
     duration: int = 0
     start_trim: int = 0
     end_trim: int = 0
-    trimmed_sound: AudioSegment|None = None
+    trimmed_sound: AudioSegment | None = None
 
-    def __init__(self, file:Path, codec:Codecs, threshold:int=-50, chunk_size:int=10) -> None:
+    def __init__(self, file: Path, codec: Codecs, threshold: int = -50, chunk_size: int = 10) -> None:
+        """Initializer of the SilenceTrimmer Class.
+
+        Args:
+            file (Path):                File path to the target
+            codec (Codecs):             Codec used in the file
+            threshold (int, optional):  Silence threshold. Defaults to -50
+            chunk_size (int, optional): Size in ms of the chunks to be processed. Defaults to 10.
+
+        Raises:
+            ValueError: Raises an error if the chunksize is smaller than 10 ms.
+        """
         self.file = file
         self.codec = codec
         self.threshold = threshold
@@ -51,11 +62,10 @@ class SilenceTrimmer:
 
     def _detect_silence(self, begin: bool) -> None:
         """
-        iterate over chunks until you find the first one with sound
+        iterate over chunks until you find the first one with sound.
 
-        sound is a pydub.AudioSegment
-        silence_threshold in dB
-        chunk_size in ms
+        Arguments:
+            begin: bool     Wether to trim the beginning or the end.
         """
         if self.sound is None:
             raise OperationFailedError("empty file")
@@ -64,14 +74,7 @@ class SilenceTrimmer:
         if begin:
             sound = self.sound
         else:
-            sound = self.sound.reverse() if self.sound is not None else None
-
-        if sound is None:
-            if begin:
-                self.start_trim = 0
-            else:
-                self.end_trim = 0
-            return
+            sound = self.sound.reverse()
 
         while trim_ms < self.duration:
             segment = sound[trim_ms:trim_ms+self.chunk]

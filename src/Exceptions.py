@@ -15,28 +15,21 @@
 
 class AMMError(Exception):
     """Base exception for AMM errors."""
-    pass
 
-class FileNotFoundError(AMMError):
+class FileNotFoundErr(AMMError):
     """Raised when a required file is not found."""
-    pass
 
 class FileError(AMMError):
     """Raised when there is something wrong with a required file."""
-    pass
 
 class InvalidConfigurationError(AMMError):
     """Raised when the configuration is invalid."""
-    pass
 
 class DatabaseConnectionError(AMMError):
     """Raised when the database connection fails."""
-    pass
 
 class PermissionDeniedError(AMMError):
     """Raised when an operation is not permitted."""
-    pass
 
 class OperationFailedError(AMMError):
     """Raised when a generic operation fails."""
-    pass

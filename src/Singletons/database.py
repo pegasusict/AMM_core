@@ -22,6 +22,21 @@ from sqlmodel import create_engine, Session
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 
+######################################################################
+def set_fields(data: dict, subject: object | None=None) -> object | dict:
+    """Setting the nonempty values to the object."""
+    if subject is None:
+        subject = {}
+    for key, value in data.items():
+        if value is not None:
+            if isinstance(subject, dict):
+                subject[key] = value
+            else:
+                setattr(subject, key, value)
+    return subject
+
+########################################################################
+
 class DB:
     """
     The DB class is used to manage the database connection.
@@ -119,19 +134,6 @@ class DB:
             return row[0] if row is not None else 0
 
 ########################################################################
-    def set_fields(self, data:dict, subject:object|None=None) -> object|dict:
-        """Setting the nonempty values to the object."""
-        if subject is None:
-            subject = {}
-        for key, value in data.items():
-            if value is not None:
-                if isinstance(subject, dict):
-                    subject[key] = value
-                else:
-                    setattr(subject, key, value)
-        return subject
-
-########################################################################
 
     def register_picture(self, mbid:str, art_type:str, picture_path:str):
         """Register a picture in the database."""
@@ -139,7 +141,7 @@ class DB:
 
     def register_file(self, filepath:str, metadata:dict):
         """Register metadata in the database."""
-        values = self.set_fields(metadata)
+        values = set_fields(metadata)
         if not isinstance(values, dict):
             values = vars(values)
         values["filepath"] = filepath

@@ -37,7 +37,7 @@ class FileTypes(Enum):
 	APE = APEv2
 	ASF = ASF
 
-def get_file_extension(file_path:Path) -> str:
+def get_file_extension(file_path: Path) -> str:
 	"""
 	Returns the file extension of the media file.
 
@@ -50,7 +50,7 @@ def get_file_extension(file_path:Path) -> str:
 	return file_path.split('.')[-1].lower() # type: ignore
 
 
-def get_file_type(file_path:Path) -> str|None:
+def get_file_type(file_path: Path) -> str | None:
 	"""
 	Returns the file type of the media file.
 

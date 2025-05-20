@@ -21,7 +21,31 @@ from Singletons.database import DB
 from Schemas import Track, Album, User, Person, Label, Stat, File, Genre
 from models import DBAlbum, DBFile, DBGenre, DBLabel, DBPerson, DBTrack, DBUser
 
+#################################################################################
 
+def set_fields(info: dict, subject: object) -> object:
+    """Sets al non-empty values to the object."""
+    for key, value in info:
+        if key == "id":
+            continue
+        if value is not None:
+            if hasattr(subject, key):
+                subject.key = value # type: ignore
+    return subject
+
+def db_mutation(obj: object, result: object, refresh: bool = True) -> object:
+    """Executes the DB mutation and returns the object."""
+    session = DB().get_session()
+    session.add(obj)
+    session.commit()
+    if refresh:
+        obj = session.refresh(instance=obj)
+    session.close()
+    result.__dict__.update(obj.__dict__)
+    return result
+
+
+#################################################################################
 def resolve_user(self, info: dict) -> User:
     """Logic to resolve a user."""
     user_id = info.get("user_id", None)
@@ -122,39 +146,18 @@ def resolve_genre(self, info: dict, genre_id: int) -> Genre:
 @strawberry.type()
 class Query():
     """Query class for GraphQL schema."""
-    track:str = strawberry.field(resolve_track()) # type: ignore
-    album:str = strawberry.field(resolve_album()) # type: ignore
-    person:str = strawberry.field(resolve_person()) # type: ignore
-    user:str = strawberry.field(resolve_user()) # type: ignore
-    label:str = strawberry.field(resolve_label()) # type: ignore
-    stat:str = strawberry.field(resolve_stat()) # type: ignore
-    file:str = strawberry.field(resolve_file()) # type: ignore
-    genre:str = strawberry.field(resolve_genre()) # type: ignore
+    track:str = strawberry.field(resolve_track) # type: ignore
+    album:str = strawberry.field(resolve_album) # type: ignore
+    person:str = strawberry.field(resolve_person) # type: ignore
+    user:str = strawberry.field(resolve_user) # type: ignore
+    label:str = strawberry.field(resolve_label) # type: ignore
+    stat:str = strawberry.field(resolve_stat) # type: ignore
+    file:str = strawberry.field(resolve_file) # type: ignore
+    genre:str = strawberry.field(resolve_genre) # type: ignore
 
 @strawberry.type()
 class Mutation():
     """Mutation class for GraphQL schema."""
-    
-    def set_fields(self, info:dict, subject: object) -> object:
-        """Sets al non-empty values to the object."""
-        for key, value in info:
-            if key == "id":
-                continue
-            if value is not None:
-                if hasattr(subject, key):
-                    subject.key = value # type: ignore
-        return subject
-
-    def db_mutation(self, object:object, result:object, refresh:bool=True) -> object:
-        """Executes the DB mutation and returns the object."""
-        session = DB().get_session()
-        session.add(object)
-        session.commit()
-        if refresh:
-            object = session.refresh(instance=object)
-        session.close()
-        result.__dict__.update(object.__dict__)
-        return result
 
     @strawberry.mutation()
     def create_user(self, info: dict) -> User:
@@ -165,52 +168,52 @@ class Mutation():
         if username is None or email is None or password_hash is None:
             raise ValueError("Insufficient data to create a new user")
         user = DBUser(username=username,password_hash=password_hash,email=email)
-        return self.db_mutation(user,User()) # type: ignore
+        return db_mutation(user,User()) # type: ignore
 
     def update_user(self, info: dict, user_id: int) -> User:
         """Updates user information."""
         user = DBUser(id=user_id)
-        user = self.set_fields(info, user)
-        return self.db_mutation(user, User()) # type: ignore
+        user = set_fields(info, user)
+        return db_mutation(user, User()) # type: ignore
 
     def delete_user(self, user_id: int) -> User:
         """Deletes a user from the system."""
         user = DBUser(id=user_id)
         # TODO: actually delete user from DB
-        return self.db_mutation(user, User(), False) # type: ignore
+        return db_mutation(user, User(), False) # type: ignore
 
     def update_track(self, info: dict, track_id: int) -> Track:
         """Updates information related to a track."""
         track = DBTrack(id=track_id)
-        track = self.set_fields(info, track)
-        return self.db_mutation(track, Track()) # type: ignore
+        track = set_fields(info, track)
+        return db_mutation(track, Track()) # type: ignore
 
     def update_album(self, info: dict, album_id: int) -> Album:
         """Updates album information."""
         album = DBAlbum(id=album_id)
-        album = self.set_fields(info, album)
-        return self.db_mutation(album, Album()) # type: ignore
+        album = set_fields(info, album)
+        return db_mutation(album, Album()) # type: ignore
 
     def update_person(self, info: dict, person_id: int) -> Person:
         """Updates person information."""
         person = DBPerson(id=person_id)
-        person = self.set_fields(info, person)
-        return self.db_mutation(person, Person()) # type: ignore
+        person = set_fields(info, person)
+        return db_mutation(person, Person()) # type: ignore
 
     def update_label(self, info: dict, label_id: int) -> Label:
         """Updates label information."""
         label = DBLabel(id=label_id)
-        label = self.set_fields(info, label)
-        return self.db_mutation(label, Label()) # type: ignore
+        label = set_fields(info, label)
+        return db_mutation(label, Label()) # type: ignore
 
     def update_file(self, info: dict, file_id: int) -> File:
         """Updates file information."""
         file = DBFile(id=file_id)
-        file = self.set_fields(info, file)
-        return self.db_mutation(file, File()) # type: ignore
+        file = set_fields(info, file)
+        return db_mutation(file, File()) # type: ignore
 
     def update_genre(self, info: dict, genre_id: int) -> Genre:
         """Updates genre information."""
         genre = DBGenre(id=genre_id)
-        genre = self.set_fields(info, genre)
-        return self.db_mutation(genre, Genre()) # type: ignore
+        genre = set_fields(info, genre)
+        return db_mutation(genre, Genre()) # type: ignore

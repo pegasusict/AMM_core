@@ -32,12 +32,12 @@ class MediaParser:
 	It uses the mutagen library to read and write metadata to media files.
 	"""
 
-	def __init__(self, config:Config=Config()):
+	def __init__(self, config: Config = Config()):
 		"""Initializes the MediaParser class."""
 		self.config = config
 		self.logger = Logger(config)
 
-	def parse(self, file_path:Path) -> dict[str,str|int|Path|None]|None:
+	def parse(self, file_path: Path) -> dict[str, str | int | Path | None] | None:
 		"""Parses the media file and returns the metadata."""
 		file_type = get_file_type(file_path)
 		if file_type is None:
@@ -50,9 +50,9 @@ class MediaParser:
 			metadata['channels'] = self.get_channels(file_path)
 			metadata['codec'] = self.get_codec(file_path)
 			metadata['file_type'] = file_type
-			metadata['file_size'] = self.get_file_size(file_path)
+			metadata['file_size'] = os.path.getsize(file_path)
 			metadata['file_path'] = file_path
-			metadata['file_name'] = self.get_file_name(file_path)
+			metadata['file_name'] = str(file_path).split('/')[-1].split('.')[0]
 			metadata['file_extension'] = get_file_extension(file_path)
 
 		except (ID3NoHeaderError, FLACNoHeaderError) as e:
@@ -61,27 +61,7 @@ class MediaParser:
 
 		return metadata
 
-	def get_file_name(self, file_path:Path) -> str:
-		"""
-		Returns the file name of the media file.
-		Args:
-			file_path: The path to the media file.
-		Returns:
-			str: The file name of the media file.
-		"""
-		return file_path.split('/')[-1].split('.')[0] # type: ignore
-
-	def get_file_size(self, file_path:Path) -> int:
-		"""
-		Returns the file size of the media file.
-		Args:
-			file_path: The path to the media file.
-		Returns:
-			int: The file size of the media file.
-		"""
-		return os.path.getsize(file_path)
-
-	def get_bitrate(self, file_path:Path) -> int|None:
+	def get_bitrate(self, file_path: Path) -> int|None:
 		"""
 		Returns the bitrate of the media file.
 		Args:
@@ -96,7 +76,7 @@ class MediaParser:
 			self.logger.error(f"Error getting bitrate for file {file_path}")
 			return None
 
-	def get_duration(self, file_path:Path) -> int|None:
+	def get_duration(self, file_path: Path) -> int|None:
 		"""
 		Returns the duration in seconds of the media file.
 		Args:
@@ -111,7 +91,7 @@ class MediaParser:
 			self.logger.error(f"Error getting duration for file {file_path}")
 			return None
 
-	def get_sample_rate(self, file_path:Path) -> int|None:
+	def get_sample_rate(self, file_path: Path) -> int|None:
 		"""
 		Returns the sample rate of the media file.
 		Args:
@@ -126,7 +106,7 @@ class MediaParser:
 			self.logger.error(f"Error getting sample rate for file {file_path}")
 			return None
 
-	def get_channels(self, file_path:Path) -> int|None:
+	def get_channels(self, file_path: Path) -> int|None:
 		"""
 		Returns the number of channels of the media file.
 		Args:
@@ -141,7 +121,7 @@ class MediaParser:
 			self.logger.error(f"Error getting channels for file {file_path}")
 			return None
 
-	def get_codec(self, file_path:Path) -> str|None:
+	def get_codec(self, file_path: Path) -> str|None:
 		"""
 		Returns the codec of the media file.
 		Args:

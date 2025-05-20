@@ -33,7 +33,7 @@ class AcoustID():
     duration:int|None
     fingerprint:str|None
 
-    def __init__(self, path:Path):
+    def __init__(self, path: Path):
         self.config = Config()
         self.log = Logger(self.config)
         self.api_key = getenv('ACOUSTID_APIKEY')
@@ -41,7 +41,7 @@ class AcoustID():
             raise EnvironmentError("Environment variable 'ACOUSTID_APIKEY' is not set.")
         self.path = path
 
-    def _scan_file(self, path:Path):
+    def _scan_file(self, path: Path):
         """
         Generates audio fingerprint.
 
