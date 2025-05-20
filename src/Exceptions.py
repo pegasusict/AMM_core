@@ -33,3 +33,6 @@ class PermissionDeniedError(AMMError):
 
 class OperationFailedError(AMMError):
     """Raised when a generic operation fails."""
+
+class InvalidURLError(AMMError):
+    """Raised when an ninvalid URL is encountered."""

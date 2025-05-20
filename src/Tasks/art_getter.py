@@ -16,12 +16,24 @@
 
 from enum import Enum
 import urllib.request
+import re
 
+from ..Exceptions import InvalidURLError
 from task import Task, TaskType
 from Singletons.config import Config
 from Singletons.logger import Logger
 from Singletons.database import DB
 from Clients.mb_client import MusicBrainzClient as mbclient
+
+def is_valid_url(url):
+    regex = re.compile(
+        r'^https?://'  # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # domain...
+        r'localhost|'  # localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
+        r'(?::\d+)?'  # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    return url is not None and regex.search(url)
 
 class ArtType(Enum):
     """Enum for different types of art."""
@@ -99,7 +111,7 @@ class ArtGetter(Task):
         self.progress = (self.processed / len(self.batch)) * 100
         self.logger.info(f"Progress: {self.progress:.2f}%")
 
-    async def save_art(self, url:str, mbid:str, art_type:ArtType) -> None:
+    async def save_art(self, url: str, mbid: str, art_type: ArtType) -> None:
         """
         Saves the retrieved art to the local filesystem.
 
@@ -122,6 +134,9 @@ class ArtGetter(Task):
             self.logger.warning(f"Unknown art type: {art_type}")
             return
         save_path = f"{self.art_path}{mbid}.jpg"
+
+        if not is_valid_url(url):
+            raise InvalidURLError("Invalid url found.")
         urllib.request.urlretrieve(url, save_path)
         self.database.register_picture(mbid, art_type.value, save_path)
         self.logger.info(f"Art saved to {save_path}")

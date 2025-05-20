@@ -46,6 +46,7 @@ class LyricsGetter(Task):
         Runs the parser task.
         It parses the media files in the import path and extracts metadata from them.
         """
+        mbid: str = ""
         try:
             for track_id, mbid in self.batch.items():
                 track = DBTrack(id=int(track_id))

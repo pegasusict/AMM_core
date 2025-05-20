@@ -23,7 +23,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 
 ######################################################################
-def set_fields(data: dict, subject: object | None=None) -> object | dict:
+def set_fields(data: dict, subject: object | None = None) -> object | dict:
     """Setting the nonempty values to the object."""
     if subject is None:
         subject = {}
@@ -125,13 +125,6 @@ class DB:
             session.commit()
             return result
 
-    def get_table_row_count(self, table: str):
-        """Get the number of rows in a table."""
-        with Session(self._engine) as session:
-            result = session.execute(text(f"SELECT COUNT(*) FROM {table}"))
-            session.commit()
-            row = result.fetchone()
-            return row[0] if row is not None else 0
 
 ########################################################################
 

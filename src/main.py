@@ -31,5 +31,6 @@ def main():
     graphql.add_graphql_route("/")
     graphql.run()
 
+
 if __name__ == "__main__":
     main()

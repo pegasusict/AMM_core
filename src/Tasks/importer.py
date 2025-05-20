@@ -12,6 +12,7 @@
 #
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
+
 import os
 from pathlib import Path
 from typing import List
@@ -22,6 +23,7 @@ from Singletons.config import Config
 from task import Task, TaskType
 from parser import Parser
 
+
 class Importer(Task):
     """
     This class is used to import files from a directory.
@@ -29,6 +31,7 @@ class Importer(Task):
     """
     files: List[Path] = []
     folders: List[Path] = []
+
 
     def __init__(self, config: Config):
         """
@@ -60,15 +63,15 @@ class Importer(Task):
         """
         Parses directory (tree) and returns usable files according to extension filter and
         optionally removes any files not included in the filter."""
-        files, _ = self.fast_scan(self.base_path)
+        self.fast_scan(self.base_path)
         # create task for files list to be processed by the parser
         # TODO: check how to hand this off to the TaskManager
 
-        self.fast_scan(self.base_path)
         if self.files is not None and len(self.files) > 0:
             task = Parser(self.config, self.files)
             task.start()
             task.wait()
+
 
     def fast_scan(self, path):
         """

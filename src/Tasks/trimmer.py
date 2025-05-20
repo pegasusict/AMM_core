@@ -30,7 +30,7 @@ class Trimmer(Task):
     """Trims silences of start and end of songs."""
     batch: dict[str,str]
 
-    def __init__(self, batch: dict[str, str], config: Config=Config()):
+    def __init__(self, batch: dict[str, str], config: Config = Config()):
         """
         Initializes the Trimmer class.
 
