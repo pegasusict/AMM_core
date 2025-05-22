@@ -67,7 +67,7 @@ class ArtGetter(Task):
         """
         self.logger.info("Running ArtGetter task")
         for mbid, art_type in self.batch: # type: ignore
-                _ = self.get_art(mbid, ArtType(art_type.upper))
+            _ = self.get_art(mbid, ArtType(art_type))
         self.logger.info("ArtGetter task completed")
         self.set_result("Art retrieval completed")
         self.set_finished()
