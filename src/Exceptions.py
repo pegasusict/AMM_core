@@ -35,4 +35,7 @@ class OperationFailedError(AMMError):
     """Raised when a generic operation fails."""
 
 class InvalidURLError(AMMError):
-    """Raised when an ninvalid URL is encountered."""
+    """Raised when an invalid URL is encountered."""
+
+class InvalidValueError(AMMError):
+    """Raised when an invalid value is encountered."""

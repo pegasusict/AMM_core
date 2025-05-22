@@ -67,44 +67,24 @@ class ArtGetter(Task):
         """
         self.logger.info("Running ArtGetter task")
         for mbid, art_type in self.batch: # type: ignore
-            if art_type == ArtType.ALBUM:
-                self.get_album_art(mbid)
-            elif art_type == ArtType.ARTIST:
-                self.get_artist_art(mbid)
-            else:
-                self.logger.warning(f"Unknown art type: {art_type}")
+                _ = self.get_art(mbid, ArtType(art_type.upper))
         self.logger.info("ArtGetter task completed")
         self.set_result("Art retrieval completed")
         self.set_finished()
 
-    def get_album_art(self, mbid:str) -> None:
+    async def get_art(self, mbid:str, art_type:ArtType) -> None:
         """
-        Retrieves album art for the given item.
+        Retrieves album/artist art for the given item.
 
         Args:
-            item: The item to retrieve album art for.
+            mbid:       (str)       The item to retrieve album/artist art for.
+            art_type:   (ArtType)   The ArtType requested
         """
-        self.logger.info(f"Retrieving album art for MBID {mbid}")
-        url = self.mbc.get_album_art(mbid)
+        self.logger.info(f"Retrieving {art_type} art for MBID {mbid}")
+        url = self.mbc.get_art(mbid)
         if url:
-            self.logger.info(f"Album art URL: {url}")
-        else:
-            self.logger.warning(f"No album art found for MBID {mbid}")
-        self.processed += 1
-        self.progress = (self.processed / len(self.batch)) * 100
-        self.logger.info(f"Progress: {self.progress:.2f}%")
-
-    def get_artist_art(self, mbid:str) -> None:
-        """
-        Retrieves artist art for the given item.
-
-        Args:
-            item: The item to retrieve artist art for.
-        """
-        self.logger.info(f"Retrieving artist art for MBID {mbid}")
-        url = self.mbc.get_artist_art(mbid)
-        if url:
-            self.logger.info(f"Artist art URL: {url}")
+            self.logger.info(f"{art_type} art URL: {url}")
+            await self.save_art(url, mbid, art_type)
         else:
             self.logger.warning(f"No artist art found for MBID {mbid}")
         self.processed += 1

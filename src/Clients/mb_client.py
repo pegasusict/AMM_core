@@ -20,10 +20,20 @@ It is also used to retrieve the cover art for albums and artists.
 It is used to retrieve the MusicBrainz ID for albums, artists and tracks.
 """
 
+from enum import Enum
 import musicbrainzngs
 
+from ..Exceptions import InvalidValueError
 from src.Singletons.config import Config
 from src.Singletons.logger import Logger
+
+class QueryType(Enum):
+	ARTIST = "artist"
+	ALBUM = "album"
+	RELEASE = "release"
+	TRACK = "track"
+	RECORDING = "recording"
+	RELEASE_GROUP = "release_group"
 
 class MusicBrainzClient:
 	"""This Class communicates with the server of MusicBrainz."""
@@ -36,15 +46,15 @@ class MusicBrainzClient:
 		self.musicbrainz.set_useragent("Audiophiles Music Manager", "0.1", "pegasus.ict@gmail.com")
 		self.musicbrainz.set_rate_limit(True)
 
-	def get_album_art(self, mbid:str) -> str|None:
+	def get_art(self, mbid:str) -> str | None:
 		"""
 		Retrieves album art from online archives.
 
 		Args:
-			mbid: The MusicBrainz ID of the album.
+			mbid: The MusicBrainz ID of the album/artist.
 
 		Returns:
-			The URL of the album art.
+			The URL of the album/artist art.
 		"""
 		try:
 			result = self.musicbrainz.get_image_list(mbid)
@@ -53,72 +63,39 @@ class MusicBrainzClient:
 			else:
 				return None
 		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving album art: {e}")
+			self.logger.error(f"Network error retrieving art: {e}")
 			return None
 		except musicbrainzngs.WebServiceError as e:
-			self.logger.error(f"Error retrieving album art: {e}")
+			self.logger.error(f"Error retrieving art: {e}")
 			return None
 
-	def get_artist_art(self, mbid:str) -> str|None:
-		"""
-		Retrieves artist art from online archives.
+	def get_by_id(self, query_type: QueryType, mbid:str) -> dict | None:
+		"""Gets item by id
 
 		Args:
-			mbid: The MusicBrainz ID of the artist.
+			query_type (QueryType):     artist,album,release,track,recording
+			mbid (str):                 MusicBrainz ID
 
 		Returns:
-			The URL of the artist art.
+			str|None: _description_
 		"""
 		try:
-			result = self.musicbrainz.get_image_list(mbid)
-			if result['images']:
-				return result['images'][0]['thumbnails']['large']
-			return None
-		except musicbrainzngs.ResponseError as e:
-			self.logger.error(f"Error retrieving artist art: {e}")
-			return None
-		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving artist art: {e}")
-			return None
-		except musicbrainzngs.WebServiceError as e:
-			self.logger.error(f"Error retrieving artist art: {e}")
-			return None
-
-	def get_release_group_by_id(self, mbid:str) -> str|None:
-		"""
-		Retrieves release group information by MusicBrainz ID.
-
-		Args:
-			mbid: The MusicBrainz ID of the release group.
-
-		Returns:
-			The release group information.
-		"""
-		try:
-			result = self.musicbrainz.get_release_group_by_id(mbid)
-			return result
-		except musicbrainzngs.ResponseError as e:
-			self.logger.error(f"Error retrieving release group: {e}")
-			return None
-		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving release group: {e}")
-			return None
-		except musicbrainzngs.WebServiceError as e:
-			self.logger.error(f"Error retrieving release group: {e}")
-			return None
-
-	def get_artist_by_id(self, mbid:str) -> str|None:
-		"""
-		Retrieves artist information by MusicBrainz ID.
-
-		Args:
-			mbid: The MusicBrainz ID of the artist.
-
-		Returns:
-			The artist information.
-		"""
-		try:
-			result = self.musicbrainz.get_artist_by_id(mbid)
+			result=""
+			match query_type:
+				case QueryType.ARTIST:
+					result = self.musicbrainz.get_artist_by_id(mbid)
+				case QueryType.RECORDING:
+					result = self.musicbrainz.get_recording_by_id(mbid)
+				case QueryType.TRACK:
+					result = self.musicbrainz.get_recording_by_id(mbid)
+				case QueryType.RELEASE:
+					result = self.musicbrainz.get_release_by_id(mbid)
+				case QueryType.ALBUM:
+					result = self.musicbrainz.get_release_by_id(mbid)
+				case QueryType.RELEASE_GROUP:
+					result = self.musicbrainz.get_release_group_by_id(mbid)
+				case _:
+					raise InvalidValueError(f"Not a correct QueryType: {query_type}")
 			return result
 		except musicbrainzngs.ResponseError as e:
 			self.logger.error(f"Error retrieving artist: {e}")
@@ -130,7 +107,19 @@ class MusicBrainzClient:
 			self.logger.error(f"Error retrieving artist: {e}")
 			return None
 
-	def get_release_by_id(self, mbid:str) -> str|None:
+	def get_artist_by_id(self, mbid: str) -> dict | None:
+		"""
+		Retrieves artist information by MusicBrainz ID.
+
+		Args:
+			mbid: The MusicBrainz ID of the artist.
+
+		Returns:
+			The artist information.
+		"""
+		return self.get_by_id(QueryType.ARTIST, mbid)
+
+	def get_release_by_id(self, mbid:str) -> dict | None:
 		"""
 		Retrieves release information by MusicBrainz ID.
 
@@ -140,20 +129,21 @@ class MusicBrainzClient:
 		Returns:
 			The release information.
 		"""
-		try:
-			result = self.musicbrainz.get_release_by_id(mbid)
-			return result
-		except musicbrainzngs.ResponseError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
-		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving release: {e}")
-			return None
-		except musicbrainzngs.WebServiceError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
+		return self.get_by_id(QueryType.RELEASE, mbid)
 
-	def get_recording_by_id(self, mbid:str) -> str|None:
+	def get_release_group_by_id(self, mbid:str) -> dict | None:
+		"""
+		Retrieves release_group information by MusicBrainz ID.
+
+		Args:
+			mbid: The MusicBrainz ID of the release_group.
+
+		Returns:
+			The release_group information.
+		"""
+		return self.get_by_id(QueryType.RELEASE_GROUP, mbid)
+
+	def get_recording_by_id(self, mbid:str) -> dict | None:
 		"""
 		Retrieves recording information by MusicBrainz ID.
 
@@ -163,20 +153,9 @@ class MusicBrainzClient:
 		Returns:
 			The recording information.
 		"""
-		try:
-			result = self.musicbrainz.get_recording_by_id(mbid)
-			return result
-		except musicbrainzngs.ResponseError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
-		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving release: {e}")
-			return None
-		except musicbrainzngs.WebServiceError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
+		return self.get_by_id(QueryType.RECORDING, mbid)
 
-	def get_track_by_id(self, mbid:str) -> str|None:
+	def get_track_by_id(self, mbid:str) -> dict | None:
 		"""
 		Retrieves track information by MusicBrainz ID.
 
@@ -186,20 +165,9 @@ class MusicBrainzClient:
 		Returns:
 			The track information.
 		"""
-		try:
-			result = self.musicbrainz.get_recording_by_id(mbid)
-			return result
-		except musicbrainzngs.ResponseError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
-		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving release: {e}")
-			return None
-		except musicbrainzngs.WebServiceError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
+		return self.get_by_id(QueryType.TRACK, mbid)
 
-	def get_album_by_id(self, mbid:str) -> str|None:
+	def get_album_by_id(self, mbid:str) -> dict | None:
 		"""
 		Retrieves album information by MusicBrainz ID.
 
@@ -209,8 +177,36 @@ class MusicBrainzClient:
 		Returns:
 			The album information.
 		"""
+		return self.get_by_id(QueryType.ALBUM, mbid)
+
+	def get_by_name(self, query_type: QueryType, name: str) -> dict | None:
+		"""
+		Retrieves information by name.
+
+		Args:
+			type: artist/album/
+			name: The name of the item.
+
+		Returns:
+			The artist information.
+		"""
 		try:
-			result = self.musicbrainz.get_release_by_id(mbid)
+			result = ""
+			match query_type:
+				case QueryType.ARTIST:
+					result = self.musicbrainz.search_artists(name=name)
+				case QueryType.ALBUM:
+					result = self.musicbrainz.search_releases(name=name)
+				case QueryType.TRACK:
+					result = self.musicbrainz.search_recordings(name=name)
+				case QueryType.RECORDING:
+					result = self.musicbrainz.search_recordings(name=name)
+				case QueryType.RELEASE:
+					result = self.musicbrainz.search_releases(name=name)
+				case QueryType.RELEASE_GROUP:
+					result = self.musicbrainz.search_release_groups(name=name)
+				case _:
+					raise InvalidValueError(f"Not a correct QueryType: {query_type}")
 			return result
 		except musicbrainzngs.ResponseError as e:
 			self.logger.error(f"Error retrieving release: {e}")
@@ -222,7 +218,7 @@ class MusicBrainzClient:
 			self.logger.error(f"Error retrieving release: {e}")
 			return None
 
-	def get_artist_by_name(self, name:str) -> str|None:
+	def get_artist_by_name(self, name:str) -> dict | None:
 		"""
 		Retrieves artist information by name.
 
@@ -232,20 +228,9 @@ class MusicBrainzClient:
 		Returns:
 			The artist information.
 		"""
-		try:
-			result = self.musicbrainz.search_artists(name=name)
-			return result
-		except musicbrainzngs.ResponseError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
-		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving release: {e}")
-			return None
-		except musicbrainzngs.WebServiceError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
+		return self.get_by_name(QueryType.ARTIST, name)
 
-	def get_album_by_name(self, name:str) -> str|None:
+	def get_album_by_name(self, name:str) -> dict | None:
 		"""
 		Retrieves album information by name.
 
@@ -255,20 +240,9 @@ class MusicBrainzClient:
 		Returns:
 			The album information.
 		"""
-		try:
-			result = self.musicbrainz.search_releases(name=name)
-			return result
-		except musicbrainzngs.ResponseError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
-		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving release: {e}")
-			return None
-		except musicbrainzngs.WebServiceError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
+		return self.get_by_name(QueryType.ALBUM, name)
 
-	def get_track_by_name(self, name:str) -> str|None:
+	def get_track_by_name(self, name:str) -> dict | None:
 		"""
 		Retrieves track information by name.
 
@@ -278,20 +252,9 @@ class MusicBrainzClient:
 		Returns:
 			The track information.
 		"""
-		try:
-			result = self.musicbrainz.search_recordings(name=name)
-			return result
-		except musicbrainzngs.ResponseError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
-		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving release: {e}")
-			return None
-		except musicbrainzngs.WebServiceError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
+		return self.get_by_name(QueryType.TRACK, name)
 
-	def get_release_group_by_name(self, name:str) -> str|None:
+	def get_release_group_by_name(self, name:str) -> dict | None:
 		"""
 		Retrieves release group information by name.
 
@@ -301,20 +264,9 @@ class MusicBrainzClient:
 		Returns:
 			The release group information.
 		"""
-		try:
-			result = self.musicbrainz.search_release_groups(name=name)
-			return result
-		except musicbrainzngs.ResponseError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
-		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving release: {e}")
-			return None
-		except musicbrainzngs.WebServiceError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
+		return self.get_by_name(QueryType.RELEASE_GROUP, name)
 
-	def get_recording_by_name(self, name:str) -> str|None:
+	def get_recording_by_name(self, name:str) -> dict | None:
 		"""
 		Retrieves recording information by name.
 
@@ -324,20 +276,9 @@ class MusicBrainzClient:
 		Returns:
 			The recording information.
 		"""
-		try:
-			result = self.musicbrainz.search_recordings(name=name)
-			return result
-		except musicbrainzngs.ResponseError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
-		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving release: {e}")
-			return None
-		except musicbrainzngs.WebServiceError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
+		return self.get_by_name(QueryType.RECORDING, name)
 
-	def get_release_by_name(self, name:str) -> str|None:
+	def get_release_by_name(self, name:str) -> dict | None:
 		"""
 		Retrieves release information by name.
 
@@ -347,20 +288,9 @@ class MusicBrainzClient:
 		Returns:
 			The release information.
 		"""
-		try:
-			result = self.musicbrainz.search_releases(name=name)
-			return result
-		except musicbrainzngs.ResponseError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
-		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving release: {e}")
-			return None
-		except musicbrainzngs.WebServiceError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
+		return self.get_by_name(QueryType.RELEASE, name)
 
-	def get_track_by_audio_fingerprint(self, fingerprint:str) -> str|None:
+	def get_track_by_audio_fingerprint(self, fingerprint:str) -> dict | None:
 		"""
 		Retrieves track information by audio fingerprint.
 
@@ -369,52 +299,6 @@ class MusicBrainzClient:
 
 		Returns:
 			The track information.
-		"""
-		try:
-			result = self.musicbrainz.search_recordings(fingerprint=fingerprint)
-			return result
-		except musicbrainzngs.ResponseError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
-		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving release: {e}")
-			return None
-		except musicbrainzngs.WebServiceError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
-
-	def get_release_by_audio_fingerprint(self, fingerprint:str) -> str|None:
-		"""
-		Retrieves release information by audio fingerprint.
-
-		Args:
-			fingerprint: The audio fingerprint of the release.
-
-		Returns:
-			The release information.
-		"""
-		try:
-			result = self.musicbrainz.search_releases(fingerprint=fingerprint)
-			return result
-		except musicbrainzngs.ResponseError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
-		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving release: {e}")
-			return None
-		except musicbrainzngs.WebServiceError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
-
-	def get_recording_by_audio_fingerprint(self, fingerprint:str) -> str|None:
-		"""
-		Retrieves recording information by audio fingerprint.
-
-		Args:
-			fingerprint: The audio fingerprint of the recording.
-
-		Returns:
-			The recording information.
 		"""
 		try:
 			result = self.musicbrainz.search_recordings(fingerprint=fingerprint)
