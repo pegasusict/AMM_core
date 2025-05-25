@@ -52,7 +52,7 @@ class Tagger(Task):
             file="Unknown file"
             try:
                 # get all tags for said track
-                # Ensure track_id is an int, even if it's a Path or str
+                # Ensure track_id is an int
                 if isinstance(track_id, int):
                     track = Track(track_id)
                 else:

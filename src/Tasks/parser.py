@@ -41,7 +41,7 @@ class Parser(Task):
         self.batch = batch
         self.db = DB()
         self.logger = Logger(config)
-        self.media_parser = MediaParser(config)
+        self.parser = MediaParser(config)
 
     def run(self) -> None:
         """
@@ -50,7 +50,7 @@ class Parser(Task):
         for file in self.batch:
             # Parse the media file
             try:
-                metadata = self.media_parser.parse(Path(file))
+                metadata = self.parser.parse(Path(file))
                 self.db.register_file(str(file), metadata) # type: ignore
             except Exception as e:
                 self.logger.error(f"Error processing file {file}: {e}")

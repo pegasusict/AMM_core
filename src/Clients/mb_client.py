@@ -22,10 +22,11 @@ It is used to retrieve the MusicBrainz ID for albums, artists and tracks.
 
 from enum import Enum
 import musicbrainzngs
+from musicbrainzngs import NetworkError, WebServiceError, ResponseError
 
-from ..Exceptions import InvalidValueError
-from src.Singletons.config import Config
-from src.Singletons.logger import Logger
+from Exceptions import InvalidValueError
+from Singletons.config import Config
+from Singletons.logger import Logger
 
 class QueryType(Enum):
 	ARTIST = "artist"
@@ -62,10 +63,7 @@ class MusicBrainzClient:
 				return result['images'][0]['thumbnails']['large']
 			else:
 				return None
-		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving art: {e}")
-			return None
-		except musicbrainzngs.WebServiceError as e:
+		except (NetworkError, WebServiceError) as e:
 			self.logger.error(f"Error retrieving art: {e}")
 			return None
 
@@ -97,14 +95,8 @@ class MusicBrainzClient:
 				case _:
 					raise InvalidValueError(f"Not a correct QueryType: {query_type}")
 			return result
-		except musicbrainzngs.ResponseError as e:
-			self.logger.error(f"Error retrieving artist: {e}")
-			return None
-		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving artist: {e}")
-			return None
-		except musicbrainzngs.WebServiceError as e:
-			self.logger.error(f"Error retrieving artist: {e}")
+		except (ResponseError, NetworkError, WebServiceError) as e:
+			self.logger.error(f"Error retrieving {query_type} info by id: {e}")
 			return None
 
 	def get_artist_by_id(self, mbid: str) -> dict | None:
@@ -208,14 +200,8 @@ class MusicBrainzClient:
 				case _:
 					raise InvalidValueError(f"Not a correct QueryType: {query_type}")
 			return result
-		except musicbrainzngs.ResponseError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
-		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving release: {e}")
-			return None
-		except musicbrainzngs.WebServiceError as e:
-			self.logger.error(f"Error retrieving release: {e}")
+		except (ResponseError, NetworkError, WebServiceError) as e:
+			self.logger.error(f"Error retrieving {query_type} info: {e}")
 			return None
 
 	def get_artist_by_name(self, name:str) -> dict | None:
@@ -303,12 +289,6 @@ class MusicBrainzClient:
 		try:
 			result = self.musicbrainz.search_recordings(fingerprint=fingerprint)
 			return result
-		except musicbrainzngs.ResponseError as e:
-			self.logger.error(f"Error retrieving release: {e}")
-			return None
-		except musicbrainzngs.NetworkError as e:
-			self.logger.error(f"Network error retrieving release: {e}")
-			return None
-		except musicbrainzngs.WebServiceError as e:
-			self.logger.error(f"Error retrieving release: {e}")
+		except (ResponseError, NetworkError, WebServiceError) as e:
+			self.logger.error(f"Error retrieving track info: {e}")
 			return None
