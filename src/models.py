@@ -109,6 +109,7 @@ class DateTypes(Enum):
     DECEASED = 5
 
 class TitleType(Enum):
+    """Types of titles"""
     TITLE = 0
     TITLE_SORT = 1
     SUB_TITLE = 2
@@ -116,6 +117,7 @@ class TitleType(Enum):
 ######################################################################
 class DBUser(SQLModel, table=True):
     """User model."""
+    __tablename__ = "users" # type: ignore
 
     id: Optional[int] = Field(primary_key=True, index=True, default=None)
     username: str = Field(unique=True, default="")
@@ -135,6 +137,9 @@ class DBUser(SQLModel, table=True):
         return f"<User(id={self.id}, username={self.username}, email={self.email}, role={self.role})>"
 #######################################################################
 class DBTask(SQLModel, table=True):
+    """DB Model for Task."""
+    __tablename__ = "tasks"  # type: ignore
+
     id: int = Field(int, primary_key=True, unique=True)
     task_id:str = Field(String, nullable=False)
     start_time:datetime.datetime
@@ -161,6 +166,7 @@ class OptFieldBase(SQLModel):
 #######################################################################
 class DBStat(ItemBase, table=True):
     """Statistics for the application."""
+    __tablename__ = "stats"  # type: ignore
 
     name: str = Field(String(30))
     value: int = Field(default=0)
@@ -170,6 +176,7 @@ class DBStat(ItemBase, table=True):
         return f"Stat {self.name}"
 class DBStatRange(OptFieldBase, table=True):
     """Range for statistics."""
+    __tablename__ = "stat_ranges"  # type: ignore
 
     range_start: float = Field(default=0)
     range_end: float = Field(default=None)
@@ -178,6 +185,7 @@ class DBStatRange(OptFieldBase, table=True):
 #######################################################################
 class DBFile(ItemBase, table=True):
     """File information."""
+    __tablename__ = "files"  # type: ignore
 
     audio_ip: str = Field(default = None)
     imported: datetime.datetime = Field(default=datetime.datetime.now(datetime.timezone.utc))
@@ -252,6 +260,8 @@ class Track(BaseModel):
 
 class DBTrack(ItemBase, table=True):
     """Track information."""
+    __tablename__ = "tracks"  # type: ignore
+
     dates: List["DBDate"] = Relationship(back_populates="track")
     files: List["DBFile"] = Relationship(back_populates="track")
     albums: List["DBAlbum"] = Relationship(back_populates="tracks")
@@ -271,6 +281,8 @@ class DBTrack(ItemBase, table=True):
 
 class DBAlbum(ItemBase, table=True):
     """Album information."""
+    __tablename__ = "albums"  # type: ignore
+
     disc_count: int = Field(default=0)
     track_count: int = Field(default=0)
     mbid: "DBMBid" = Relationship(back_populates="album")
@@ -292,6 +304,8 @@ class DBAlbum(ItemBase, table=True):
 
 class DBPerson(ItemBase, table=True):
     """Person information."""
+    __tablename__ = "persons"  # type: ignore
+
     dates: List["DBDate"] = Relationship(back_populates="person")
     mbid: "DBMBid" = Relationship(back_populates="person")
     names: List["DBPersonName"] = Relationship(back_populates="person")
@@ -313,6 +327,8 @@ class DBPerson(ItemBase, table=True):
 
 class DBLabel(ItemBase, table=True):
     """Label information."""
+    __tablename__ = "labels"  # type: ignore
+
     name: str = Field(default="")
     mbid: "DBMBid" = Relationship(back_populates="label")
     albums: List["DBAlbum"] = Relationship(back_populates="label")
@@ -325,6 +341,8 @@ class DBLabel(ItemBase, table=True):
 
 class DBKey(ItemBase, table=True):
     """In which key the track is composed."""
+    __tablename__ = "keys"  # type: ignore
+
     key: str
     tracks: List["DBTrack"] = Relationship(back_populates="key")
 
@@ -333,6 +351,8 @@ class DBKey(ItemBase, table=True):
 
 class DBGenre(ItemBase, table=True):
     """Genre information."""
+    __tablename__ = "genres"  # type: ignore
+
     genre: str = Field(default="")
     tracks: List["DBTrack"] = Relationship(back_populates="genres")
     albums: List["DBAlbum"] = Relationship(back_populates="genres")
@@ -344,12 +364,16 @@ class DBGenre(ItemBase, table=True):
 #######################################################################
 class DBFilePath(OptFieldBase, table=True):
     """File path information."""
+    __tablename__ = "filepaths"  # type: ignore
+
     path: str = Field(unique=True)
     definitive: bool
     file: "DBFile" = Relationship(back_populates="paths")
 
 class DBDate(OptFieldBase, table=True):
     """Date information."""
+    __tablename__ = "dates"  # type: ignore
+
     date: datetime.date
     type: Enum = Field(Enum(DateTypes))
     person: "DBPerson" = Relationship(back_populates="dates")
@@ -358,6 +382,8 @@ class DBDate(OptFieldBase, table=True):
 
 class DBMBid(OptFieldBase, table=True):
     """MusicBrainz ID coupling."""
+    __tablename__ = "mbids"  # type: ignore
+
     mbid: str = Field(String(40), unique=True)
     track: "DBTrack" = Relationship(back_populates="mbid")
     album: "DBAlbum" = Relationship(back_populates="mbid")
@@ -366,11 +392,15 @@ class DBMBid(OptFieldBase, table=True):
 
 class DBTrackLyric(OptFieldBase, table=True):
     """Track lyrics."""
+    __tablename__ = "track_lyrics"  # type: ignore
+
     Lyric: str
     track: "DBTrack" = Relationship(back_populates="lyric")
 
 class DBTitle(OptFieldBase, table=True):
     """Title information."""
+    __tablename__ = "titles"  # type: ignore
+
     title: str
     title_type:Enum=Field(Enum(TitleType))
     track: "DBTrack" = Relationship(back_populates="titles")
@@ -378,13 +408,16 @@ class DBTitle(OptFieldBase, table=True):
 
 class DBPicture(OptFieldBase, table=True):
     """Album/Person Pictures"""
+    __tablename__ = "pictures"  # type: ignore
+
     picture_path: str = Field(unique=True)
     album: "DBAlbum" = Relationship(back_populates="picture")
     person: "DBPerson" = Relationship(back_populates="picture")
 
 class DBPersonName(OptFieldBase, table=True):
     """Person name information."""
+    __tablename__ = "person_names"  # type: ignore
+
     name: str
     name_type: Enum = Field(Enum(PersonNameTypes))
     person: "DBPerson" = Relationship(back_populates="names")
-

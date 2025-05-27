@@ -25,8 +25,8 @@ class FileError(AMMError):
 class InvalidConfigurationError(AMMError):
     """Raised when the configuration is invalid."""
 
-class DatabaseConnectionError(AMMError):
-    """Raised when the database connection fails."""
+class DatabaseError(AMMError):
+    """Raised when a database related action fails."""
 
 class PermissionDeniedError(AMMError):
     """Raised when an operation is not permitted."""
