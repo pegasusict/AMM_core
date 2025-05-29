@@ -17,6 +17,7 @@
 
 from pathlib import Path
 
+from ..models import Stages
 from .task import Task, TaskType
 from ..Singletons.config import Config
 from ..Singletons.database import DB
@@ -27,7 +28,9 @@ from ..AudioUtils.media_parser import get_file_type
 class Normalizer(Task):
     """This Task is aimed at normalizing the audio of the file."""
 
-    def __init__(self, config:Config, batch:list[Path]):
+    batch: dict[int, str | Path]
+
+    def __init__(self, config:Config, batch:dict[int, str | Path]):
         """
         Initializes the Normalizer class.
 
@@ -36,7 +39,7 @@ class Normalizer(Task):
         """
         super().__init__(config, task_type=TaskType.NORMALIZER)
         self.config = config
-        self.batch = batch
+        self.batch = batch # type: ignore
         self.db = DB()
         self.logger = Logger(config)
 
@@ -44,12 +47,13 @@ class Normalizer(Task):
         """
         Runs the task.
         """
-        for file in self.batch:
+        for file_id, path in self.batch: # type: ignore
             try:
-                file_type = get_file_type(Path(file))
-                normalize(file=Path(file), file_type=str(file_type))
+                file_type = get_file_type(Path(path))
+                normalize(file=Path(path), file_type=str(file_type))
+                self.db.set_file_stage(file_id, Stages.NORMALIZED)
             except Exception as e:
-                self.logger.error(f"Error processing file {file}: {e}")
+                self.logger.error(f"Error processing file {path}: {e}")
                 continue
 
             self.set_progress()

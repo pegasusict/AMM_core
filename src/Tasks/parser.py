@@ -18,6 +18,9 @@ It uses the mutagen library to read and write metadata to media files.
 """
 
 from pathlib import Path
+
+from ..Exceptions import DatabaseError
+from ..models import Stages
 from .task import Task, TaskType
 from ..Singletons.config import Config
 from ..Singletons.database import DB
@@ -29,7 +32,7 @@ class Parser(Task):
     This class is used to parse media files and extract metadata from them.
     """
 
-    def __init__(self, config:Config, batch:list):
+    def __init__(self, config:Config, batch:list[Path]):
         """
         Initializes the Parser class.
 
@@ -38,7 +41,7 @@ class Parser(Task):
         """
         super().__init__(config, task_type=TaskType.PARSER)
         self.config = config
-        self.batch = batch
+        self.batch = batch # type: ignore
         self.db = DB()
         self.logger = Logger(config)
         self.parser = MediaParser(config)
@@ -50,8 +53,12 @@ class Parser(Task):
         for file in self.batch:
             # Parse the media file
             try:
-                metadata = self.parser.parse(Path(file))
-                self.db.register_file(str(file), metadata) # type: ignore
+                metadata = self.parser.parse(Path(str(file)))
+                file = self.db.register_file(str(file), metadata).first() # type: ignore
+                if file_id := file.get("file_id", None) is not None: # type: ignore
+                    self.db.set_file_stage(file_id, Stages.IMPORTED)
+                else:
+                    raise DatabaseError("An error occured saving the file to the Database.")
             except Exception as e:
                 self.logger.error(f"Error processing file {file}: {e}")
                 continue

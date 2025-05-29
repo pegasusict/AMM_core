@@ -40,7 +40,7 @@ class Importer(Task):
         Args:
             config: The configuration object.
         """
-        super().__init__(config, task_type=TaskType.IMPORTER)
+        super().__init__(config=config, task_type=TaskType.IMPORTER)
         self.config = config
         self.base_path = self.config.get("paths", "import")
         ext_val = self.config.get("extensions", "import")
@@ -106,7 +106,6 @@ class Importer(Task):
                     os.remove(file)
                     self.stack.add_counter('removed_files')
         self.stack.add_counter('scanned_folders')
-        # TODO: Path is not iterable?!
         for index, path in list(self.folders): # type: ignore
             self.folders.pop(index)
             self.fast_scan(path)

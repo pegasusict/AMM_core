@@ -53,7 +53,7 @@ class ArtGetter(Task):
             config: The configuration object.
         """
         super().__init__(config, task_type=TaskType.ART_GETTER)
-        self.batch = batch
+        self.batch = batch # type: ignore
         self.config = config
         self.art_path = self.config.get("paths","art")
         self.processed=0

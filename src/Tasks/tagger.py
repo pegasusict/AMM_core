@@ -18,11 +18,13 @@ It uses the mutagen library to write metadata to media files."""
 
 from pathlib import Path
 
+from sqlmodel import select
+
 from task import Task, TaskType
 from Singletons.config import Config
 from Singletons.database import DB
 from Singletons.logger import Logger
-from models import Track
+from models import DBTrack, Track
 from AudioUtils.tagger import Tagger as Tag
 from AudioUtils.media_parser import get_file_type
 
@@ -54,9 +56,13 @@ class Tagger(Task):
                 # get all tags for said track
                 # Ensure track_id is an int
                 if isinstance(track_id, int):
-                    track = Track(track_id)
+                    statement = select(DBTrack).where(DBTrack.id == track_id)
                 else:
-                    track = Track(int(str(track_id)))
+                    statement = select(DBTrack).where(DBTrack.id == int(str(track_id)))
+                session = self.db.get_session()
+                db_track = session.exec(statement).first()
+                track = Track()
+                track.__dict__.update(db_track.__dict__)
                 tags = track.get_tags()
                 # get file associated with track
                 file = track.file

@@ -15,17 +15,20 @@
 
 """Lyrics Getter Task."""
 
+from sqlmodel import select
+from ..Exceptions import DatabaseError
 from task import Task, TaskType
 from Singletons.config import Config
 from Singletons.database import DB
 from Singletons.logger import Logger
 from AudioUtils.lyrics_getter import get_lyrics
-from models import DBTrackLyric, DBTrack
+from models import DBTrackLyric, DBTrack, Stages
 
 class LyricsGetter(Task):
     """This Task is aimed at getting the lyrics
     corresponding with the current Track."""
-    batch:dict[str,str]
+
+    batch: dict[str, str]
 
     def __init__(self, config: Config, batch: dict[str, str]):
         """
@@ -53,11 +56,15 @@ class LyricsGetter(Task):
                 track_title = track.titles[0].title
                 track_artist = track.performers[0].names[0].name
                 lyrics = get_lyrics(artist=track_artist, title=track_title)
-                track = DBTrack(id=int(track_id))
-                obj = DBTrackLyric(id=0, Lyric=lyrics, track=track)
-                session = DB().get_session()
+                session = self.db.get_session()
+                get_track = select(DBTrack).where(DBTrack.id == int(track_id))
+                if track := session.exec(get_track).first() is None:
+                    raise DatabaseError(f"Incorrect track id: {track_id}")
+                obj = DBTrackLyric(Lyric=lyrics, track=track) # type: ignore
                 session.add(obj)
                 session.commit()
+                for file_id in track.files: # type: ignore
+                    self.db.set_file_stage(file_id, Stages.LYRICS_RETRIEVED)
         except Exception as e:
             self.logger.error(f"Error processing track {mbid}: {e}") # type: ignore
 

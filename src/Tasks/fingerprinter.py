@@ -15,9 +15,9 @@
 
 """Fingerprinter Task."""
 
-
 from pathlib import Path
 
+from ..models import Stages
 from task import Task, TaskType
 from Singletons.config import Config
 from Singletons.database import DB
@@ -27,17 +27,20 @@ from AudioUtils.acoustid import AcoustID
 class FingerPrinter(Task):
     """This Task is aimed at fingerprinting the audio of the file
     in order to identify it with the aid of MusicBrainz."""
+    batch: dict[int, str | Path]
 
-    def __init__(self, config:Config, batch:dict[str, str]):
+    def __init__(self, config:Config, batch:dict[int, str | Path]):
         """
         Initializes the Parser class.
 
         Args:
             config: The configuration object.
+            batch:  A dictionairy containing file_id's and filepaths
         """
+
         super().__init__(config, task_type=TaskType.FINGERPRINTER)
         self.config = config
-        self.batch = batch
+        self.batch = batch # type: ignore
         self.db = DB()
         self.logger = Logger(config)
 
@@ -46,15 +49,16 @@ class FingerPrinter(Task):
         Runs the parser task.
         It parses the media files in the import path and extracts metadata from them.
         """
-        for file in self.batch:
+        for file_id, file_path in self.batch: # type: ignore
             try:
-                path = Path(file)
+                path = Path(str(file_path))
                 acoustid = AcoustID(path)
                 metadata = acoustid.process()
             except Exception as e:
-                self.logger.error(f"Error processing file {file}: {e}")
+                self.logger.error(f"Error processing file {file_path}: {e}")
                 continue
 
             # Add the metadata to the database
-            self.db.register_file(str(file), metadata)
+            self.db.update_file(str(file_path), metadata)
+            self.db.set_file_stage(file_id, Stages.FINGERPRINTED)
             self.set_progress()

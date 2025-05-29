@@ -82,8 +82,8 @@ class Stages(Enum):
     IMPORTED = 1
     FINGERPRINTED = 2
     TAGS_RETRIEVED = 3
-    ART_RETRIEVED = 4
-    LYRICS_RETRIEVED = 5
+    ART_RETRIEVED = 4 # TODO: is Album/artist related, but album is needed for file
+    LYRICS_RETRIEVED = 5 # TODO: is track related, but needed for file...
     TRIMMED = 6
     NORMALIZED = 7
     TAGGED = 8
@@ -159,10 +159,10 @@ class DBTask(SQLModel, table=True):
 ########################################################################
 class ItemBase(SQLModel):
     """ base class for item tables """
-    id: int = Field(primary_key=True, index=True)
+    id: int = Field(default=None, primary_key=True, index=True)
 class OptFieldBase(SQLModel):
     """ base class for optional fields """
-    id: int = Field(primary_key=True, index=True)
+    id: int = Field(default=None, primary_key=True, index=True)
 #######################################################################
 class DBStat(ItemBase, table=True):
     """Statistics for the application."""
@@ -212,7 +212,7 @@ class DBFile(ItemBase, table=True):
 
 class Track(BaseModel):
     """Operational Track Data class."""
-    id:Optional[int]
+    id:Optional[int] = None
     title:str = ""
     title_sort:str = ""
     subtitle:Optional[str] = ""
@@ -230,7 +230,7 @@ class Track(BaseModel):
     task:str = ""
     file:str = ""
 
-    def __init__(self, track_id:int|None) -> None:
+    def __init__(self, track_id:int|None = None) -> None:
         if track_id is not None:
             session = DB().get_session()
             trackdata = session.get_one(DBTrack, track_id)

@@ -21,24 +21,25 @@ import time
 import datetime
 from multiprocessing import Process
 from pathlib import Path
+from typing import List
 
 from ..models import TaskType, TaskStatus
 from ..Singletons.config import Config
 
 class Task():
     """Task Parent class to be used by tasks which are managed by TaskManager."""
-    processed:int = 0
-    batch:dict[str, str]|list[str]|list[Path]
-    process:Process|None
-    task_id:str
-    result:str|None
-    error:str
-    start_time:float
-    end_time:float
+    processed: int = 0
+    batch: dict[str, str] | dict[int, str] | List[str | Path] | List[Path]
+    process: Process | None
+    task_id: str
+    result: str | None
+    error: str
+    start_time: float
+    end_time: float
     duration: float
     progress: float = 0
-    status:TaskStatus = TaskStatus.PENDING
-    task_type:TaskType
+    status: TaskStatus = TaskStatus.PENDING
+    task_type: TaskType
 
     def __init__(self, config:Config, task_type:TaskType):
         """Initializes the Task class."""

@@ -17,10 +17,15 @@
 This module contains the DB class, which is used to manage the database connection.
 It uses the SQLalchemy library to connect to the database and perform operations on it.
 """
-from sqlmodel import SQLModel
+from pathlib import Path
+from sqlmodel import SQLModel, select
 from sqlmodel import create_engine, Session
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
+
+from ..Exceptions import InvalidValueError
+
+from ..models import DBFile, Stages
 
 ######################################################################
 def set_fields(data: dict, subject: object | None = None) -> object | dict:
@@ -133,9 +138,36 @@ class DB:
         return self.insert("pictures", {"mbid": mbid, "art_type": art_type, "picture_path": picture_path})
 
     def register_file(self, filepath:str, metadata:dict):
-        """Register metadata in the database."""
+        """Register file in the database."""
         values = set_fields(metadata)
         if not isinstance(values, dict):
             values = vars(values)
         values["filepath"] = filepath
-        return self.insert(table="files",values=values)
+        return self.insert(table="files", values=values)
+
+    def update_file(self, filepath:str, metadata:dict[str, str | int | Path]):
+        """Update file metadata in the database."""
+        values = set_fields(metadata)
+        if not isinstance(values, dict):
+            values = vars(values)
+        values["filepath"] = filepath
+        file_id = metadata.get("file_id")
+        return self.update(table="files", values=values, where=[id, file_id])
+
+    def set_file_stage(self, file_id: int, stage: Stages) -> None:
+        """Sets the processed stage for the file."""
+        if not isinstance(stage, Stages):
+            if isinstance(stage, str) and stage in Stages:
+                stage = Stages[stage]
+            elif isinstance(stage, int):
+                for Stage in Stages:
+                    if Stage == stage:
+                        stage = Stage
+                        break
+            else:
+                raise InvalidValueError(f"Invalid Stage: {stage}")
+
+        session = self.get_session()
+        statement = select(DBFile).where(DBFile.id == file_id)
+        file = session.exec(statement).first()
+        file.stage = stage # type: ignore
