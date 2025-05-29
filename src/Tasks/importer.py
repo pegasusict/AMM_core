@@ -89,7 +89,7 @@ class Importer(Task):
         returns: folders: List[str], files: List[str]
         """
 
-        if not os.path.exists(path):
+        if not Path.exists(path):
             Logger(Config()).error(f"Base path {path} does not exist")
             return None, None
 
@@ -100,12 +100,12 @@ class Importer(Task):
             elif file.is_file(follow_symlinks=False):
                 if (
                     len(self.ext) < 1
-                    or os.path.splitext(file.name)[1].lower() in self.ext
+                    or Path(file).suffix.lower() in self.ext
                 ):
                     self.files.append(Path(file.path))
                     self.stack.add_counter("all_files")
                 elif self.clean:
-                    os.remove(file)
+                    Path(file).unlink()
                     self.stack.add_counter("removed_files")
         self.stack.add_counter("scanned_folders")
         for index, path in list(self.folders):  # type: ignore

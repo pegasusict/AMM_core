@@ -14,7 +14,6 @@
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import os
 from pathlib import Path
 
 from mutagen._file import File  # type: ignore
@@ -51,7 +50,7 @@ class MediaParser:
             metadata["channels"] = self.get_channels(file_path)
             metadata["codec"] = self.get_codec(file_path)
             metadata["file_type"] = file_type
-            metadata["file_size"] = os.path.getsize(file_path)
+            metadata["file_size"] = Path.stat(file_path).st_size
             metadata["file_path"] = file_path
             metadata["file_name"] = str(file_path).split("/")[-1].split(".")[0]
             metadata["file_extension"] = get_file_extension(file_path)

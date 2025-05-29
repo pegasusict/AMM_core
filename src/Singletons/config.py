@@ -15,7 +15,6 @@
 
 """Configuration Management Module"""
 
-import os
 import json
 import logging
 from pathlib import Path
@@ -93,9 +92,9 @@ class Config:
 
     def load_config(self):
         """Loads the configuration from the file."""
-        if os.path.exists(self.config_file):
-            with open(self.config_file, "r", encoding=ENCODING) as f:
-                self.config = json.load(f)
+        if Path.exists(self.config_file):
+            with Path.open(self.config_file, "r", encoding=ENCODING) as file_pointer:
+                self.config = json.load(file_pointer)
         else:
             logging.warning(
                 f"Configuration file {self.config_file} not found. Using default settings."
@@ -105,7 +104,7 @@ class Config:
 
     def save_config(self):
         """Saves the configuration to the file."""
-        with open(self.config_file, "w", encoding=ENCODING) as f:
+        with Path.open(self.config_file, "w", encoding=ENCODING) as f:
             json.dump(self.config, f, indent=4)
             logging.info(f"Configuration saved to {self.config_file}")
         self.load_config()
