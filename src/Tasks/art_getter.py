@@ -25,27 +25,33 @@ from Singletons.logger import Logger
 from Singletons.database import DB
 from Clients.mb_client import MusicBrainzClient as mbclient
 
+
 def is_valid_url(url):
     regex = re.compile(
-        r'^https?://'  # http:// or https://
-        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # domain...
-        r'localhost|'  # localhost...
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
-        r'(?::\d+)?'  # optional port
-        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+        r"^https?://"  # http:// or https://
+        r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|"  # domain...
+        r"localhost|"  # localhost...
+        r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"  # ...or ip
+        r"(?::\d+)?"  # optional port
+        r"(?:/?|[/?]\S+)$",
+        re.IGNORECASE,
+    )
     return url is not None and regex.search(url)
+
 
 class ArtType(Enum):
     """Enum for different types of art."""
+
     ALBUM = "album"
     ARTIST = "artist"
+
 
 class ArtGetter(Task):
     """
     This class retrieves art from online archives.
     """
 
-    def __init__(self, batch:dict[str,str], config:Config):
+    def __init__(self, batch: dict[str, str], config: Config):
         """
         Initializes the ArtGetter class.
 
@@ -53,10 +59,10 @@ class ArtGetter(Task):
             config: The configuration object.
         """
         super().__init__(config, task_type=TaskType.ART_GETTER)
-        self.batch = batch # type: ignore
+        self.batch = batch  # type: ignore
         self.config = config
-        self.art_path = self.config.get("paths","art")
-        self.processed=0
+        self.art_path = self.config.get("paths", "art")
+        self.processed = 0
         self.logger = Logger(config)
         self.mbc = mbclient(config)
         self.database = DB()
@@ -66,13 +72,13 @@ class ArtGetter(Task):
         Runs the ArtGetter task.
         """
         self.logger.info("Running ArtGetter task")
-        for mbid, art_type in self.batch: # type: ignore
+        for mbid, art_type in self.batch:  # type: ignore
             _ = self.get_art(mbid, ArtType(art_type))
         self.logger.info("ArtGetter task completed")
         self.set_result("Art retrieval completed")
         self.set_finished()
 
-    async def get_art(self, mbid:str, art_type:ArtType) -> None:
+    async def get_art(self, mbid: str, art_type: ArtType) -> None:
         """
         Retrieves album/artist art for the given item.
 

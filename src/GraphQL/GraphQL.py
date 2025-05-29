@@ -24,6 +24,7 @@ from strawberry.fastapi import GraphQLRouter
 
 from Mapping import Query, Mutation
 
+
 class GraphQL:
     """
     GraphQL Server class for handling GraphQL queries and mutations.

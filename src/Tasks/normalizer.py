@@ -25,12 +25,13 @@ from ..Singletons.logger import Logger
 from ..AudioUtils.normalizer import normalize
 from ..AudioUtils.media_parser import get_file_type
 
+
 class Normalizer(Task):
     """This Task is aimed at normalizing the audio of the file."""
 
     batch: dict[int, str | Path]
 
-    def __init__(self, config:Config, batch:dict[int, str | Path]):
+    def __init__(self, config: Config, batch: dict[int, str | Path]):
         """
         Initializes the Normalizer class.
 
@@ -39,7 +40,7 @@ class Normalizer(Task):
         """
         super().__init__(config, task_type=TaskType.NORMALIZER)
         self.config = config
-        self.batch = batch # type: ignore
+        self.batch = batch  # type: ignore
         self.db = DB()
         self.logger = Logger(config)
 
@@ -47,7 +48,7 @@ class Normalizer(Task):
         """
         Runs the task.
         """
-        for file_id, path in self.batch: # type: ignore
+        for file_id, path in self.batch:  # type: ignore
             try:
                 file_type = get_file_type(Path(path))
                 normalize(file=Path(path), file_type=str(file_type))

@@ -24,7 +24,8 @@ from mutagen.flac import FLAC
 from mutagen.id3 import ID3
 from mutagen.asf import ASF
 
-class Tagger():
+
+class Tagger:
     """Reads and writes tags in audiofiles."""
 
     def __init__(self, file_path: Path, file_type: str):
@@ -55,7 +56,7 @@ class Tagger():
         """Retrieve all tags as a dictionary."""
         return dict(self.audio)
 
-    def get(self, tag:str) -> str | None:
+    def get(self, tag: str) -> str | None:
         """Retrieve the requested Tag or None if not available."""
         return self.audio[tag] or None
 

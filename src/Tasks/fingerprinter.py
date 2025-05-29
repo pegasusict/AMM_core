@@ -24,12 +24,14 @@ from Singletons.database import DB
 from Singletons.logger import Logger
 from AudioUtils.acoustid import AcoustID
 
+
 class FingerPrinter(Task):
     """This Task is aimed at fingerprinting the audio of the file
     in order to identify it with the aid of MusicBrainz."""
+
     batch: dict[int, str | Path]
 
-    def __init__(self, config:Config, batch:dict[int, str | Path]):
+    def __init__(self, config: Config, batch: dict[int, str | Path]):
         """
         Initializes the Parser class.
 
@@ -40,7 +42,7 @@ class FingerPrinter(Task):
 
         super().__init__(config, task_type=TaskType.FINGERPRINTER)
         self.config = config
-        self.batch = batch # type: ignore
+        self.batch = batch  # type: ignore
         self.db = DB()
         self.logger = Logger(config)
 
@@ -49,7 +51,7 @@ class FingerPrinter(Task):
         Runs the parser task.
         It parses the media files in the import path and extracts metadata from them.
         """
-        for file_id, file_path in self.batch: # type: ignore
+        for file_id, file_path in self.batch:  # type: ignore
             try:
                 path = Path(str(file_path))
                 acoustid = AcoustID(path)

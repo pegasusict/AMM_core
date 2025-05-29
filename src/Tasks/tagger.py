@@ -32,7 +32,7 @@ from AudioUtils.media_parser import get_file_type
 class Tagger(Task):
     """This class is used to write tags to media files."""
 
-    def __init__(self, config:Config, batch:list[Path]):
+    def __init__(self, config: Config, batch: list[Path]):
         """
         Initializes the Tagger class.
 
@@ -51,7 +51,7 @@ class Tagger(Task):
         """
         for track_id in self.batch:
             # Parse the media file
-            file="Unknown file"
+            file = "Unknown file"
             try:
                 # get all tags for said track
                 # Ensure track_id is an int

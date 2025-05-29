@@ -22,8 +22,7 @@ from parser import Parser
 from tagger import Tagger
 
 
-
-__All__ = { # type: ignore
+__All__ = {  # type: ignore
     "ArtGetter": ArtGetter,
     "FingerPrinter": FingerPrinter,
     "Importer": Importer,

@@ -27,43 +27,45 @@ from mutagen.asf import ASF
 from src.Singletons.config import Config
 from src.Singletons.logger import Logger
 
+
 class FileTypes(Enum):
-	"""FileType Enums"""
-	MP3 = MP3
-	MP4 = MP4
-	FLAC = FLAC
-	WAV = WavPack
-	OGG = OggVorbis
-	APE = APEv2
-	ASF = ASF
+    """FileType Enums"""
+
+    MP3 = MP3
+    MP4 = MP4
+    FLAC = FLAC
+    WAV = WavPack
+    OGG = OggVorbis
+    APE = APEv2
+    ASF = ASF
+
 
 def get_file_extension(file_path: Path) -> str:
-	"""
-	Returns the file extension of the media file.
+    """
+    Returns the file extension of the media file.
 
-	Args:
-		file_path: The path to the media file.
+    Args:
+            file_path: The path to the media file.
 
-	Returns:
-		str: The file extension of the media file.
-	"""
-	return file_path.split('.')[-1].lower() # type: ignore
+    Returns:
+            str: The file extension of the media file.
+    """
+    return file_path.split(".")[-1].lower()  # type: ignore
 
 
 def get_file_type(file_path: Path) -> str | None:
-	"""
-	Returns the file type of the media file.
+    """
+    Returns the file type of the media file.
 
-	Args:
-		file_path: The path to the media file.
+    Args:
+            file_path: The path to the media file.
 
-	Returns:
-		str: The file type of the media file.
-	"""
-	file_extension = get_file_extension(file_path)
-	if file_extension.upper in FileTypes:
-		return file_extension
-	else:
-		Logger(Config()).error(message=f"Unsupported file type: {file_extension}")
-		return None
-
+    Returns:
+            str: The file type of the media file.
+    """
+    file_extension = get_file_extension(file_path)
+    if file_extension.upper in FileTypes:
+        return file_extension
+    else:
+        Logger(Config()).error(message=f"Unsupported file type: {file_extension}")
+        return None

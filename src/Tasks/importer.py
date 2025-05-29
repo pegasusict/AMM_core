@@ -29,9 +29,9 @@ class Importer(Task):
     This class is used to import files from a directory.
     It scans the directory and returns a list of files to be imported.
     """
+
     files: List[Path] = []
     folders: List[Path] = []
-
 
     def __init__(self, config: Config):
         """
@@ -49,15 +49,15 @@ class Importer(Task):
         elif ext_val is None:
             self.ext = []
         else:
-            self.ext = list(ext_val) if hasattr(ext_val, '__iter__') else [str(ext_val)] # type: ignore
+            self.ext = list(ext_val) if hasattr(ext_val, "__iter__") else [str(ext_val)]  # type: ignore
         self.clean = self.config.get("import", "clean", False)
         self.stack = Stack()
-        self.stack.add_counter('all_files', 0)
-        self.stack.add_counter('all_folders', 0)
-        self.stack.add_counter('removed_files', 0)
-        self.stack.add_counter('scanned_folders', 0)
-        self.stack.add_counter('scanned_files', 0)
-        self.stack.add_counter('imported_files', 0)
+        self.stack.add_counter("all_files", 0)
+        self.stack.add_counter("all_folders", 0)
+        self.stack.add_counter("removed_files", 0)
+        self.stack.add_counter("scanned_folders", 0)
+        self.stack.add_counter("scanned_files", 0)
+        self.stack.add_counter("imported_files", 0)
 
     def run(self):
         """
@@ -71,7 +71,6 @@ class Importer(Task):
             task = Parser(self.config, self.files)
             task.start()
             task.wait()
-
 
     def fast_scan(self, path):
         """
@@ -97,16 +96,19 @@ class Importer(Task):
         for file in os.scandir(path):
             if file.is_dir(follow_symlinks=False):
                 self.folders.append(Path(file.path))
-                self.stack.add_counter('all_folders')
+                self.stack.add_counter("all_folders")
             elif file.is_file(follow_symlinks=False):
-                if len(self.ext) < 1 or os.path.splitext(file.name)[1].lower() in self.ext:
+                if (
+                    len(self.ext) < 1
+                    or os.path.splitext(file.name)[1].lower() in self.ext
+                ):
                     self.files.append(Path(file.path))
-                    self.stack.add_counter('all_files')
+                    self.stack.add_counter("all_files")
                 elif self.clean:
                     os.remove(file)
-                    self.stack.add_counter('removed_files')
-        self.stack.add_counter('scanned_folders')
-        for index, path in list(self.folders): # type: ignore
+                    self.stack.add_counter("removed_files")
+        self.stack.add_counter("scanned_folders")
+        for index, path in list(self.folders):  # type: ignore
             self.folders.pop(index)
             self.fast_scan(path)
 

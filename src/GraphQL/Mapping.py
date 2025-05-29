@@ -13,6 +13,7 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 """Module to define mappings between schemas and queries."""
+
 from __future__ import annotations
 
 import strawberry
@@ -25,6 +26,7 @@ from Exceptions import InvalidValueError
 
 #################################################################################
 
+
 def set_fields(info: dict, subject: object) -> object:
     """Sets al non-empty values to the object."""
     for key, value in info:
@@ -32,8 +34,9 @@ def set_fields(info: dict, subject: object) -> object:
             continue
         if value is not None:
             if hasattr(subject, key):
-                subject.key = value # type: ignore
+                subject.key = value  # type: ignore
     return subject
+
 
 #################################################################################
 def resolve_user(self, info: dict[str, str | int]) -> User:
@@ -43,9 +46,9 @@ def resolve_user(self, info: dict[str, str | int]) -> User:
     if user_id := info.get("user_id", None) is not None:
         statement = statement.where(DBUser.id == user_id)
     elif username := info.get("username", None) is not None:
-        statement =  statement.where(DBUser.username == username)
+        statement = statement.where(DBUser.username == username)
     elif email := info.get("email", None) is not None:
-        statement =  statement.where(DBUser.email == email)
+        statement = statement.where(DBUser.email == email)
     else:
         raise InvalidValueError("Invalid arguments for user resolution")
 
@@ -58,7 +61,10 @@ def resolve_user(self, info: dict[str, str | int]) -> User:
 
     return user_obj
 
-def resolve_track(self, info: dict[str, str | int], track_id: int | None = None) -> Track:
+
+def resolve_track(
+    self, info: dict[str, str | int], track_id: int | None = None
+) -> Track:
     """Logic to resolve a track by ID, MBid or title and artist."""
     statement = select(DBTrack)
 
@@ -87,6 +93,7 @@ def resolve_track(self, info: dict[str, str | int], track_id: int | None = None)
 
     return track_obj
 
+
 def resolve_album(self, info: dict, album_id: int) -> Album:
     """Logic to resolve an album by ID, MBid, title and artist or release date."""
     statement = select(DBAlbum)
@@ -99,7 +106,7 @@ def resolve_album(self, info: dict, album_id: int) -> Album:
     elif mbid := info.get("mbid", None) is not None:
         statement = statement.where(DBAlbum.mbid == mbid)
     # elif title is not None and artist is not None:
-        # statement = statement.where(DBAlbum.title == title).where(DBAlbum.artists == artist)
+    # statement = statement.where(DBAlbum.title == title).where(DBAlbum.artists == artist)
     elif release_date := info.get("release_date", None) is not None:
         statement = statement.where(DBAlbum.release_date == release_date)
     else:
@@ -113,6 +120,7 @@ def resolve_album(self, info: dict, album_id: int) -> Album:
     album_obj.__dict__.update(album.__dict__)
 
     return album_obj
+
 
 def resolve_person(self, info: dict, person_id: int) -> Person:
     """Logic to resolve a person by ID, MBid, name, nickname or birth date."""
@@ -141,6 +149,7 @@ def resolve_person(self, info: dict, person_id: int) -> Person:
 
     return person_obj
 
+
 def resolve_label(self, info: dict, label_id: int) -> Label:
     """Logic to resolve a label by ID or name."""
     statement = select(DBLabel)
@@ -160,6 +169,7 @@ def resolve_label(self, info: dict, label_id: int) -> Label:
     label_obj.__dict__.update(label.__dict__)
 
     return label_obj
+
 
 def resolve_stat(self, info: dict, stat_id: int) -> Stat:
     """Logic to resolve a stat by ID or name."""
@@ -186,6 +196,7 @@ def resolve_stat(self, info: dict, stat_id: int) -> Stat:
 
     return stat_obj
 
+
 def resolve_file(self, info: dict, file_id: int) -> File:
     """Logic to resolve a file by ID or filename."""
 
@@ -209,6 +220,7 @@ def resolve_file(self, info: dict, file_id: int) -> File:
     file_obj.__dict__.update(file.__dict__)
 
     return file_obj
+
 
 def resolve_genre(self, info: dict, genre_id: int) -> Genre:
     """Logic to resolve a genre by ID or name."""
@@ -234,20 +246,23 @@ def resolve_genre(self, info: dict, genre_id: int) -> Genre:
 
     return genre_obj
 
-@strawberry.type()
-class Query():
-    """Query class for GraphQL schema."""
-    track = strawberry.field(resolve_track) # type: ignore
-    album = strawberry.field(resolve_album) # type: ignore
-    person = strawberry.field(resolve_person) # type: ignore
-    user = strawberry.field(resolve_user) # type: ignore
-    label = strawberry.field(resolve_label) # type: ignore
-    stat = strawberry.field(resolve_stat) # type: ignore
-    file = strawberry.field(resolve_file) # type: ignore
-    genre = strawberry.field(resolve_genre) # type: ignore
 
 @strawberry.type()
-class Mutation():
+class Query:
+    """Query class for GraphQL schema."""
+
+    track = strawberry.field(resolve_track)  # type: ignore
+    album = strawberry.field(resolve_album)  # type: ignore
+    person = strawberry.field(resolve_person)  # type: ignore
+    user = strawberry.field(resolve_user)  # type: ignore
+    label = strawberry.field(resolve_label)  # type: ignore
+    stat = strawberry.field(resolve_stat)  # type: ignore
+    file = strawberry.field(resolve_file)  # type: ignore
+    genre = strawberry.field(resolve_genre)  # type: ignore
+
+
+@strawberry.type()
+class Mutation:
     """Mutation class for GraphQL schema."""
 
     @strawberry.mutation()
@@ -261,7 +276,7 @@ class Mutation():
         if username is None or email is None or password_hash is None:
             raise ValueError("Insufficient data to create a new user")
 
-        user = DBUser(username=username,password_hash=password_hash,email=email)
+        user = DBUser(username=username, password_hash=password_hash, email=email)
 
         session = DB().get_session()
         session.add(user)

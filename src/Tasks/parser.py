@@ -27,12 +27,13 @@ from ..Singletons.database import DB
 from ..Singletons.logger import Logger
 from ..AudioUtils.media_parser import MediaParser
 
+
 class Parser(Task):
     """
     This class is used to parse media files and extract metadata from them.
     """
 
-    def __init__(self, config:Config, batch:list[Path]):
+    def __init__(self, config: Config, batch: list[Path]):
         """
         Initializes the Parser class.
 
@@ -41,7 +42,7 @@ class Parser(Task):
         """
         super().__init__(config, task_type=TaskType.PARSER)
         self.config = config
-        self.batch = batch # type: ignore
+        self.batch = batch  # type: ignore
         self.db = DB()
         self.logger = Logger(config)
         self.parser = MediaParser(config)
@@ -54,11 +55,13 @@ class Parser(Task):
             # Parse the media file
             try:
                 metadata = self.parser.parse(Path(str(file)))
-                file = self.db.register_file(str(file), metadata).first() # type: ignore
-                if file_id := file.get("file_id", None) is not None: # type: ignore
+                file = self.db.register_file(str(file), metadata).first()  # type: ignore
+                if file_id := file.get("file_id", None) is not None:  # type: ignore
                     self.db.set_file_stage(file_id, Stages.IMPORTED)
                 else:
-                    raise DatabaseError("An error occured saving the file to the Database.")
+                    raise DatabaseError(
+                        "An error occured saving the file to the Database."
+                    )
             except Exception as e:
                 self.logger.error(f"Error processing file {file}: {e}")
                 continue

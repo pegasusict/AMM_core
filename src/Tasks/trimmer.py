@@ -26,9 +26,11 @@ from AudioUtils.media_parser import get_file_type
 from models import Codecs
 from Exceptions import FileError
 
+
 class Trimmer(Task):
     """Trims silences of start and end of songs."""
-    batch: dict[str,str]
+
+    batch: dict[str, str]
 
     def __init__(self, batch: dict[str, str], config: Config = Config()):
         """
@@ -40,7 +42,7 @@ class Trimmer(Task):
         """
         super().__init__(config, task_type=TaskType.PARSER)
         self.config = config
-        self.batch = batch # type: ignore
+        self.batch = batch  # type: ignore
         self.db = DB()
         self.logger = Logger(config)
 

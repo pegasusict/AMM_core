@@ -19,6 +19,7 @@ import os
 import json
 import logging
 from pathlib import Path
+
 ENCODING = "utf-8"
 
 DEFAULT_CONFIG = {
@@ -30,10 +31,7 @@ DEFAULT_CONFIG = {
         "port": 443,
         "ignore_existing_acoustid_fingerprints": False,
     },
-    "logging": {
-        "level": "DEBUG",
-        "file": "amm.log"
-    },
+    "logging": {"level": "DEBUG", "file": "amm.log"},
     "paths": {
         "base": "/alpha/music/amm/",
         "import": "import/",
@@ -47,13 +45,25 @@ DEFAULT_CONFIG = {
         "normalizer": True,
         "trimmer": True,
         "converter": True,
-        "file_rename": True
+        "file_rename": True,
     },
     "extensions": {
-        "import": [".mp3", ".flac", ".ogg", ".wav", ".m4a", ".aac", ".wma", ".opus", ".mp4", "mp2"],
+        "import": [
+            ".mp3",
+            ".flac",
+            ".ogg",
+            ".wav",
+            ".m4a",
+            ".aac",
+            ".wma",
+            ".opus",
+            ".mp4",
+            "mp2",
+        ],
         "export": [".mp3", ".flac"],
     },
 }
+
 
 class Config:
     """Configuration Management Class"""
@@ -69,7 +79,7 @@ class Config:
         self.config = {}
         self.load_config()
 
-    def get_path(self, key:str) -> str:
+    def get_path(self, key: str) -> str:
         """
         Gets the path for the given key.
 
@@ -84,21 +94,25 @@ class Config:
     def load_config(self):
         """Loads the configuration from the file."""
         if os.path.exists(self.config_file):
-            with open(self.config_file, 'r', encoding=ENCODING) as f:
+            with open(self.config_file, "r", encoding=ENCODING) as f:
                 self.config = json.load(f)
         else:
-            logging.warning(f"Configuration file {self.config_file} not found. Using default settings.")
+            logging.warning(
+                f"Configuration file {self.config_file} not found. Using default settings."
+            )
             self.config = DEFAULT_CONFIG
             self.save_config()
 
     def save_config(self):
         """Saves the configuration to the file."""
-        with open(self.config_file, 'w', encoding=ENCODING) as f:
+        with open(self.config_file, "w", encoding=ENCODING) as f:
             json.dump(self.config, f, indent=4)
             logging.info(f"Configuration saved to {self.config_file}")
         self.load_config()
 
-    def get(self, section: str, key: str, default=None) -> str | int | bool | list[str] | None:
+    def get(
+        self, section: str, key: str, default=None
+    ) -> str | int | bool | list[str] | None:
         """
         Gets a configuration value.
 
@@ -111,7 +125,7 @@ class Config:
         """
         return self.config[section].get(key, default)
 
-    def set(self, section:str, key:str, value):
+    def set(self, section: str, key: str, value):
         """
         Sets a configuration value.
         Args:

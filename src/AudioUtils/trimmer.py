@@ -22,8 +22,10 @@ from pydub import AudioSegment
 from ..Exceptions import OperationFailedError
 from ..models import Codecs
 
+
 class SilenceTrimmer:
     """Trims the silences of the start and end of an audiofile."""
+
     file: Path | None = None
     codec: Codecs | None = None
     threshold: int = -50
@@ -34,7 +36,9 @@ class SilenceTrimmer:
     end_trim: int = 0
     trimmed_sound: AudioSegment | None = None
 
-    def __init__(self, file: Path, codec: Codecs, threshold: int = -50, chunk_size: int = 10) -> None:
+    def __init__(
+        self, file: Path, codec: Codecs, threshold: int = -50, chunk_size: int = 10
+    ) -> None:
         """Initializer of the SilenceTrimmer Class.
 
         Args:
@@ -59,7 +63,6 @@ class SilenceTrimmer:
         else:
             self.duration = 0
 
-
     def _detect_silence(self, begin: bool) -> None:
         """
         iterate over chunks until you find the first one with sound.
@@ -77,8 +80,12 @@ class SilenceTrimmer:
             sound = self.sound.reverse()
 
         while trim_ms < self.duration:
-            segment = sound[trim_ms:trim_ms+self.chunk]
-            if not isinstance(segment, AudioSegment) or len(segment) == 0 or segment.dBFS >= self.threshold:
+            segment = sound[trim_ms : trim_ms + self.chunk]
+            if (
+                not isinstance(segment, AudioSegment)
+                or len(segment) == 0
+                or segment.dBFS >= self.threshold
+            ):
                 break
             trim_ms += self.chunk
 
@@ -87,19 +94,22 @@ class SilenceTrimmer:
         else:
             self.end_trim = trim_ms
 
-
     def trim_silences(self):
         """Trims the silences of the start and end of an audiofile."""
         self._detect_silence(True)
         self._detect_silence(False)
 
         if self.sound is not None:
-            self.trimmed_sound = self.sound[self.start_trim:self.duration-self.end_trim] # type: ignore
+            self.trimmed_sound = self.sound[
+                self.start_trim : self.duration - self.end_trim
+            ]  # type: ignore
             # save the audio in the original format
             if self.trimmed_sound is not None:
                 self.trimmed_sound.export(self.file, format=str(self.codec))
             else:
-                raise OperationFailedError("Trimming resulted in no audio data to export.")
+                raise OperationFailedError(
+                    "Trimming resulted in no audio data to export."
+                )
         else:
             self.trimmed_sound = None
             raise OperationFailedError("No audio data loaded to trim.")

@@ -17,6 +17,7 @@
 This module contains the DB class, which is used to manage the database connection.
 It uses the SQLalchemy library to connect to the database and perform operations on it.
 """
+
 from pathlib import Path
 from sqlmodel import SQLModel, select
 from sqlmodel import create_engine, Session
@@ -26,6 +27,7 @@ from sqlalchemy import text
 from ..Exceptions import InvalidValueError
 
 from ..models import DBFile, Stages
+
 
 ######################################################################
 def set_fields(data: dict, subject: object | None = None) -> object | dict:
@@ -40,7 +42,9 @@ def set_fields(data: dict, subject: object | None = None) -> object | dict:
                 setattr(subject, key, value)
     return subject
 
+
 ########################################################################
+
 
 class DB:
     """
@@ -59,7 +63,7 @@ class DB:
 
     def __init__(self, db_url: str = "mysql+pymysql://amm:password@localhost/amm"):
         """Initialize the DB class."""
-        if not hasattr(self, '_initialized'):
+        if not hasattr(self, "_initialized"):
             self._initialized = True
             self._engine = create_engine(db_url)
             self._session = sessionmaker(bind=self._engine)
@@ -130,14 +134,16 @@ class DB:
             session.commit()
             return result
 
+    ########################################################################
 
-########################################################################
-
-    def register_picture(self, mbid:str, art_type:str, picture_path:str):
+    def register_picture(self, mbid: str, art_type: str, picture_path: str):
         """Register a picture in the database."""
-        return self.insert("pictures", {"mbid": mbid, "art_type": art_type, "picture_path": picture_path})
+        return self.insert(
+            "pictures",
+            {"mbid": mbid, "art_type": art_type, "picture_path": picture_path},
+        )
 
-    def register_file(self, filepath:str, metadata:dict):
+    def register_file(self, filepath: str, metadata: dict):
         """Register file in the database."""
         values = set_fields(metadata)
         if not isinstance(values, dict):
@@ -145,7 +151,7 @@ class DB:
         values["filepath"] = filepath
         return self.insert(table="files", values=values)
 
-    def update_file(self, filepath:str, metadata:dict[str, str | int | Path]):
+    def update_file(self, filepath: str, metadata: dict[str, str | int | Path]):
         """Update file metadata in the database."""
         values = set_fields(metadata)
         if not isinstance(values, dict):
@@ -170,4 +176,4 @@ class DB:
         session = self.get_session()
         statement = select(DBFile).where(DBFile.id == file_id)
         file = session.exec(statement).first()
-        file.stage = stage # type: ignore
+        file.stage = stage  # type: ignore

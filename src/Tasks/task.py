@@ -26,8 +26,10 @@ from typing import List
 from ..models import TaskType, TaskStatus
 from ..Singletons.config import Config
 
-class Task():
+
+class Task:
     """Task Parent class to be used by tasks which are managed by TaskManager."""
+
     processed: int = 0
     batch: dict[str, str] | dict[int, str] | List[str | Path] | List[Path]
     process: Process | None
@@ -41,7 +43,7 @@ class Task():
     status: TaskStatus = TaskStatus.PENDING
     task_type: TaskType
 
-    def __init__(self, config:Config, task_type:TaskType):
+    def __init__(self, config: Config, task_type: TaskType):
         """Initializes the Task class."""
         self.config = config
         self.task_type = task_type
@@ -51,7 +53,7 @@ class Task():
         timestamp = datetime.datetime.now(datetime.timezone.utc)
         self.task_id = f"{task_name}_{timestamp}"
 
-        TaskManager().register_task(self) # type: ignore
+        TaskManager().register_task(self)  # type: ignore
 
     def run(self) -> None:
         """Runs the task."""
@@ -107,13 +109,13 @@ class Task():
         """
         return self.progress
 
-    def get_result(self) -> str|bool:
+    def get_result(self) -> str | bool:
         """
         Returns the result of the task.
         """
         return self.result or False
 
-    def set_result(self, result:str|None) -> None:
+    def set_result(self, result: str | None) -> None:
         """
         Sets the result of the task.
         """
@@ -136,7 +138,7 @@ class Task():
         """
         return self.error
 
-    def set_error(self, error:str) -> None:
+    def set_error(self, error: str) -> None:
         """
         Sets the error of the task.
         """
@@ -186,7 +188,7 @@ class Task():
             raise ValueError("task_type a valid TaskType")
         self.task_type = task_type
 
-    def set_process(self, process: Process|None) -> None:
+    def set_process(self, process: Process | None) -> None:
         """
         Sets the task process.
         """
@@ -213,37 +215,36 @@ class Task():
         self.processed += 1
         self.progress = (self.processed / len(self.batch)) * 100
 
+
 class TaskManager:
     """TaskManager."""
 
     # class singleton instance
     instance = None
 
-    tasks:dict[str, list[str]]
+    tasks: dict[str, list[str]]
 
     def __new__(cls):
-        if not hasattr(cls, 'instance') or cls.instance is None:
+        if not hasattr(cls, "instance") or cls.instance is None:
             cls.instance = super().__new__(cls)
             cls.instance.tasks = {}
         return cls.instance
 
     @classmethod
-    def register_task(cls, task:Task) -> None:
+    def register_task(cls, task: Task) -> None:
         """Registers a Task in de TaskManager."""
         status = str(task.get_status())
         if status not in cls.tasks:
             cls.tasks[status] = []
-        cls.tasks[status][task.get_id()] = task # type: ignore
+        cls.tasks[status][task.get_id()] = task  # type: ignore
 
-    def update_task_status(self, task:Task) -> None:
+    def update_task_status(self, task: Task) -> None:
         """Updates de listing of a Task whose status has been changed."""
         self.unregister_task(task.get_id(), task.get_old_status())
         self.register_task(task)
 
-    def unregister_task(self, task_id:str, status:TaskStatus) -> None:
+    def unregister_task(self, task_id: str, status: TaskStatus) -> None:
         """Unregisters a Task."""
         status_str = str(status)
         if status_str in self.tasks and task_id in self.tasks[status_str]:
             self.tasks[status_str].remove(task_id)
-
-

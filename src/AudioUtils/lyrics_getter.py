@@ -15,10 +15,11 @@
 
 """This Module retrieves lyrics from internet"""
 
-from lyricsgenius import Genius # type: ignore
+from lyricsgenius import Genius  # type: ignore
 
-genius = Genius() # type: ignore
+genius = Genius()  # type: ignore
+
 
 def get_lyrics(artist: str, title: str) -> str:
     """Retrieve lyrics for said song."""
-    return genius.search_song(title, artist) # type: ignore
+    return genius.search_song(title, artist)  # type: ignore

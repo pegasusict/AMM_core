@@ -13,29 +13,38 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
+
 class AMMError(Exception):
     """Base exception for AMM errors."""
+
 
 class FileNotFoundErr(AMMError):
     """Raised when a required file is not found."""
 
+
 class FileError(AMMError):
     """Raised when there is something wrong with a required file."""
+
 
 class InvalidConfigurationError(AMMError):
     """Raised when the configuration is invalid."""
 
+
 class DatabaseError(AMMError):
     """Raised when a database related action fails."""
+
 
 class PermissionDeniedError(AMMError):
     """Raised when an operation is not permitted."""
 
+
 class OperationFailedError(AMMError):
     """Raised when a generic operation fails."""
 
+
 class InvalidURLError(AMMError):
     """Raised when an invalid URL is encountered."""
+
 
 class InvalidValueError(AMMError):
     """Raised when an invalid value is encountered."""

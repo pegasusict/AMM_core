@@ -14,16 +14,18 @@
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
 """Stats Stack
-    A stack of stats for the AMM application.
-    This is a singleton class that provides a global access point to the stats stack.
-    It is used to keep track of various statistics related to the application.
+A stack of stats for the AMM application.
+This is a singleton class that provides a global access point to the stats stack.
+It is used to keep track of various statistics related to the application.
 """
+
 
 class Stack:
     """A stack of stats for the AMM application.
     This is a singleton class that provides a global access point to the stats stack.
     It is used to keep track of various statistics related to the application.
     """
+
     _instance = None
 
     def __new__(cls):
@@ -34,7 +36,7 @@ class Stack:
 
     def __init__(self):
         """Initialize the stack."""
-        if not hasattr(self, '_initialized'):
+        if not hasattr(self, "_initialized"):
             self._initialized = True
             self._stats = {}
 
