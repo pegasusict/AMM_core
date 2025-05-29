@@ -34,12 +34,12 @@ class Tagger(Task):
 
     def __init__(self, config:Config, batch:list[Path]):
         """
-        Initializes the Parser class.
+        Initializes the Tagger class.
 
         Args:
             config: The configuration object.
         """
-        super().__init__(config, task_type=TaskType.PARSER)
+        super().__init__(config, task_type=TaskType.TAGGER)
         self.config = config
         self.batch = batch
         self.db = DB()
