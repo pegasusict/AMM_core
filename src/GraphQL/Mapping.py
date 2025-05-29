@@ -285,10 +285,6 @@ class Mutation():
             raise ValueError("No information provided to update user")
         if "id" in info:
             raise ValueError("Cannot update user ID directly")
-        if "password_hash" in info:
-            raise ValueError("Cannot update password hash directly, use a dedicated mutation")
-        if "username" not in info and "email" not in info:
-            raise ValueError("At least one of 'username' or 'email' must be provided for update")
         if "email" in info and not isinstance(info["email"], str):
             raise ValueError("Email must be a string")
         if "username" in info and not isinstance(info["username"], str):
