@@ -15,7 +15,7 @@
 
 """
 This module contains the DB class, which is used to manage the database connection.
-It uses the SQLalchemy library to connect to the database and perform operations on it.
+It uses the SQLModel library to connect to the database and perform operations on it.
 """
 
 from pathlib import Path

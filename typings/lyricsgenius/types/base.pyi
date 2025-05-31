@@ -6,11 +6,17 @@ from abc import ABC, abstractmethod
 
 class BaseEntity(ABC):
     """Base class for types."""
-    def __init__(self, id) -> None:
-        ...
-    
+    def __init__(self, id) -> None: ...
     @abstractmethod
-    def save_lyrics(self, filename, extension=..., overwrite=..., ensure_ascii=..., sanitize=..., verbose=...): # -> None:
+    def save_lyrics(
+        self,
+        filename,
+        extension=...,
+        overwrite=...,
+        ensure_ascii=...,
+        sanitize=...,
+        verbose=...,
+    ):  # -> None:
         """Save Song(s) lyrics and metadata to a JSON or TXT file.
 
         If the extension is 'json' (the default), the lyrics will be saved
@@ -34,14 +40,16 @@ class BaseEntity(ABC):
 
         """
         ...
-    
+
     @abstractmethod
     def to_dict(self):
         """Converts the object to a dictionary."""
         ...
-    
+
     @abstractmethod
-    def to_json(self, data, filename=..., sanitize=..., ensure_ascii=...): # -> str | None:
+    def to_json(
+        self, data, filename=..., sanitize=..., ensure_ascii=...
+    ):  # -> str | None:
         """Converts the object to a json string.
 
         Args:
@@ -62,9 +70,9 @@ class BaseEntity(ABC):
 
         """
         ...
-    
+
     @abstractmethod
-    def to_text(self, data, filename=..., sanitize=...): # -> None:
+    def to_text(self, data, filename=..., sanitize=...):  # -> None:
         """Converts song(s) lyrics to a single string.
 
         Args:
@@ -82,11 +90,9 @@ class BaseEntity(ABC):
 
         """
         ...
-    
-    def __repr__(self): # -> str:
-        ...
-    
 
+    def __repr__(self):  # -> str:
+        ...
 
 class Stats:
     """Stats of an item.
@@ -105,11 +111,6 @@ class Stats:
             print(values['stats'])
 
     """
-    def __init__(self, json_dict) -> None:
+    def __init__(self, json_dict) -> None: ...
+    def __repr__(self):  # -> str:
         ...
-    
-    def __repr__(self): # -> str:
-        ...
-    
-
-

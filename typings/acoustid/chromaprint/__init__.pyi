@@ -6,17 +6,17 @@ _bg = ...
 _fg = ...
 _print = ...
 colors = ...
-def print(*args, bg=..., fg=...): # -> None:
-    ''' Replacement print method to print in colors
+
+def print(*args, bg=..., fg=...):  # -> None:
+    """Replacement print method to print in colors
     *args (str): strings to be printed. Passed as if passing to built-in print method
     bg (str): back
 
-    '''
+    """
     ...
 
-def set_default(**kwargs): # -> None:
-    ''' Sets 'user_default' colors
+def set_default(**kwargs):  # -> None:
+    """Sets 'user_default' colors
     **kwargs {fg: 'color', bg: 'color'}
-    '''
+    """
     ...
-

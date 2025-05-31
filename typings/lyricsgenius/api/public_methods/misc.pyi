@@ -21,7 +21,7 @@ class MiscMethods:
 
         """
         ...
-    
+
     def page_data(self, album=..., song=..., artist=...):
         """Gets page data of an item.
 
@@ -83,7 +83,7 @@ class MiscMethods:
 
         """
         ...
-    
+
     def voters(self, annotation_id=..., answer_id=..., article_id=..., comment_id=...):
         """Gets the voters of an item.
 
@@ -101,6 +101,3 @@ class MiscMethods:
 
         """
         ...
-    
-
-

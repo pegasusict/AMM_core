@@ -17,7 +17,7 @@ class UserMethods:
 
         """
         ...
-    
+
     def user_accomplishments(self, user_id, per_page=..., next_cursor=...):
         """Gets user's accomplishments.
 
@@ -36,7 +36,7 @@ class UserMethods:
 
         """
         ...
-    
+
     def user_following(self, user_id, per_page=..., page=...):
         """Gets the accounts user follows.
 
@@ -51,7 +51,7 @@ class UserMethods:
 
         """
         ...
-    
+
     def user_followers(self, user_id, per_page=..., page=...):
         """Gets user's followers.
 
@@ -66,8 +66,16 @@ class UserMethods:
 
         """
         ...
-    
-    def user_contributions(self, user_id, per_page=..., next_cursor=..., sort=..., text_format=..., type_=...):
+
+    def user_contributions(
+        self,
+        user_id,
+        per_page=...,
+        next_cursor=...,
+        sort=...,
+        text_format=...,
+        type_=...,
+    ):
         """Gets user's contributions.
 
         Args:
@@ -102,8 +110,10 @@ class UserMethods:
 
         """
         ...
-    
-    def user_annotations(self, user_id, per_page=..., next_cursor=..., sort=..., text_format=...):
+
+    def user_annotations(
+        self, user_id, per_page=..., next_cursor=..., sort=..., text_format=...
+    ):
         """Gets user's annotations.
 
         Alias for :meth:`user_contributions() <PublicAPI.user_contributions>`
@@ -124,8 +134,10 @@ class UserMethods:
 
         """
         ...
-    
-    def user_articles(self, user_id, per_page=..., next_cursor=..., sort=..., text_format=...):
+
+    def user_articles(
+        self, user_id, per_page=..., next_cursor=..., sort=..., text_format=...
+    ):
         """Gets user's articles.
 
         Alias for :meth:`user_contributions() <PublicAPI.user_contributions>`
@@ -146,7 +158,7 @@ class UserMethods:
 
         """
         ...
-    
+
     def user_pyongs(self, user_id, per_page=..., next_cursor=..., text_format=...):
         """Gets user's Pyongs.
 
@@ -166,8 +178,10 @@ class UserMethods:
 
         """
         ...
-    
-    def user_questions_and_answers(self, user_id, per_page=..., next_cursor=..., text_format=...):
+
+    def user_questions_and_answers(
+        self, user_id, per_page=..., next_cursor=..., text_format=...
+    ):
         """Gets user's Q&As.
 
         Alias for :meth:`user_contributions() <PublicAPI.user_contributions>`
@@ -186,7 +200,7 @@ class UserMethods:
 
         """
         ...
-    
+
     def user_suggestions(self, user_id, per_page=..., next_cursor=..., text_format=...):
         """Gets user's suggestions (comments).
 
@@ -206,8 +220,10 @@ class UserMethods:
 
         """
         ...
-    
-    def user_transcriptions(self, user_id, per_page=..., next_cursor=..., sort=..., text_format=...):
+
+    def user_transcriptions(
+        self, user_id, per_page=..., next_cursor=..., sort=..., text_format=...
+    ):
         """Gets user's transcriptions.
 
         Alias for :meth:`user_contributions() <PublicAPI.user_contributions>`
@@ -228,8 +244,10 @@ class UserMethods:
 
         """
         ...
-    
-    def user_unreviewed(self, user_id, per_page=..., next_cursor=..., sort=..., text_format=...):
+
+    def user_unreviewed(
+        self, user_id, per_page=..., next_cursor=..., sort=..., text_format=...
+    ):
         """Gets user's unreviewed annotations.
 
         Alias for :meth:`user_contributions() <PublicAPI.user_contributions>`
@@ -253,6 +271,3 @@ class UserMethods:
 
         """
         ...
-    
-
-

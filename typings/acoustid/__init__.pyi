@@ -14,27 +14,28 @@ FPCALC_COMMAND = ...
 FPCALC_ENVVAR = ...
 MAX_BIT_ERROR = ...
 MAX_ALIGN_OFFSET = ...
+
 class AcoustidError(Exception):
     """Base for exceptions in this module."""
-    ...
 
+    ...
 
 class FingerprintGenerationError(AcoustidError):
     """The audio could not be fingerprinted."""
-    ...
 
+    ...
 
 class NoBackendError(FingerprintGenerationError):
     """The audio could not be fingerprinted because neither the
     Chromaprint library nor the fpcalc command-line tool is installed.
     """
-    ...
 
+    ...
 
 class FingerprintSubmissionError(AcoustidError):
     """Missing required data for a fingerprint submission."""
-    ...
 
+    ...
 
 class WebServiceError(AcoustidError):
     """The Web service request failed. The field ``message`` contains a
@@ -47,10 +48,8 @@ class WebServiceError(AcoustidError):
         provided, with the ``message`` as a fallback.
         """
         ...
-    
 
-
-def set_base_url(url): # -> None:
+def set_base_url(url):  # -> None:
     """Set the URL of the API server to query."""
     ...
 
@@ -58,10 +57,8 @@ class CompressedHTTPAdapter(requests.adapters.HTTPAdapter):
     """An `HTTPAdapter` that compresses request bodies with gzip. The
     Content-Encoding header is set accordingly.
     """
-    def add_headers(self, request, **kwargs): # -> None:
+    def add_headers(self, request, **kwargs):  # -> None:
         ...
-    
-
 
 class _rate_limit:
     """A decorator that limits the rate at which the function may be
@@ -70,13 +67,8 @@ class _rate_limit:
     limiting is thread-safe; only one thread may be in the function at a
     time (acts like a monitor in this sense).
     """
-    def __init__(self, fun) -> None:
-        ...
-    
-    def __call__(self, *args, **kwargs):
-        ...
-    
-
+    def __init__(self, fun) -> None: ...
+    def __call__(self, *args, **kwargs): ...
 
 def fingerprint(samplerate, channels, pcmiter, maxlength=...):
     """Fingerprint audio data given its sample rate and number of
@@ -95,7 +87,9 @@ def lookup(apikey, fingerprint, duration, meta=..., timeout=...):
     """
     ...
 
-def parse_lookup_result(data): # -> Generator[tuple[Any, Any, Any, LiteralString | None], Any, None]:
+def parse_lookup_result(
+    data,
+):  # -> Generator[tuple[Any, Any, Any, LiteralString | None], Any, None]:
     """Given a parsed JSON response, generate tuples containing the match
     score, the MusicBrainz recording ID, the title of the recording, and
     the artist name of the recording. Multiple artist names are joined
@@ -105,7 +99,9 @@ def parse_lookup_result(data): # -> Generator[tuple[Any, Any, Any, LiteralString
     """
     ...
 
-def fingerprint_file(path, maxlength=..., force_fpcalc=...): # -> tuple[Any, Any] | tuple[float, bytes]:
+def fingerprint_file(
+    path, maxlength=..., force_fpcalc=...
+):  # -> tuple[Any, Any] | tuple[float, bytes]:
     """Fingerprint a file either using the Chromaprint dynamic library
     or the fpcalc command-line tool, whichever is available (unless
     ``force_fpcalc`` is specified). Returns the duration and the
@@ -122,7 +118,9 @@ def compare_fingerprints(a, b) -> float:
     """
     ...
 
-def match(apikey, path, meta=..., parse=..., force_fpcalc=..., timeout=...): # -> Generator[tuple[Any, Any, Any, LiteralString | None], Any, None]:
+def match(
+    apikey, path, meta=..., parse=..., force_fpcalc=..., timeout=...
+):  # -> Generator[tuple[Any, Any, Any, LiteralString | None], Any, None]:
     """Look up the metadata for an audio file. If ``parse`` is true,
     then ``parse_lookup_result`` is used to return an iterator over
     small tuple of relevant information; otherwise, the full parsed JSON
@@ -160,4 +158,3 @@ def get_submission_status(apikey, submission_id, timeout=...):
     in the response object of a call to the ``submit`` endpoint.
     """
     ...
-

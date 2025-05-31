@@ -24,13 +24,20 @@ class OAuth2(Sender):
             :obj:`client_only_app` is supplied.
 
     """
+
     auth_url = ...
     token_url = ...
-    def __init__(self, client_id, redirect_uri, client_secret=..., scope=..., state=..., client_only_app=...) -> None:
-        ...
-    
+    def __init__(
+        self,
+        client_id,
+        redirect_uri,
+        client_secret=...,
+        scope=...,
+        state=...,
+        client_only_app=...,
+    ) -> None: ...
     @property
-    def url(self): # -> str:
+    def url(self):  # -> str:
         """Returns the URL you redirect the user to.
 
         You can use this property to get a URL that when opened on the user's
@@ -40,8 +47,8 @@ class OAuth2(Sender):
 
         """
         ...
-    
-    def get_user_token(self, code=..., url=..., state=..., **kwargs): # -> str | Any:
+
+    def get_user_token(self, code=..., url=..., state=..., **kwargs):  # -> str | Any:
         """Gets a user token using the url or the code parameter..
 
         If you supply value for :obj:`code`, this method will use the value of the
@@ -66,8 +73,8 @@ class OAuth2(Sender):
 
         """
         ...
-    
-    def prompt_user(self): # -> str | Any:
+
+    def prompt_user(self):  # -> str | Any:
         """Prompts current user for authentication.
 
         Opens a web browser for you to log in with Genius.
@@ -79,9 +86,9 @@ class OAuth2(Sender):
 
         """
         ...
-    
+
     @classmethod
-    def client_only_app(cls, client_id, redirect_uri, scope=..., state=...): # -> Self:
+    def client_only_app(cls, client_id, redirect_uri, scope=..., state=...):  # -> Self:
         """Returns an OAuth2 instance for a client-only app.
 
         Args:
@@ -95,9 +102,11 @@ class OAuth2(Sender):
 
         """
         ...
-    
+
     @classmethod
-    def full_code_exchange(cls, client_id, redirect_uri, client_secret, scope=..., state=...): # -> Self:
+    def full_code_exchange(
+        cls, client_id, redirect_uri, client_secret, scope=..., state=...
+    ):  # -> Self:
         """Returns an OAuth2 instance for a full-code exchange app.
 
         Args:
@@ -112,9 +121,6 @@ class OAuth2(Sender):
 
         """
         ...
-    
-    def __repr__(self): # -> str:
+
+    def __repr__(self):  # -> str:
         ...
-    
-
-

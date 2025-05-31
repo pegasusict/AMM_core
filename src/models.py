@@ -16,7 +16,7 @@
 """Database Models for the application."""
 
 from __future__ import annotations
-from enum import Enum
+from enum import StrEnum, auto
 import datetime
 from typing import List, Optional
 from multiprocessing import Process
@@ -27,12 +27,12 @@ from sqlmodel import SQLModel, Field, Relationship, String
 from .Singletons.database import DB
 
 
-class UserRole(Enum):
+class UserRole(StrEnum):
     """Enum for user roles."""
 
-    ADMIN = "admin"
-    USER = "user"
-    GUEST = "guest"
+    ADMIN = auto()
+    USER = auto()
+    GUEST = auto()
 
     @classmethod
     def get_choices(cls):
@@ -42,91 +42,93 @@ class UserRole(Enum):
         return [(role.value, role.name) for role in cls]
 
 
-class TaskType(Enum):
+class TaskType(StrEnum):
     """Enum for different task types."""
 
-    ART_GETTER = "art_getter"
-    IMPORTER = "importer"
-    TAGGER = "tagger"
-    FINGERPRINTER = "fingerprinter"
-    EXPORTER = "exporter"
-    LYRICS_GETTER = "lyrics_getter"
-    NORMALIZER = "normalizer"
-    TRIMMER = "trimmer"
-    CONVERTER = "converter"
-    PARSER = "parser"
+    ART_GETTER = auto()
+    IMPORTER = auto()
+    TAGGER = auto()
+    FINGERPRINTER = auto()
+    EXPORTER = auto()
+    LYRICS_GETTER = auto()
+    NORMALIZER = auto()
+    DEDUPER = auto()
+    TRIMMER = auto()
+    CONVERTER = auto()
+    PARSER = auto()
+    SORTER = auto()
+    CUSTOM = auto()
 
-
-class TaskStatus(Enum):
+class TaskStatus(StrEnum):
     """Enum for different task statuses."""
 
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
+    PENDING = auto()
+    RUNNING = auto()
+    COMPLETED = auto()
+    FAILED = auto()
+    CANCELLED = auto()
 
 
-class Codecs(Enum):
+class Codecs(StrEnum):
     """Codec types for audio files."""
 
-    WAV = 0
-    WMA = 1
-    MP3 = 2
-    MP4 = 3
-    FLAC = 4
-    ASF = 5
-    OGG = 6
-    AAC = 7
-    APE = 8
-    AIFF = 9
-    UNKNOWN = 99
+    WAV = auto()
+    WMA = auto()
+    MP3 = auto()
+    MP4 = auto()
+    FLAC = auto()
+    ASF = auto()
+    OGG = auto()
+    AAC = auto()
+    APE = auto()
+    AIFF = auto()
+    UNKNOWN = auto()
 
 
-class Stages(Enum):
+class Stages(StrEnum):
     """Stages of processing."""
 
-    NONE = 0
-    IMPORTED = 1
-    FINGERPRINTED = 2
-    TAGS_RETRIEVED = 3
-    ART_RETRIEVED = 4  # TODO: is Album/artist related, but album is needed for file
-    LYRICS_RETRIEVED = 5  # TODO: is track related, but needed for file...
-    TRIMMED = 6
-    NORMALIZED = 7
-    TAGGED = 8
-    SORTED = 9
+    NONE = auto()
+    IMPORTED = auto()
+    FINGERPRINTED = auto()
+    TAGS_RETRIEVED = auto()
+    ART_RETRIEVED = auto()  # TODO: is Album/artist related, but album is needed for file
+    LYRICS_RETRIEVED = auto()  # TODO: is track related, but needed for file...
+    TRIMMED = auto()
+    NORMALIZED = auto()
+    TAGGED = auto()
+    SORTED = auto()
 
 
-class PersonNameTypes(Enum):
+class PersonNameTypes(StrEnum):
     """Types of person names."""
 
-    FULL_NAME = 0
-    SORT_NAME = 1
-    FIRST_NAME = 2
-    MIDDLE_NAME = 3
-    LAST_NAME = 4
-    NICK_NAME = 5
-    ALIAS = 6
+    FULL_NAME = auto()
+    SORT_NAME = auto()
+    FIRST_NAME = auto()
+    MIDDLE_NAME = auto()
+    LAST_NAME = auto()
+    NICK_NAME = auto()
+    ALIAS = auto()
 
 
-class DateTypes(Enum):
+class DateTypes(StrEnum):
     """Types of dates."""
 
-    COMPOSE = 0
-    RELEASE = 1
-    JOINED = 2
-    LEFT = 3
-    BORN = 4
-    DECEASED = 5
+    COMPOSE = auto()
+    RELEASE = auto()
+    JOINED = auto()
+    LEFT = auto()
+    BORN = auto()
+    DECEASED = auto()
 
 
-class TitleType(Enum):
+class TitleType(StrEnum):
     """Types of titles"""
 
-    TITLE = 0
-    TITLE_SORT = 1
-    SUB_TITLE = 2
+    TITLE = auto()
+    TITLE_SORT = auto()
+    SUB_TITLE = auto()
 
 
 ######################################################################
@@ -144,7 +146,7 @@ class DBUser(SQLModel, table=True):
     last_name: str = Field(default="")
     date_of_birth: datetime.datetime = Field(default="")
     is_active: bool = Field(default=True)
-    role: Enum = Field(default=UserRole.USER.value)  # Default role is USER
+    role: StrEnum = Field(default=UserRole.USER.value)  # Default role is USER
     created_at: datetime.datetime = Field(
         default_factory=lambda: datetime.datetime.now(datetime.timezone.utc)
     )
@@ -179,8 +181,8 @@ class DBTask(SQLModel, table=True):
     process: Process
     result: str
     error: str
-    status: Enum = Field(Enum(TaskStatus))
-    task_type: Enum = Field(Enum(TaskType))
+    status: StrEnum = Field(StrEnum(TaskStatus))
+    task_type: StrEnum = Field(StrEnum(TaskType))
 
 
 ########################################################################
@@ -242,12 +244,12 @@ class DBFile(ItemBase, table=True):
     file_size: int = Field(default=None)
     file_name: str = Field(default=None)
     file_extension: str = Field(default=None)
-    codec: Enum = Field(Enum(Codecs), default=Codecs.UNKNOWN)  # type: ignore
+    codec: StrEnum = Field(StrEnum(Codecs), default=Codecs.UNKNOWN) # type: ignore
     length: int = Field(default=None)
     track: DBTrack = Relationship(back_populates="files")
     paths: List["DBFilePath"] = Relationship(back_populates="file")
     task: DBTask = Relationship(back_populates="batch_files")
-    stage: Enum = Field(Enum(Stages), default=Stages.NONE)  # type: ignore
+    stage: StrEnum = Field(StrEnum(Stages), default=Stages.NONE)  # type: ignore
 
     def __repr__(self) -> str:
         return f"File {self.id}"
@@ -436,7 +438,7 @@ class DBDate(OptFieldBase, table=True):
     __tablename__ = "dates"  # type: ignore
 
     date: datetime.date
-    type: Enum = Field(Enum(DateTypes))
+    type: StrEnum = Field(StrEnum(DateTypes))
     person: "DBPerson" = Relationship(back_populates="dates")
     track: "DBTrack" = Relationship(back_populates="dates")
     album: "DBAlbum" = Relationship(back_populates="dates")
@@ -469,7 +471,7 @@ class DBTitle(OptFieldBase, table=True):
     __tablename__ = "titles"  # type: ignore
 
     title: str
-    title_type: Enum = Field(Enum(TitleType))
+    title_type: StrEnum = Field(StrEnum(TitleType))
     track: "DBTrack" = Relationship(back_populates="titles")
     album: "DBAlbum" = Relationship(back_populates="titles")
 
@@ -490,5 +492,5 @@ class DBPersonName(OptFieldBase, table=True):
     __tablename__ = "person_names"  # type: ignore
 
     name: str
-    name_type: Enum = Field(Enum(PersonNameTypes))
+    name_type: StrEnum = Field(StrEnum(PersonNameTypes))
     person: "DBPerson" = Relationship(back_populates="names")

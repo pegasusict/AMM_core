@@ -17,7 +17,7 @@ class SongMethods:
 
         """
         ...
-    
+
     def song_activity(self, song_id, per_page=..., page=..., text_format=...):
         """Gets activities on a song.
 
@@ -34,7 +34,7 @@ class SongMethods:
 
         """
         ...
-    
+
     def song_comments(self, song_id, per_page=..., page=..., text_format=...):
         """Gets the comments on a song.
 
@@ -51,7 +51,7 @@ class SongMethods:
 
         """
         ...
-    
+
     def song_contributors(self, song_id):
         """Gets the contributors of a song.
 
@@ -66,6 +66,3 @@ class SongMethods:
 
         """
         ...
-    
-
-

@@ -61,6 +61,6 @@ class FingerPrinter(Task):
                 continue
 
             # Add the metadata to the database
-            self.db.update_file(str(file_path), metadata)
+            self.db.update_file(str(file_path), metadata) # type: ignore
             self.db.set_file_stage(file_id, Stages.FINGERPRINTED)
             self.set_progress()

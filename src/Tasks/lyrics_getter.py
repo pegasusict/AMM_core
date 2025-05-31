@@ -21,7 +21,7 @@ from task import Task, TaskType
 from Singletons.config import Config
 from Singletons.database import DB
 from Singletons.logger import Logger
-from AudioUtils.lyrics_getter import get_lyrics
+from AudioUtils.lyrics_getter import LyricsGetter as LG
 from models import DBTrackLyric, DBTrack, Stages
 
 
@@ -44,6 +44,7 @@ class LyricsGetter(Task):
         self.batch = batch  # type: ignore
         self.db = DB()
         self.logger = Logger(config)
+        self.lyrics_getter = LG()
 
     def run(self) -> None:
         """
@@ -56,7 +57,7 @@ class LyricsGetter(Task):
                 track = DBTrack(id=int(track_id))
                 track_title = track.titles[0].title
                 track_artist = track.performers[0].names[0].name
-                lyrics = get_lyrics(artist=track_artist, title=track_title)
+                lyrics = LG.get_lyrics(artist=track_artist, title=track_title) # type: ignore
                 session = self.db.get_session()
                 get_track = select(DBTrack).where(DBTrack.id == int(track_id))
                 if track := session.exec(get_track).first() is None:

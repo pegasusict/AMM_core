@@ -17,7 +17,7 @@ class ArtistMethods:
 
         """
         ...
-    
+
     def artist_activity(self, artist_id, per_page=..., page=..., text_format=...):
         """Gets activities on artist's songs.
 
@@ -34,7 +34,7 @@ class ArtistMethods:
 
         """
         ...
-    
+
     def artist_albums(self, artist_id, per_page=..., page=...):
         """Gets artist's albums.
 
@@ -49,8 +49,10 @@ class ArtistMethods:
 
         """
         ...
-    
-    def artist_contribution_opportunities(self, artist_id, per_page=..., next_curosr=..., text_format=...):
+
+    def artist_contribution_opportunities(
+        self, artist_id, per_page=..., next_curosr=..., text_format=...
+    ):
         """Gets contribution opportunities related to the artist.
 
         Args:
@@ -71,7 +73,7 @@ class ArtistMethods:
 
         """
         ...
-    
+
     def artist_followers(self, artist_id, per_page=..., page=...):
         """Gets artist's followers.
 
@@ -86,7 +88,7 @@ class ArtistMethods:
 
         """
         ...
-    
+
     def artist_leaderboard(self, artist_id, per_page=..., page=...):
         """Gets artist's top scholars.
 
@@ -101,7 +103,7 @@ class ArtistMethods:
 
         """
         ...
-    
+
     def artist_songs(self, artist_id, per_page=..., page=..., sort=...):
         """Gets artist's songs.
 
@@ -118,8 +120,10 @@ class ArtistMethods:
 
         """
         ...
-    
-    def search_artist_songs(self, artist_id, search_term, per_page=..., page=..., sort=...):
+
+    def search_artist_songs(
+        self, artist_id, search_term, per_page=..., page=..., sort=...
+    ):
         """Searches artist's songs.
 
         Args:
@@ -136,6 +140,3 @@ class ArtistMethods:
 
         """
         ...
-    
-
-

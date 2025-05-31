@@ -44,15 +44,7 @@ class AcoustID:
         self.path = path
 
     def _scan_file(self, path: Path):
-        """
-        Generates audio fingerprint.
-
-        Args:
-            path (Path): File path
-
-        Returns:
-            int, str    tracklength, fingerprint
-        """
+        """Scans the file for its fingerprint and duration."""
         result = acoustid.fingerprint_file(path)  # type: ignore
         if isinstance(result, tuple) and len(result) == 2:
             self.duration, self.fingerprint = int(result[0]), str(result[1])
@@ -71,7 +63,7 @@ class AcoustID:
         self.fileinfo["title"] = title
         self.fileinfo["artist"] = artist
 
-    def process(self) -> dict:
+    def process(self) -> dict[str, str | None]:
         """Processes the given file, returning the MBID and the fingerprint"""
         file_type = get_file_type(self.path)
         if file_type is None:

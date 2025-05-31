@@ -17,10 +17,9 @@
 It uses the musicbrainzngs library to communicate with the MusicBrainz API.
 It is used to retrieve information about artists, albums, and tracks.
 It is also used to retrieve the cover art for albums and artists.
-It is used to retrieve the MusicBrainz ID for albums, artists and tracks.
 """
 
-from enum import Enum
+from enum import StrEnum, auto
 import musicbrainzngs
 from musicbrainzngs import NetworkError, WebServiceError, ResponseError
 
@@ -29,13 +28,13 @@ from Singletons.config import Config
 from Singletons.logger import Logger
 
 
-class QueryType(Enum):
-    ARTIST = "artist"
-    ALBUM = "album"
-    RELEASE = "release"
-    TRACK = "track"
-    RECORDING = "recording"
-    RELEASE_GROUP = "release_group"
+class QueryType(StrEnum):
+    ARTIST = auto()
+    ALBUM = auto()
+    RELEASE = auto()
+    TRACK = auto()
+    RECORDING = auto()
+    RELEASE_GROUP = auto()
 
 
 class MusicBrainzClient:
@@ -47,7 +46,7 @@ class MusicBrainzClient:
         self.config = config
         self.musicbrainz = musicbrainzngs
         self.musicbrainz.set_useragent(
-            "Audiophiles Music Manager", "0.1", "pegasus.ict@gmail.com"
+            "Audiophiles' Music Manager", "0.1", "pegasus.ict@gmail.com"
         )
         self.musicbrainz.set_rate_limit(True)
 
@@ -71,7 +70,7 @@ class MusicBrainzClient:
             self.logger.error(f"Error retrieving art: {e}")
             return None
 
-    def get_by_id(self, query_type: QueryType, mbid: str) -> dict | None:
+    def _get_by_id(self, query_type: QueryType, mbid: str) -> dict | None:
         """Gets item by id
 
         Args:
@@ -79,7 +78,7 @@ class MusicBrainzClient:
                 mbid (str):                 MusicBrainz ID
 
         Returns:
-                str|None: _description_
+                dict|None: A dictionary with the item information or None if not found.
         """
         try:
             result = ""
@@ -113,7 +112,7 @@ class MusicBrainzClient:
         Returns:
                 The artist information.
         """
-        return self.get_by_id(QueryType.ARTIST, mbid)
+        return self._get_by_id(QueryType.ARTIST, mbid)
 
     def get_release_by_id(self, mbid: str) -> dict | None:
         """
@@ -125,7 +124,7 @@ class MusicBrainzClient:
         Returns:
                 The release information.
         """
-        return self.get_by_id(QueryType.RELEASE, mbid)
+        return self._get_by_id(QueryType.RELEASE, mbid)
 
     def get_release_group_by_id(self, mbid: str) -> dict | None:
         """
@@ -137,7 +136,7 @@ class MusicBrainzClient:
         Returns:
                 The release_group information.
         """
-        return self.get_by_id(QueryType.RELEASE_GROUP, mbid)
+        return self._get_by_id(QueryType.RELEASE_GROUP, mbid)
 
     def get_recording_by_id(self, mbid: str) -> dict | None:
         """
@@ -149,7 +148,7 @@ class MusicBrainzClient:
         Returns:
                 The recording information.
         """
-        return self.get_by_id(QueryType.RECORDING, mbid)
+        return self._get_by_id(QueryType.RECORDING, mbid)
 
     def get_track_by_id(self, mbid: str) -> dict | None:
         """
@@ -161,7 +160,7 @@ class MusicBrainzClient:
         Returns:
                 The track information.
         """
-        return self.get_by_id(QueryType.TRACK, mbid)
+        return self._get_by_id(QueryType.TRACK, mbid)
 
     def get_album_by_id(self, mbid: str) -> dict | None:
         """
@@ -173,18 +172,18 @@ class MusicBrainzClient:
         Returns:
                 The album information.
         """
-        return self.get_by_id(QueryType.ALBUM, mbid)
+        return self._get_by_id(QueryType.ALBUM, mbid)
 
-    def get_by_name(self, query_type: QueryType, name: str) -> dict | None:
+    def _get_by_name(self, query_type: QueryType, name: str) -> dict | None:
         """
         Retrieves information by name.
 
         Args:
-                type: artist/album/
+                query_type: artist/album/track/recording/release/release_group
                 name: The name of the item.
 
         Returns:
-                The artist information.
+                The requested information.
         """
         try:
             result = ""
@@ -218,7 +217,7 @@ class MusicBrainzClient:
         Returns:
                 The artist information.
         """
-        return self.get_by_name(QueryType.ARTIST, name)
+        return self._get_by_name(QueryType.ARTIST, name)
 
     def get_album_by_name(self, name: str) -> dict | None:
         """
@@ -230,7 +229,7 @@ class MusicBrainzClient:
         Returns:
                 The album information.
         """
-        return self.get_by_name(QueryType.ALBUM, name)
+        return self._get_by_name(QueryType.ALBUM, name)
 
     def get_track_by_name(self, name: str) -> dict | None:
         """
@@ -242,7 +241,7 @@ class MusicBrainzClient:
         Returns:
                 The track information.
         """
-        return self.get_by_name(QueryType.TRACK, name)
+        return self._get_by_name(QueryType.TRACK, name)
 
     def get_release_group_by_name(self, name: str) -> dict | None:
         """
@@ -254,7 +253,7 @@ class MusicBrainzClient:
         Returns:
                 The release group information.
         """
-        return self.get_by_name(QueryType.RELEASE_GROUP, name)
+        return self._get_by_name(QueryType.RELEASE_GROUP, name)
 
     def get_recording_by_name(self, name: str) -> dict | None:
         """
@@ -266,7 +265,7 @@ class MusicBrainzClient:
         Returns:
                 The recording information.
         """
-        return self.get_by_name(QueryType.RECORDING, name)
+        return self._get_by_name(QueryType.RECORDING, name)
 
     def get_release_by_name(self, name: str) -> dict | None:
         """
@@ -278,7 +277,7 @@ class MusicBrainzClient:
         Returns:
                 The release information.
         """
-        return self.get_by_name(QueryType.RELEASE, name)
+        return self._get_by_name(QueryType.RELEASE, name)
 
     def get_track_by_audio_fingerprint(self, fingerprint: str) -> dict | None:
         """

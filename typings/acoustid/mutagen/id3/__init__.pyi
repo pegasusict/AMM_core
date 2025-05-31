@@ -17,17 +17,14 @@ class ID3Header:
     f_footer = ...
     _known_frames = ...
     @property
-    def known_frames(self): # -> dict[Any, Any] | None:
+    def known_frames(self):  # -> dict[Any, Any] | None:
         ...
-    
     @convert_error(IOError, error)
     def __init__(self, fileobj=...) -> None:
         """Raises ID3NoHeaderError, ID3UnsupportedVersionError or error"""
         ...
-    
 
-
-def determine_bpi(data, frames, EMPTY=...): # -> type[int] | type[BitPaddedInt]:
+def determine_bpi(data, frames, EMPTY=...):  # -> type[int] | type[BitPaddedInt]:
     """Takes id3v2.4 frame data and determines if ints or bitpaddedints
     should be used for parsing. Needed because iTunes used to write
     normal ints for frame sizes.
@@ -36,10 +33,8 @@ def determine_bpi(data, frames, EMPTY=...): # -> type[int] | type[BitPaddedInt]:
 
 class ID3Tags(DictProxy, Tags):
     __module__ = ...
-    def __init__(self, *args, **kwargs) -> None:
-        ...
-    
-    def getall(self, key): # -> list[Any]:
+    def __init__(self, *args, **kwargs) -> None: ...
+    def getall(self, key):  # -> list[Any]:
         """Return all frames with a given name (the list may be empty).
 
         Args:
@@ -57,8 +52,8 @@ class ID3Tags(DictProxy, Tags):
         ``getall('COMM:MusicMatch')`` or ``getall('TXXX:QuodLibet:')``.
         """
         ...
-    
-    def setall(self, key, values): # -> None:
+
+    def setall(self, key, values):  # -> None:
         """Delete frames of the given type and add frames in 'values'.
 
         Args:
@@ -66,16 +61,16 @@ class ID3Tags(DictProxy, Tags):
             values (list[Frame]): frames to add
         """
         ...
-    
-    def delall(self, key): # -> None:
+
+    def delall(self, key):  # -> None:
         """Delete all tags of a given kind; see getall.
 
         Args:
             key (text): key for frames to delete
         """
         ...
-    
-    def pprint(self): # -> str:
+
+    def pprint(self):  # -> str:
         """
         Returns:
             text: tags in a human-readable format.
@@ -90,19 +85,18 @@ class ID3Tags(DictProxy, Tags):
             ``POPM=user@example.org=3 128/255``
         """
         ...
-    
-    def loaded_frame(self, tag): # -> None:
+
+    def loaded_frame(self, tag):  # -> None:
         """Deprecated; use the add method."""
         ...
-    
-    def add(self, frame): # -> None:
+
+    def add(self, frame):  # -> None:
         """Add a frame to the tag."""
         ...
-    
-    def __setitem__(self, key, tag): # -> None:
+
+    def __setitem__(self, key, tag):  # -> None:
         ...
-    
-    def update_to_v24(self): # -> None:
+    def update_to_v24(self):  # -> None:
         """Convert older tags into an ID3v2.4 tag.
 
         This updates old ID3v2 frames to ID3v2.4 ones (e.g. TYER to
@@ -110,8 +104,8 @@ class ID3Tags(DictProxy, Tags):
         at some point; it is called by default when loading the tag.
         """
         ...
-    
-    def update_to_v23(self): # -> None:
+
+    def update_to_v23(self):  # -> None:
         """Convert older (and newer) tags into an ID3v2.3 tag.
 
         This updates incompatible ID3v2 frames to ID3v2.3 ones. If you
@@ -122,13 +116,9 @@ class ID3Tags(DictProxy, Tags):
         in v2.3, remove them before calling this and add them back afterwards.
         """
         ...
-    
 
-
-def save_frame(frame, name=..., config=...): # -> bytes:
+def save_frame(frame, name=..., config=...):  # -> bytes:
     ...
-
-def read_frames(id3, data, frames): # -> tuple[list[Any], list[Any], bytes | Any]:
+def read_frames(id3, data, frames):  # -> tuple[list[Any], list[Any], bytes | Any]:
     """Does not error out"""
     ...
-

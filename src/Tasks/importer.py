@@ -98,10 +98,7 @@ class Importer(Task):
                 self.folders.append(Path(file.path))
                 self.stack.add_counter("all_folders")
             elif file.is_file(follow_symlinks=False):
-                if (
-                    len(self.ext) < 1
-                    or Path(file).suffix.lower() in self.ext
-                ):
+                if len(self.ext) < 1 or Path(file).suffix.lower() in self.ext:
                     self.files.append(Path(file.path))
                     self.stack.add_counter("all_files")
                 elif self.clean:

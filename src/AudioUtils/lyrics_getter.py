@@ -13,13 +13,17 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
-"""This Module retrieves lyrics from internet"""
+"""This module retrieves lyrics from internet"""
 
 from lyricsgenius import Genius  # type: ignore
 
-genius = Genius()  # type: ignore
+class LyricsGetter:
+    """This class retrieves lyrics from the internet."""
 
+    def __init__(self):
+        self.genius = Genius()  # type: ignore
+        self.genius.remove_section_headers = True  # type: ignore
 
-def get_lyrics(artist: str, title: str) -> str:
-    """Retrieve lyrics for said song."""
-    return genius.search_song(title, artist)  # type: ignore
+    def get_lyrics(self, artist: str, title: str) -> str:
+        """Retrieve lyrics for said song."""
+        return self.genius.search_song(title, artist)  # type: ignore

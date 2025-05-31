@@ -13,7 +13,7 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
-"""use compressor/limiter to normalize and boost the  volume of songs"""
+"""use compressor/limiter to normalize and boost the volume of songs"""
 
 from pathlib import Path
 

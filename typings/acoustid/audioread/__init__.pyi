@@ -6,50 +6,41 @@ from . import DecodeError
 from .base import AudioFile
 
 """Decode MPEG audio files with MAD (via pymad)."""
+
 class UnsupportedError(DecodeError):
     """The file is not readable by MAD."""
-    ...
 
+    ...
 
 class MadAudioFile(AudioFile):
     """MPEG audio file decoder using the MAD library."""
-    def __init__(self, filename) -> None:
+    def __init__(self, filename) -> None: ...
+    def close(self):  # -> None:
         ...
-    
-    def close(self): # -> None:
+    def read_blocks(self, block_size=...):  # -> Generator[bytes, Any, None]:
+        """Generates buffers containing PCM data for the audio file."""
         ...
-    
-    def read_blocks(self, block_size=...): # -> Generator[bytes, Any, None]:
-        """Generates buffers containing PCM data for the audio file.
-        """
-        ...
-    
+
     @property
     def samplerate(self):
         """Sample rate in Hz."""
         ...
-    
+
     @property
-    def duration(self): # -> float:
+    def duration(self):  # -> float:
         """Length of the audio in seconds (a float)."""
         ...
-    
+
     @property
-    def channels(self): # -> Literal[1, 2]:
+    def channels(self):  # -> Literal[1, 2]:
         """The number of channels."""
         ...
-    
-    def __del__(self): # -> None:
-        ...
-    
-    def __iter__(self): # -> Generator[bytes, Any, None]:
-        ...
-    
-    def __enter__(self): # -> Self:
-        ...
-    
-    def __exit__(self, exc_type, exc_val, exc_tb): # -> Literal[False]:
-        ...
-    
 
-
+    def __del__(self):  # -> None:
+        ...
+    def __iter__(self):  # -> Generator[bytes, Any, None]:
+        ...
+    def __enter__(self):  # -> Self:
+        ...
+    def __exit__(self, exc_type, exc_val, exc_tb):  # -> Literal[False]:
+        ...

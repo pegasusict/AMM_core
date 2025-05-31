@@ -25,8 +25,16 @@ class ReferentMethods:
 
         """
         ...
-    
-    def referents(self, song_id=..., web_page_id=..., created_by_id=..., per_page=..., page=..., text_format=...):
+
+    def referents(
+        self,
+        song_id=...,
+        web_page_id=...,
+        created_by_id=...,
+        per_page=...,
+        page=...,
+        text_format=...,
+    ):
         """Gets item's referents
 
         You must supply :obj:`song_id`, :obj:`web_page_id`, or :obj:`created_by_id`.
@@ -46,8 +54,10 @@ class ReferentMethods:
 
         """
         ...
-    
-    def referents_charts(self, time_period=..., chart_genre=..., per_page=..., page=..., text_format=...):
+
+    def referents_charts(
+        self, time_period=..., chart_genre=..., per_page=..., page=..., text_format=...
+    ):
         """Gets the referents (lyrics) charts.
 
         Alias for :meth:`charts() <PublicAPI.charts>`.
@@ -67,6 +77,3 @@ class ReferentMethods:
 
         """
         ...
-    
-
-

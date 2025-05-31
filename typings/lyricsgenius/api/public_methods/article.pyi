@@ -17,7 +17,7 @@ class ArticleMethods:
 
         """
         ...
-    
+
     def article_comments(self, article_id, per_page=..., page=..., text_format=...):
         """Gets the comments on an article.
 
@@ -34,7 +34,7 @@ class ArticleMethods:
 
         """
         ...
-    
+
     def latest_articles(self, per_page=..., page=..., text_format=...):
         """Gets the latest articles on the homepage.
 
@@ -54,6 +54,3 @@ class ArticleMethods:
 
         """
         ...
-    
-
-

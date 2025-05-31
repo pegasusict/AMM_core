@@ -37,6 +37,8 @@ class GraphQL:
         """
         GraphQL Server class for handling GraphQL queries and mutations.
         This class is used to add a GraphQL route to the FastAPI application.
+
+        :param path: The path to add the GraphQL route to. Default is "/".
         """
         schema = strawberry.Schema(Query, Mutation)
         graphql_app = GraphQLRouter(schema)

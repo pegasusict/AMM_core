@@ -20,7 +20,7 @@ class DiscussionMethods:
 
         """
         ...
-    
+
     def discussions(self, page=...):
         """Gets discussions.
 
@@ -32,8 +32,10 @@ class DiscussionMethods:
 
         """
         ...
-    
-    def discussion_replies(self, discussion_id, per_page=..., page=..., text_format=...):
+
+    def discussion_replies(
+        self, discussion_id, per_page=..., page=..., text_format=...
+    ):
         """Gets the replies on a discussion.
 
         Args:
@@ -52,6 +54,3 @@ class DiscussionMethods:
 
         """
         ...
-    
-
-

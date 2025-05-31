@@ -50,7 +50,7 @@ def get_file_extension(file_path: Path) -> str:
     Returns:
             str: The file extension of the media file.
     """
-    return file_path.split(".")[-1].lower()  # type: ignore
+    return Path(file_path).suffix.lower()
 
 
 def get_file_type(file_path: Path) -> str | None:

@@ -17,7 +17,7 @@ class AnnotationMethods:
 
         """
         ...
-    
+
     def annotation_edits(self, annotation_id, text_format=...):
         """Gets the edits on annotation (its versions).
 
@@ -31,8 +31,10 @@ class AnnotationMethods:
 
         """
         ...
-    
-    def annotation_comments(self, annotation_id, per_page=..., page=..., text_format=...):
+
+    def annotation_comments(
+        self, annotation_id, per_page=..., page=..., text_format=...
+    ):
         """Gets the comments on an annotation.
 
         Args:
@@ -48,6 +50,3 @@ class AnnotationMethods:
 
         """
         ...
-    
-
-

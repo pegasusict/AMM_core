@@ -8,12 +8,12 @@ from typing import List
 http://www.codeproject.com/Articles/8295/MPEG-Audio-Frame-Header
 http://wiki.hydrogenaud.io/index.php?title=MP3
 """
-class LAMEError(Exception):
-    ...
 
+class LAMEError(Exception): ...
 
 class LAMEHeader:
     """http://gabriel.mp3-tech.org/mp3infotag.html"""
+
     vbr_method = ...
     lowpass_filter = ...
     quality = ...
@@ -41,7 +41,7 @@ class LAMEHeader:
     def __init__(self, xing, fileobj) -> None:
         """Raises LAMEError if parsing fails"""
         ...
-    
+
     def guess_settings(self, major, minor):
         """Gives a guess about the encoder settings used. Returns an empty
         string if unknown.
@@ -57,9 +57,11 @@ class LAMEHeader:
             text
         """
         ...
-    
+
     @classmethod
-    def parse_version(cls, fileobj): # -> tuple[tuple[int, int], str, Literal[False]] | tuple[tuple[int, int], str, Literal[True]]:
+    def parse_version(
+        cls, fileobj
+    ):  # -> tuple[tuple[int, int], str, Literal[False]] | tuple[tuple[int, int], str, Literal[True]]:
         """Returns a version string and True if a LAMEHeader follows.
         The passed file object will be positioned right before the
         lame header if True.
@@ -67,19 +69,14 @@ class LAMEHeader:
         Raises LAMEError if there is no lame version info.
         """
         ...
-    
 
-
-class XingHeaderError(Exception):
-    ...
-
+class XingHeaderError(Exception): ...
 
 class XingHeaderFlags:
     FRAMES = ...
     BYTES = ...
     TOC = ...
     VBR_SCALE = ...
-
 
 class XingHeader:
     frames = ...
@@ -96,23 +93,19 @@ class XingHeader:
         The file position after this returns is undefined.
         """
         ...
-    
-    def get_encoder_settings(self): # -> Literal['']:
+
+    def get_encoder_settings(self):  # -> Literal['']:
         """Returns the guessed encoder settings"""
         ...
-    
+
     @classmethod
-    def get_offset(cls, info): # -> Literal[36, 21, 13]:
+    def get_offset(cls, info):  # -> Literal[36, 21, 13]:
         """Calculate the offset to the Xing header from the start of the
         MPEG header including sync based on the MPEG header's content.
         """
         ...
-    
 
-
-class VBRIHeaderError(Exception):
-    ...
-
+class VBRIHeaderError(Exception): ...
 
 class VBRIHeader:
     version = ...
@@ -128,11 +121,8 @@ class VBRIHeader:
         The file position is undefined after this returns
         """
         ...
-    
+
     @classmethod
-    def get_offset(cls, info): # -> Literal[36]:
+    def get_offset(cls, info):  # -> Literal[36]:
         """Offset in bytes from the start of the MPEG header including sync"""
         ...
-    
-
-

@@ -39,7 +39,7 @@ class SearchMethods:
 
         """
         ...
-    
+
     def search_albums(self, search_term, per_page=..., page=...):
         """Searches the albums on Genius.
 
@@ -58,7 +58,7 @@ class SearchMethods:
 
         """
         ...
-    
+
     def search_articles(self, search_term, per_page=..., page=...):
         """Searches the articles on Genius.
 
@@ -77,7 +77,7 @@ class SearchMethods:
 
         """
         ...
-    
+
     def search_artists(self, search_term, per_page=..., page=...):
         """Searches the artists on Genius.
 
@@ -96,7 +96,7 @@ class SearchMethods:
 
         """
         ...
-    
+
     def search_lyrics(self, search_term, per_page=..., page=...):
         """Searches the lyrics on Genius.
 
@@ -115,7 +115,7 @@ class SearchMethods:
 
         """
         ...
-    
+
     def search_songs(self, search_term, per_page=..., page=...):
         """Searches the songs on Genius.
 
@@ -134,7 +134,7 @@ class SearchMethods:
 
         """
         ...
-    
+
     def search_users(self, search_term, per_page=..., page=...):
         """Searches the users on Genius.
 
@@ -153,7 +153,7 @@ class SearchMethods:
 
         """
         ...
-    
+
     def search_videos(self, search_term, per_page=..., page=...):
         """Searches the videos on Genius.
 
@@ -172,7 +172,7 @@ class SearchMethods:
 
         """
         ...
-    
+
     def search_all(self, search_term, per_page=..., page=...):
         """Searches all types.
 
@@ -196,6 +196,3 @@ class SearchMethods:
 
         """
         ...
-    
-
-

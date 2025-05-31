@@ -26,8 +26,10 @@ class AlbumMethods:
 
         """
         ...
-    
-    def albums_charts(self, time_period=..., chart_genre=..., per_page=..., page=..., text_format=...):
+
+    def albums_charts(
+        self, time_period=..., chart_genre=..., per_page=..., page=..., text_format=...
+    ):
         """Gets the album charts.
 
         Alias for :meth:`charts() <PublicAPI.charts>`.
@@ -47,7 +49,7 @@ class AlbumMethods:
 
         """
         ...
-    
+
     def album_comments(self, album_id, per_page=..., page=..., text_format=...):
         """Gets the comments on an album page.
 
@@ -64,7 +66,7 @@ class AlbumMethods:
 
         """
         ...
-    
+
     def album_cover_arts(self, album_id, text_format=...):
         """Gets cover arts of a specific album.
 
@@ -93,7 +95,7 @@ class AlbumMethods:
 
         """
         ...
-    
+
     def album_leaderboard(self, album_id, per_page=..., page=...):
         """Gets the leaderboard of an album.
 
@@ -110,7 +112,7 @@ class AlbumMethods:
 
         """
         ...
-    
+
     def album_tracks(self, album_id, per_page=..., page=..., text_format=...):
         """Gets the tracks of a specific album.
 
@@ -127,6 +129,3 @@ class AlbumMethods:
 
         """
         ...
-    
-
-

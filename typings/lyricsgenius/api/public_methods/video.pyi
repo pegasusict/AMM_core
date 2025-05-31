@@ -17,8 +17,17 @@ class VideoMethods:
 
         """
         ...
-    
-    def videos(self, album_id=..., article_id=..., song_id=..., video_id=..., per_page=..., page=..., series=...):
+
+    def videos(
+        self,
+        album_id=...,
+        article_id=...,
+        song_id=...,
+        video_id=...,
+        per_page=...,
+        page=...,
+        series=...,
+    ):
         """Gets the videos of an album, article or song or the featured videos.
 
         Args:
@@ -44,6 +53,3 @@ class VideoMethods:
 
         """
         ...
-    
-
-

@@ -23,8 +23,16 @@ class LeaderboardMethods:
 
         """
         ...
-    
-    def charts(self, time_period=..., chart_genre=..., per_page=..., page=..., text_format=..., type_=...):
+
+    def charts(
+        self,
+        time_period=...,
+        chart_genre=...,
+        per_page=...,
+        page=...,
+        text_format=...,
+        type_=...,
+    ):
         """Gets the Genius charts.
 
         This method gets data of the chart on the Genius.com page.
@@ -55,6 +63,3 @@ class LeaderboardMethods:
 
         """
         ...
-    
-
-
