@@ -20,7 +20,7 @@ It uses the mutagen library to read and write metadata to media files.
 from pathlib import Path
 
 from ..Exceptions import DatabaseError
-from ..models import Stages
+from ..models import Stage
 from .task import Task, TaskType
 from ..Singletons.config import Config
 from ..Singletons.database import DB
@@ -57,7 +57,7 @@ class Parser(Task):
                 metadata = self.parser.parse(Path(str(file)))
                 file = self.db.register_file(str(file), metadata).first()  # type: ignore
                 if file_id := file.get("file_id", None) is not None:  # type: ignore
-                    self.db.set_file_stage(file_id, Stages.IMPORTED)
+                    self.db.set_file_stage(file_id, Stage.IMPORTED)
                 else:
                     raise DatabaseError(
                         "An error occured saving the file to the Database."

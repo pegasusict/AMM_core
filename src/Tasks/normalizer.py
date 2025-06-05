@@ -17,7 +17,7 @@
 
 from pathlib import Path
 
-from ..models import Stages
+from ..models import Stage
 from .task import Task, TaskType
 from ..Singletons.config import Config
 from ..Singletons.database import DB
@@ -31,7 +31,7 @@ class Normalizer(Task):
 
     batch: dict[int, str | Path]
 
-    def __init__(self, config: Config, batch: dict[int, str | Path]):
+    def __init__(self, config: Config, batch: dict[int, Path]):
         """
         Initializes the Normalizer class.
 
@@ -52,7 +52,7 @@ class Normalizer(Task):
             try:
                 file_type = get_file_type(Path(path))
                 normalize(file=Path(path), file_type=str(file_type))
-                self.db.set_file_stage(file_id, Stages.NORMALIZED)
+                self.db.set_file_stage(file_id, Stage.NORMALIZED)
             except Exception as e:
                 self.logger.error(f"Error processing file {path}: {e}")
                 continue

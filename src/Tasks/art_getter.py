@@ -14,12 +14,12 @@
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 """Retrieves art from online archives."""
 
-from enum import Enum
 import urllib.request
 import re
 
 from ..Exceptions import InvalidURLError
-from task import Task, TaskType
+from task import Task, TaskStatus
+from Enums import TaskType, ArtType
 from Singletons.config import Config
 from Singletons.logger import Logger
 from Singletons.database import DB
@@ -39,19 +39,12 @@ def is_valid_url(url):
     return url is not None and regex.search(url)
 
 
-class ArtType(Enum):
-    """Enum for different types of art."""
-
-    ALBUM = "album"
-    ARTIST = "artist"
-
-
 class ArtGetter(Task):
     """
     This class retrieves art from online archives.
     """
 
-    def __init__(self, batch: dict[str, str], config: Config):
+    def __init__(self, batch: dict[str, ArtType], config: Config):
         """
         Initializes the ArtGetter class.
 
@@ -75,8 +68,11 @@ class ArtGetter(Task):
         for mbid, art_type in self.batch:  # type: ignore
             _ = self.get_art(mbid, ArtType(art_type))
         self.logger.info("ArtGetter task completed")
-        self.set_result("Art retrieval completed")
-        self.set_finished()
+        self.result = "Art retrieval completed"
+        self.status = TaskStatus.COMPLETED
+        self.progress = 100.0
+        self.logger.info(f"Task completed in {self.duration:.2f} seconds")
+        self.logger.info(f"Total items processed: {self.processed}")
 
     async def get_art(self, mbid: str, art_type: ArtType) -> None:
         """

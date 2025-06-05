@@ -17,6 +17,7 @@
 
 from lyricsgenius import Genius  # type: ignore
 
+
 class LyricsGetter:
     """This class retrieves lyrics from the internet."""
 

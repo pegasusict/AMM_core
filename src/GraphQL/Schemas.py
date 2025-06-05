@@ -20,7 +20,7 @@ from typing import List
 import strawberry
 from pydantic import EmailStr
 
-from ..models import Stages, UserRole, Codecs, DateTypes
+from ..models import Stage, UserRole, Codec, DateType
 
 
 @strawberry.type()
@@ -66,12 +66,12 @@ class File:
     size: int | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
-    codec: Codecs | None = None
+    codec: Codec | None = None
     bitrate: int | None = None
     sample_rate: int | None = None
     channels: int | None = None
     duration: int | None = None
-    stage: Stages | None = None
+    stage: Stage | None = None
 
 
 @strawberry.type()
@@ -154,7 +154,7 @@ class Date:
 
     id: int | None = None
     date: date | None = None
-    type: DateTypes | None = None
+    type: DateType | None = None
     person: int | None = None  # Person id
     track: int | None = None  # Track id
     album: int | None = None  # Album id

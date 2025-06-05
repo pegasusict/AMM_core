@@ -22,17 +22,16 @@ from Singletons.config import Config
 from Singletons.database import DB
 from Singletons.logger import Logger
 from AudioUtils.trimmer import SilenceTrimmer
-from AudioUtils.media_parser import get_file_type
-from models import Codecs
+from models import Codec
 from Exceptions import FileError
 
 
 class Trimmer(Task):
     """Trims silences of start and end of songs."""
 
-    batch: dict[str, str]
+    batch: list[Path]
 
-    def __init__(self, batch: dict[str, str], config: Config = Config()):
+    def __init__(self, batch: list[Path], config: Config = Config()):
         """
         Initializes the Trimmer class.
 
@@ -50,17 +49,16 @@ class Trimmer(Task):
         """
         Runs the Tagger task.
         """
-        for _, file in self.batch:
+        for path in self.batch:
             try:
-                path = Path(file)
-                extension = get_file_type(path)
+                extension = Path(path).suffix.lower().lstrip(".")
                 if extension is None:
                     raise FileError("Unknown or no extension found")
-                codec = Codecs[extension]
+                codec = Codec[extension]
                 trimmer = SilenceTrimmer(path, codec)
                 trimmer.trim_silences
             except Exception as e:
-                self.logger.error(f"Error processing file {file}: {e}")
+                self.logger.error(f"Error processing file {path}: {e}")
                 raise
 
             self.set_progress()

@@ -32,7 +32,7 @@ from AudioUtils.media_parser import get_file_type
 class Tagger(Task):
     """This class is used to write tags to media files."""
 
-    def __init__(self, config: Config, batch: list[Path]):
+    def __init__(self, config: Config, batch: list[str]) -> None:
         """
         Initializes the Tagger class.
 
@@ -41,7 +41,7 @@ class Tagger(Task):
         """
         super().__init__(config, task_type=TaskType.TAGGER)
         self.config = config
-        self.batch = batch
+        self.batch = batch  # type: ignore
         self.db = DB()
         self.logger = Logger(config)
 
@@ -65,7 +65,10 @@ class Tagger(Task):
                 track.__dict__.update(db_track.__dict__)
                 tags = track.get_tags()
                 # get file associated with track
-                file = track.file
+                file = track.files[0].path
+                if not file:
+                    self.logger.error(f"Track {track_id} has no associated file.")
+                    continue
                 file_type = get_file_type(Path(file))
                 # write all tags to file
                 tagger = Tag(Path(file), str(file_type))

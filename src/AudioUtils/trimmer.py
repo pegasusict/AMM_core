@@ -20,14 +20,14 @@ from pathlib import Path
 from pydub import AudioSegment
 
 from ..Exceptions import OperationFailedError
-from ..models import Codecs
+from ..models import Codec
 
 
 class SilenceTrimmer:
     """Trims the silences of the start and end of an audiofile."""
 
     file: Path | None = None
-    codec: Codecs | None = None
+    codec: Codec | None = None
     threshold: int = -50
     chunk: int = 10
     sound: AudioSegment | None = None
@@ -37,7 +37,7 @@ class SilenceTrimmer:
     trimmed_sound: AudioSegment | None = None
 
     def __init__(
-        self, file: Path, codec: Codecs, threshold: int = -50, chunk_size: int = 10
+        self, file: Path, codec: Codec, threshold: int = -50, chunk_size: int = 10
     ) -> None:
         """Initializer of the SilenceTrimmer Class.
 

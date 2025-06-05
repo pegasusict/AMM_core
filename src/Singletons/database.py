@@ -25,8 +25,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 
 from ..Exceptions import InvalidValueError
-
-from ..models import DBFile, Stages
+from ..models import DBFile, DBTask, Stage, TaskStatus
 
 
 ######################################################################
@@ -49,17 +48,8 @@ def set_fields(data: dict, subject: object | None = None) -> object | dict:
 class DB:
     """
     The DB class is used to manage the database connection.
-    It uses the SQLalchemy library to connect to the database and perform operations on it.
+    It uses the SQLModel library to connect to the database and perform operations on it.
     """
-
-    _instance = None
-
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(DB, cls).__new__(cls)
-            cls._instance._engine = None
-            cls._instance._session = None
-        return cls._instance
 
     def __init__(self, db_url: str = "mysql+pymysql://amm:password@localhost/amm"):
         """Initialize the DB class."""
@@ -160,16 +150,11 @@ class DB:
         file_id = metadata.get("file_id")
         return self.update(table="files", values=values, where=[id, file_id])
 
-    def set_file_stage(self, file_id: int, stage: Stages) -> None:
+    def set_file_stage(self, file_id: int, stage: Stage) -> None:
         """Sets the processed stage for the file."""
-        if not isinstance(stage, Stages):
-            if isinstance(stage, str) and stage in Stages:
-                stage = Stages[stage]
-            elif isinstance(stage, int):
-                for Stage in Stages:
-                    if Stage == stage:
-                        stage = Stage
-                        break
+        if not isinstance(stage, Stage):
+            if isinstance(stage, str) and stage in Stage:
+                stage = Stage[stage]
             else:
                 raise InvalidValueError(f"Invalid Stage: {stage}")
 
@@ -177,3 +162,25 @@ class DB:
         statement = select(DBFile).where(DBFile.id == file_id)
         file = session.exec(statement).first()
         file.stage = stage  # type: ignore
+        session.add(file)
+        session.commit()
+        session.close()
+
+    def update_task_status(self, task_id: str, status: TaskStatus) -> None:
+        """Updates the status of the specified Task."""
+        session = self.get_session()
+        db_task = session.get_one(DBTask, task_id)
+        db_task.status = status
+        session.add(db_task)
+        session.commit()
+        session.close()
+
+    def get_paused_tasks(self) -> list[DBTask]:  # type: ignore
+        """Retrieves a list of paused tasks from the database."""
+        session = self.get_session()
+        db_tasks = session.get(DBTask, DBTask.status == TaskStatus.PAUSED)
+        result = []
+        if db_tasks is not None:
+            for db_task in db_tasks:
+                result.append(db_task)
+        return result
