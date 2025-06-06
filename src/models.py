@@ -122,64 +122,99 @@ class DBTask(AutoFetchable, SQLModel, table=True):
 
     def import_task(self, task: Task) -> None:
         """Imports a task into the database."""
+        self._fill_required_fields(task)
 
-        def fill_required_fields(task: Task) -> None:
-            for field in self.required_fields:
-                if not hasattr(self, field) or getattr(self, field) in (None, "", []):
-                    raise ValueError(f"Task is missing required attribute: {field}")
-                setattr(self, field, getattr(task, field))
+        # Dispatch table for handlers
+        task_handlers = {
+            TaskType.ART_GETTER: self._handle_art_getter,
+            TaskType.CONVERTER: self._handle_converter,
+        }
 
-        def validate_art_type(art_type: ArtType) -> None:
+        if task.task_type in task_handlers:
+            task_handlers[task.task_type](task)
+            return
+
+        if task.task_type in self._track_tasks():
+            self._handle_track_task(task)
+        elif task.task_type in self._file_id_tasks():
+            self._handle_file_id_task(task)
+        elif task.task_type in self._file_path_tasks():
+            self._handle_file_path_task(task)
+
+    # ---------------------------
+    # Private Helper Methods
+    # ---------------------------
+
+    def _fill_required_fields(self, task: Task) -> None:
+        for field in self.required_fields:
+            if not hasattr(self, field) or getattr(self, field) in (None, "", []):
+                raise ValueError(f"Task is missing required attribute: {field}")
+            setattr(self, field, getattr(task, field))
+
+    def _handle_art_getter(self, task: Task) -> None:
+        albums = []
+        persons = []
+        for mbid, art_type in task.batch:  # type: ignore
             if art_type not in ArtType:
-                raise InvalidValueError(f"Invalid task type: {art_type}")
+                raise InvalidValueError(f"Invalid art type: {art_type}")
+            if art_type == ArtType.ALBUM:
+                albums.append(DBAlbum(mbid=mbid))
+            else:
+                persons.append(DBPerson(mbid=mbid))
+        self.batch_albums = albums or None  # type: ignore
+        self.batch_persons = persons or None  # type: ignore
 
-        fill_required_fields(task)
+    def _handle_converter(self, task: Task) -> None:
+        self.batch_convert = [
+            DBFileToConvert(file_id=file_id, codec=codec)  # type: ignore
+            for file_id, codec in task.batch.items()  # type: ignore
+        ]
 
-        if task.task_type == TaskType.ART_GETTER:
-            albums = []
-            persons = []
-            for mbid, art_type in task.batch:  # type: ignore
-                validate_art_type(art_type)  # type: ignore
-                if art_type == ArtType.ALBUM:
-                    albums.append(DBAlbum(mbid=mbid))
-                else:
-                    persons.append(DBPerson(mbid=mbid))
-            self.batch_albums = albums or None  # type: ignore
-            self.batch_persons = persons or None  # type: ignore
-            return
+    def _handle_track_task(self, task: Task) -> None:
+        self.batch_tracks = [
+            DBTrack(id=track_id)  # type: ignore
+            for track_id in task.batch  # type: ignore
+        ]
 
-        if task.task_type == TaskType.CONVERTER:
-            self.batch_convert = [
-                DBFileToConvert(file_id=file_id, codec=codec)  # type: ignore
-                for file_id, codec in task.batch.items()  # type: ignore
-            ]
-            return
+    def _handle_file_id_task(self, task: Task) -> None:
+        self.batch_files = [
+            DBFile(id=file_id)  # type: ignore
+            for file_id in task.batch  # type: ignore
+        ]
 
-        # Map of TaskType group → handler
-        track_tasks = {
+    def _handle_file_path_task(self, task: Task) -> None:
+        self.batch_files = [
+            DBFile(file_path=path)  # type: ignore
+            for path in task.batch  # type: ignore
+        ]
+
+    # ---------------------------
+    # Static Task Type Groups
+    # ---------------------------
+
+    @staticmethod
+    def _track_tasks() -> set:
+        return {
             TaskType.TAGGER,
             TaskType.LYRICS_GETTER,
             TaskType.DEDUPER,
             TaskType.SORTER,
         }
 
-        file_id_tasks = {
+    @staticmethod
+    def _file_id_tasks() -> set:
+        return {
             TaskType.FINGERPRINTER,
             TaskType.EXPORTER,
             TaskType.NORMALIZER,
         }
 
-        file_path_tasks = {
+    @staticmethod
+    def _file_path_tasks() -> set:
+        return {
             TaskType.TRIMMER,
             TaskType.PARSER,
         }
-
-        if task.task_type in track_tasks:
-            self.batch_tracks = [DBTrack(id=track_id) for track_id in task.batch]  # type: ignore
-        elif task.task_type in file_id_tasks:
-            self.batch_files = [DBFile(id=file_id) for file_id in task.batch]  # type: ignore
-        elif task.task_type in file_path_tasks:
-            self.batch_files = [DBFile(file_path=path) for path in task.batch]  # type: ignore
 
     def get_batch(
         self,
@@ -338,30 +373,40 @@ class Track(BaseModel):
         return result
 
     def get_sortdata(self) -> dict[str, str | int]:
-        """Gets all the sortdata, converts if nessecary and returns it as a dictionairy."""
-        result = {}
-        album_id = self.albums[0]
+        """Gets all the sortdata, converts if necessary and returns it as a dictionary."""
 
-        result["title_sort"] = self.title_sort
-        result["artist_sort"] = DBPerson(id=self.artists[0]).sort_name if self.artists else "[Unknown Artist]"
-        result["album_title_sort"] = DBAlbum(id=album_id).title_sort or "[Unknown Album]"
-        result["year"] = str(DBAlbum(id=album_id).release_date.year if self.albums else "0000")
-        result["disc_number"] = str(
-            DBAlbumTrack(album_id=album_id, track_id=self.id).disc_number  # type: ignore
-            if self.albums
-            else 1
-        )
-        result["disc_count"] = str(DBAlbum(id=album_id).disc_count if self.albums else 1)
-        result["track_count"] = str(DBAlbum(id=album_id).track_count if self.albums else 1)
-        result["track_number"] = str(
-            DBAlbumTrack(album_id=album_id, track_id=self.id).track_number  # type: ignore
-            if self.albums
-            else 1
-        )
-        result["bitrate"] = self.files[0].bitrate if self.files else 0
-        result["duration"] = self.files[0].length if self.files else 0
+        album = self._get_album()
+        album_track = self._get_album_track(album.id) if album else None
+        artist = self._get_artist()
+        file = self.files[0] if self.files else None
 
-        return result
+        return {
+            "title_sort": self.title_sort,
+            "artist_sort": artist.sort_name if artist else "[Unknown Artist]",
+            "album_title_sort": album.title_sort if album and album.title_sort else "[Unknown Album]",
+            "year": str(album.release_date.year) if album else "0000",
+            "disc_number": str(album_track.disc_number) if album_track else "1",
+            "disc_count": str(album.disc_count) if album else "1",
+            "track_count": str(album.track_count) if album else "1",
+            "track_number": str(album_track.track_number) if album_track else "1",
+            "bitrate": file.bitrate if file else 0,
+            "duration": file.length if file else 0,
+        }
+
+    def _get_album(self) -> DBAlbum | None:
+        if not self.albums:
+            return None
+        return DBAlbum(id=self.albums[0])
+
+    def _get_album_track(self, album_id: int) -> DBAlbumTrack | None:
+        if not self.id:
+            return None
+        return DBAlbumTrack(album_id=album_id, track_id=self.id)  # type: ignore
+
+    def _get_artist(self) -> DBPerson | None:
+        if not self.artists:
+            return None
+        return DBPerson(id=self.artists[0])
 
 
 class DBTrack(ItemBase, table=True):
