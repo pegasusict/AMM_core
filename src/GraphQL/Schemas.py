@@ -20,7 +20,7 @@ from typing import List
 import strawberry
 from pydantic import EmailStr
 
-from ..models import Stage, UserRole, Codec, DateType
+from ..models import Stage, UserRole, Codec
 
 
 @strawberry.type()
@@ -146,18 +146,6 @@ class Person:
     mbid: str | None = None
     performed_tracks: List[int] | None = None  # Track id
     performed_albums: List[int] | None = None  # Album id
-
-
-@strawberry.type()
-class Date:
-    """Date type for GraphQL schema."""
-
-    id: int | None = None
-    date: date | None = None
-    type: DateType | None = None
-    person: int | None = None  # Person id
-    track: int | None = None  # Track id
-    album: int | None = None  # Album id
 
 
 @strawberry.type()

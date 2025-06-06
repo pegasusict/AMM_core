@@ -54,8 +54,8 @@ class LyricsGetter(Task):
         try:
             for track_id in self.batch:
                 track = DBTrack(id=int(track_id))
-                track_title = track.titles[0].title
-                track_artist = track.performers[0].names[0].name
+                track_title = track.title
+                track_artist = track.performers[0].full_name
                 lyrics = Lyrics.get_lyrics(artist=track_artist, title=track_title)  # type: ignore
                 session = self.db.get_session()
                 get_track = select(DBTrack).where(DBTrack.id == int(track_id))

@@ -95,45 +95,12 @@ class Stage(StrEnum):
     IMPORTED = auto()
     FINGERPRINTED = auto()
     TAGS_RETRIEVED = auto()
-    ART_RETRIEVED = (
-        auto()
-    )  # TODO: is Album/artist related, but album is needed for file
+    ART_RETRIEVED = auto()  # TODO: is Album/artist related, but album is needed for file
     LYRICS_RETRIEVED = auto()  # TODO: is track related, but needed for file...
     TRIMMED = auto()
     NORMALIZED = auto()
     TAGGED = auto()
     SORTED = auto()
-
-
-class PersonNameType(StrEnum):
-    """Types of person names."""
-
-    FULL_NAME = auto()
-    SORT_NAME = auto()
-    FIRST_NAME = auto()
-    MIDDLE_NAME = auto()
-    LAST_NAME = auto()
-    NICK_NAME = auto()
-    ALIAS = auto()
-
-
-class DateType(StrEnum):
-    """Types of dates."""
-
-    COMPOSE = auto()
-    RELEASE = auto()
-    JOINED = auto()
-    LEFT = auto()
-    BORN = auto()
-    DECEASED = auto()
-
-
-class TitleType(StrEnum):
-    """Types of titles"""
-
-    TITLE = auto()
-    TITLE_SORT = auto()
-    SUB_TITLE = auto()
 
 
 class ArtType(StrEnum):
