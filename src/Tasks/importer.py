@@ -13,100 +13,84 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
-import os
 from pathlib import Path
 from typing import List
 
 from Singletons.stack import Stack
 from Singletons.logger import Logger
 from Singletons.config import Config
-from task import Task, TaskType
+from task import Task
+from Enums import TaskType
 from parser import Parser
+from taskmanager import TaskManager
 
 
 class Importer(Task):
     """
-    This class is used to import files from a directory.
-    It scans the directory and returns a list of files to be imported.
+    Scans directories for files to import based on configured extensions.
+    Optionally removes files not matching allowed extensions.
     """
 
-    files: List[Path] = []
-    folders: List[Path] = []
-
     def __init__(self, config: Config):
-        """
-        Initializes the Importer class.
-
-        Args:
-            config: The configuration object.
-        """
         super().__init__(config=config, task_type=TaskType.IMPORTER)
         self.config = config
-        self.base_path = self.config.get("paths", "import")
-        ext_val = self.config.get("extensions", "import")
-        if isinstance(ext_val, list):
-            self.ext = ext_val
-        elif ext_val is None:
-            self.ext = []
-        else:
-            self.ext = list(ext_val) if hasattr(ext_val, "__iter__") else [str(ext_val)]  # type: ignore
-        self.clean = self.config.get("import", "clean", False)
+        self.logger = Logger(config)
         self.stack = Stack()
-        self.stack.add_counter("all_files", 0)
-        self.stack.add_counter("all_folders", 0)
-        self.stack.add_counter("removed_files", 0)
-        self.stack.add_counter("scanned_folders", 0)
-        self.stack.add_counter("scanned_files", 0)
-        self.stack.add_counter("imported_files", 0)
+        self.files: List[Path] = []
+        self.folders: List[Path] = []
+
+        self.base_path = Path(self.config.get_path("import"))
+
+        # Normalize extensions
+        ext_val = self.config.get("extensions", "import")
+        if isinstance(ext_val, str):
+            self.ext = [ext_val.lower()]
+        elif isinstance(ext_val, list):
+            self.ext = [str(e).lower() for e in ext_val]
+        else:
+            self.ext = []
+
+        self.clean = self.config.get("import", "clean", False)
+
+        for counter in ("all_files", "all_folders", "removed_files", "scanned_folders", "scanned_files", "imported_files"):
+            self.stack.add_counter(counter)
 
     def run(self):
-        """
-        Parses directory (tree) and returns usable files according to extension filter and
-        optionally removes any files not included in the filter."""
-        self.fast_scan(self.base_path)
-        # create task for files list to be processed by the parser
-        # TODO: check how to hand this off to the TaskManager
+        """Start the import task by scanning and invoking the parser."""
+        if not self.base_path.exists():
+            self.logger.error(f"Base path {self.base_path} does not exist.")
+            return
 
-        if self.files is not None and len(self.files) > 0:
-            task = Parser(self.config, self.files)
-            task.start()
-            task.wait()
+        self._scan(self.base_path)
 
-    def fast_scan(self, path):
-        """
-        Parses directory (tree) and returns usable files according to extension filter and
-        optionally removes any files not included in the filter
+        if self.files:
+            tm = TaskManager()
+            tm.start_task(Parser, TaskType.PARSER, self.files)
 
-        TODO: what happens if file list exceeds physical capabilities?
-
-        Parameters:
-        stack: (object)          Stack Object to store
-        path:  (string)          Base path to start scan from
-        ext:   (list:[string])   List of extension to import
-        clean: (bool)            Remove any files whose extension is not listed in ext
-                                        !!! USE WITH CARE !!!
-
-        returns: folders: List[str], files: List[str]
-        """
-
-        if not Path.exists(path):
-            Logger(Config()).error(f"Base path {path} does not exist")
-            return None, None
-
-        for file in os.scandir(path):
-            if file.is_dir(follow_symlinks=False):
-                self.folders.append(Path(file.path))
-                self.stack.add_counter("all_folders")
-            elif file.is_file(follow_symlinks=False):
-                if len(self.ext) < 1 or Path(file).suffix.lower() in self.ext:
-                    self.files.append(Path(file.path))
-                    self.stack.add_counter("all_files")
-                elif self.clean:
-                    Path(file).unlink()
-                    self.stack.add_counter("removed_files")
+    def _scan(self, path: Path):
+        """Recursively scans path using pathlib."""
         self.stack.add_counter("scanned_folders")
-        for index, path in list(self.folders):  # type: ignore
-            self.folders.pop(index)
-            self.fast_scan(path)
 
-        return self.folders, self.files
+        try:
+            for entry in path.iterdir():
+                if entry.is_dir():
+                    self.folders.append(entry)
+                    self.stack.add_counter("all_folders")
+                    self._scan(entry)
+                elif entry.is_file():
+                    self._handle_file(entry)
+        except Exception as e:
+            self.logger.error(f"Error scanning {path}: {e}")
+
+    def _handle_file(self, file_path: Path):
+        """Handle a single file: include or optionally delete."""
+        suffix = file_path.suffix.lower()
+        if not self.ext or suffix in self.ext:
+            self.files.append(file_path)
+            self.stack.add_counter("all_files")
+        elif self.clean:
+            try:
+                file_path.unlink(missing_ok=True)
+                self.stack.add_counter("removed_files")
+            except Exception as e:
+                self.logger.warning(f"Failed to delete {file_path}: {e}")

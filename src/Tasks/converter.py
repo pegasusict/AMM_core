@@ -26,76 +26,55 @@ from task import Task, TaskType
 
 
 class Converter(Task):
-    """This class is used to convert files."""
-
-    batch: list[int]  # List of track ids to convert
+    """This class converts audio files to target formats based on input codec."""
 
     def __init__(self, batch: list[int], config: Config):
-        """
-        Initializes the Converter class.
-
-        Args:
-            batch: Dictionary containing track ids.
-            config: The configuration object.
-        """
         super().__init__(config=config, task_type=TaskType.CONVERTER)
-        self.config = config
-        self.batch = batch  # type: ignore
+        self.batch = batch
         self.logger = Logger(config)
-        self.lq_inputs = str(self.config.get("convert", "lqinputs", "ogg,aac")).split(
-            ","
-        )
-        self.hq_inputs = str(self.config.get("convert", "hqinputs", "wav,mp4")).split(
-            ","
-        )
-        self.lq_format = str(
-            self.config.get("convert", "lqformat", Codec.MP3.value)
-        ).lower()
-        self.hq_format = str(
-            self.config.get("convert", "hqformat", Codec.FLAC.value)
-        ).lower()
+        self.lq_inputs = config.get("convert", "lqinputs", "ogg,aac").split(",")  # type: ignore
+        self.hq_inputs = config.get("convert", "hqinputs", "wav,mp4").split(",")  # type: ignore
+        self.lq_format = config.get("convert", "lqformat", Codec.MP3.value).lower()  # type: ignore
+        self.hq_format = config.get("convert", "hqformat", Codec.FLAC.value).lower()  # type: ignore
 
     def run(self):
-        """Runs The Converter Task."""
         for track_id in self.batch:
-            track = Track(track_id=track_id)
-            file = track.files[0]
-            input_path = Path(file.path)
-
-            if not input_path.is_file():
-                self.logger.info(f"Skipping {input_path}: File does not exist")
+            track = Track(track_id)  # type: ignore
+            if not track.files:
+                self.logger.warning(f"No files found for track {track_id}")
                 self.set_progress()
                 continue
 
-            # Determine the input quality of the file
-            input_codec = file.codec
-            # input_bitrate = file.bitrate
-            if input_codec in self.lq_inputs:
-                new_format = self.lq_format
-            elif input_codec in self.hq_inputs:
-                new_format = self.hq_format
-            else:
-                self.logger.warning(
-                    f"Unknown codec or no conversion needed: {input_codec} for file {input_path}. Skipping conversion."
-                )
-                self.set_progress()
-                continue
-            input_ext = input_path.suffix[1:].lower()
-            filename_wo_ext = input_path.stem
-            path_wo_file = input_path.parent
-            output_path = path_wo_file / f"{filename_wo_ext}.{new_format}"
-
-            # Convert the file
-            try:
-                audio = AudioSegment.from_file(input_path, format=input_ext)
-                audio.export(output_path, format=new_format)
-                self.logger.info(f"Converted: {input_path} -> {output_path}")
-                # delete the input file if the conversion was successful
-                if (
-                    input_path != output_path
-                ):  # Avoid deleting the file if it's the same
-                    input_path.unlink(missing_ok=True)
-                    self.logger.info(f"Deleted original file: {input_path}")
-            except Exception as e:
-                self.logger.error(f"Failed to convert {input_path}: {e}")
+            self.convert_file(Path(track.files[0].path), track.files[0].codec)
             self.set_progress()
+
+    def convert_file(self, input_path: Path, codec: str) -> None:
+        if not input_path.is_file():
+            self.logger.info(f"Skipping {input_path}: file does not exist")
+            return
+
+        target_format = self.get_target_format(codec)
+        if not target_format:
+            self.logger.warning(f"Skipping {input_path}: no target format for codec {codec}")
+            return
+
+        output_path = input_path.with_suffix(f".{target_format}")
+        if input_path == output_path:
+            self.logger.info(f"Skipping {input_path}: already in target format")
+            return
+
+        try:
+            audio = AudioSegment.from_file(input_path, format=input_path.suffix[1:].lower())
+            audio.export(output_path, format=target_format)
+            self.logger.info(f"Converted: {input_path} -> {output_path}")
+            input_path.unlink(missing_ok=True)
+            self.logger.info(f"Deleted original file: {input_path}")
+        except Exception as e:
+            self.logger.error(f"Failed to convert {input_path}: {e}")
+
+    def get_target_format(self, codec: str) -> str | None:
+        if codec in self.lq_inputs:
+            return self.lq_format
+        if codec in self.hq_inputs:
+            return self.hq_format
+        return None
