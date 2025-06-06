@@ -140,37 +140,53 @@ class DBTask(SQLModel, table=True):
             raise InvalidValueError(f"Invalid task type: {art_type}")
 
     def import_task(self, task: Task) -> None:
-        """
-        Imports a task into the database.
-
-        Args:
-            task: The task to import.
-        """
+        """Imports a task into the database."""
         self.fill_required_fields(task)
-        match task.task_type:
-            case TaskType.ART_GETTER:
-                for mbid, art_type in task.batch:  # type: ignore
-                    if art_type == ArtType.ALBUM:
-                        self.batch_albums = [DBAlbum(mbid=mbid)]  # type: ignore
-                    else:
-                        self.batch_persons = [DBPerson(mbid=mbid)]  # type: ignore
-            case TaskType.TAGGER | TaskType.LYRICS_GETTER | TaskType.DEDUPER:
-                self.batch_tracks = [DBTrack(id=track_id) for track_id in task.batch]  # type: ignore
-            case TaskType.FINGERPRINTER | TaskType.EXPORTER | TaskType.NORMALIZER:
-                self.batch_files = [DBFile(id=file_id) for file_id in task.batch]  # type: ignore
-            case TaskType.TRIMMER | TaskType.PARSER:
-                self.batch_files = [DBFile(file_path=path) for path in task.batch]  # type: ignore
-            case TaskType.CONVERTER:
-                for file_id, codec in task.batch.items():  # type: ignore
-                    DBFileToConvert.file_id = file_id
-                    DBFileToConvert.codec = codec  # type: ignore
-                    self.batch_convert.append(
-                        DBFileToConvert(file_id=file_id, codec=codec)  # type: ignore
-                    )
-            case TaskType.PARSER:
-                self.batch_files = [DBFile(path=path) for path in task.batch]  # type: ignore
-            case TaskType.SORTER:
-                self.batch_tracks = [DBTrack(id=track_id) for track_id in task.batch]  # type: ignore
+
+        if task.task_type == TaskType.ART_GETTER:
+            albums = []
+            persons = []
+            for mbid, art_type in task.batch:  # type: ignore
+                if art_type == ArtType.ALBUM:
+                    albums.append(DBAlbum(mbid=mbid))
+                else:
+                    persons.append(DBPerson(mbid=mbid))
+            self.batch_albums = albums or None  # type: ignore
+            self.batch_persons = persons or None  # type: ignore
+            return
+
+        if task.task_type == TaskType.CONVERTER:
+            self.batch_convert = [
+                DBFileToConvert(file_id=file_id, codec=codec)  # type: ignore
+                for file_id, codec in task.batch.items()  # type: ignore
+            ]
+            return
+
+        # Map of TaskType group → handler
+        track_tasks = {
+            TaskType.TAGGER,
+            TaskType.LYRICS_GETTER,
+            TaskType.DEDUPER,
+            TaskType.SORTER,
+        }
+
+        file_id_tasks = {
+            TaskType.FINGERPRINTER,
+            TaskType.EXPORTER,
+            TaskType.NORMALIZER,
+        }
+
+        file_path_tasks = {
+            TaskType.TRIMMER,
+            TaskType.PARSER,
+        }
+
+        if task.task_type in track_tasks:
+            self.batch_tracks = [DBTrack(id=track_id) for track_id in task.batch]  # type: ignore
+        elif task.task_type in file_id_tasks:
+            self.batch_files = [DBFile(id=file_id) for file_id in task.batch]  # type: ignore
+        elif task.task_type in file_path_tasks:
+            self.batch_files = [DBFile(file_path=path) for path in task.batch]  # type: ignore
 
     def get_batch(
         self,
