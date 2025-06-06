@@ -58,9 +58,7 @@ class TaskManager:
         self.tasks: dict[str, dict[str, Task]] = {}
         self.task_queue: list[Task] = []
         self.running_tasks = 0
-        self.max_concurrent_tasks = 2 * (
-            os.cpu_count() or 2
-        )  # Default to 2 if cpu_count() is None
+        self.max_concurrent_tasks = 2 * (os.cpu_count() or 2)  # Default to 2 if cpu_count() is None
         self.exclusive_task_types: Set[TaskType] = set(
             [
                 TaskType.IMPORTER,
@@ -129,6 +127,14 @@ class TaskManager:
                 return task_group[task_id]
         return None
 
+    def exclusive_task_running(self, task_type: TaskType) -> bool:
+        """Check if an exclusive task type is currently running."""
+        for task_group in self.tasks.values():
+            for task in task_group.values():
+                if task.task_type == task_type and task.status == TaskStatus.RUNNING:
+                    return True
+        return False
+
     def start_task(
         self,
         task_class: Type[Task],
@@ -151,18 +157,11 @@ class TaskManager:
 
         # Check if task type is exclusive and already running
         if task.task_type in self.exclusive_task_types:
-            for t in self.list_tasks():
-                if (
-                    t["status"] == TaskStatus.RUNNING.value
-                    and t["task_id"] != task.task_id
-                ):
-                    running_task = self.get_task(t["task_id"])  # type: ignore
-                    if running_task and running_task.task_type == task.task_type:
-                        self.logger.info(
-                            f"Task {task.task_id} queued due to exclusive type limit."
-                        )
-                        self.task_queue.append(task)
-                        return task.task_id
+            if self.exclusive_task_running(task.task_type):
+                self.logger.info(f"Task {task.task_id} is exclusive and another task of type {task.task_type} is already running.")
+                # Queue the task if an exclusive type is already running
+                self.task_queue.append(task)
+                return task.task_id
 
         if self.running_tasks < self.max_concurrent_tasks:
             task.start()
@@ -173,14 +172,22 @@ class TaskManager:
             self.logger.info(f"Task {task.task_id} queued (limit reached).")
 
         # Optionally persist to DB
+        self.save_task_to_db(task)
+
+        return task.task_id
+
+    def save_task_to_db(self, task: Task):
+        """Saves the task to the database."""
+        if not isinstance(task, Task):
+            raise TypeError("task must be an instance of Task")
+        if not task.task_id:
+            raise ValueError("task_id must be set before saving to DB")
         db_task = DBTask()
         db_task.import_task(task)
         session = self.db.get_session()
         session.add(db_task)
         session.commit()
         session.close()
-
-        return task.task_id
 
     def list_tasks(self) -> list[dict[str, TaskStatus | str | bool | float]]:
         """
@@ -211,11 +218,7 @@ def resume_tasks(self):
     for record in paused_tasks:
         try:
             task_type = TaskType(record.task_type)
-            batch = (
-                record.get_batch()
-                if hasattr(record, "get_batch")
-                else json.loads(record.batch)
-            )
+            batch = record.get_batch() if hasattr(record, "get_batch") else json.loads(record.batch)
             kwargs = json.loads(record.kwargs or "{}")
 
             # You need to know which task class to use — map or store it

@@ -56,9 +56,7 @@ class DBUser(SQLModel, table=True):
     date_of_birth: dt.datetime = Field(default="")
     is_active: bool = Field(default=True)
     role: StrEnum = Field(default=UserRole.USER.value)  # Default role is USER
-    created_at: dt.datetime = Field(
-        default_factory=lambda: dt.datetime.now(dt.timezone.utc)
-    )
+    created_at: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.timezone.utc))
     updated_at: dt.datetime = Field(
         default_factory=lambda: dt.datetime.now(dt.timezone.utc),
         sa_column_kwargs={"onupdate": lambda: dt.datetime.now(dt.timezone.utc)},
@@ -104,6 +102,21 @@ class DBTask(SQLModel, table=True):
     status: StrEnum = Field(StrEnum(TaskStatus), default=TaskStatus.PENDING)  # type: ignore
     task_type: StrEnum = Field(StrEnum(TaskType), default=TaskType.CUSTOM)  # type: ignore
 
+    required_fields = (
+        "task_id",
+        "start_time",
+        "end_time",
+        "duration",
+        "processed",
+        "progress",
+        "process",
+        "function",
+        "result",
+        "error",
+        "status",
+        "task_type",
+    )
+
     def import_task(self, task: Task) -> None:
         """
         Imports a task into the database.
@@ -111,20 +124,7 @@ class DBTask(SQLModel, table=True):
         Args:
             task: The task to import.
         """
-        for key in (
-            "task_id",
-            "start_time",
-            "end_time",
-            "duration",
-            "processed",
-            "progress",
-            "process",
-            "function",
-            "result",
-            "error",
-            "status",
-            "task_type",
-        ):
+        for key in self.required_fields:
             if not hasattr(task, key):
                 raise ValueError(f"Task is missing required attribute: {key}")
             setattr(self, key, getattr(task, key))
@@ -135,38 +135,20 @@ class DBTask(SQLModel, table=True):
                         raise InvalidValueError(f"Invalid art type: {art_type}")
                     if art_type == ArtType.ALBUM:
                         self.batch_albums = [DBAlbum(mbid=mbid)]  # type: ignore
-                    elif art_type == ArtType.ARTIST:
+                    else:
                         self.batch_persons = [DBPerson(mbid=mbid)]  # type: ignore
             case TaskType.TAGGER:
-                self.batch_tracks = [
-                    DBTrack(id=track_id)  # type: ignore
-                    for track_id in task.batch
-                ]
+                self.batch_tracks = [DBTrack(id=track_id) for track_id in task.batch]  # type: ignore
             case TaskType.FINGERPRINTER:
-                self.batch_files = [
-                    DBFile(id=file_id)  # type: ignore
-                    for file_id in task.batch
-                ]
+                self.batch_files = [DBFile(id=file_id) for file_id in task.batch]  # type: ignore
             case TaskType.EXPORTER:
-                self.batch_files = [
-                    DBFile(id=file_id)  # type: ignore
-                    for file_id in task.batch
-                ]
+                self.batch_files = [DBFile(id=file_id) for file_id in task.batch]  # type: ignore
             case TaskType.LYRICS_GETTER:
-                self.batch_tracks = [
-                    DBTrack(id=track_id)  # type: ignore
-                    for track_id in task.batch
-                ]
+                self.batch_tracks = [DBTrack(id=track_id) for track_id in task.batch]  # type: ignore
             case TaskType.NORMALIZER:
-                self.batch_files = [
-                    DBFile(id=file_id)  # type: ignore
-                    for file_id in task.batch
-                ]
+                self.batch_files = [DBFile(id=file_id) for file_id in task.batch]  # type: ignore
             case TaskType.DEDUPER:
-                self.batch_tracks = [
-                    DBTrack(id=track_id)  # type: ignore
-                    for track_id in task.batch
-                ]
+                self.batch_tracks = [DBTrack(id=track_id) for track_id in task.batch]  # type: ignore
             case TaskType.TRIMMER:
                 self.batch_files = [DBFile(file_path=path) for path in task.batch]  # type: ignore
             case TaskType.CONVERTER:
@@ -183,14 +165,7 @@ class DBTask(SQLModel, table=True):
 
     def get_batch(
         self,
-    ) -> (
-        List[str]
-        | List[int]
-        | List[Path]
-        | dict[str, ArtType]
-        | dict[int, Codec]
-        | None
-    ):
+    ) -> List[str] | List[int] | List[Path] | dict[str, ArtType] | dict[int, Codec] | None:
         """Gets the correctly formatted Batch List/Dict."""
         match self.task_type:
             case TaskType.ART_GETTER:
@@ -204,53 +179,44 @@ class DBTask(SQLModel, table=True):
             case TaskType.TAGGER:
                 result: List[int] = []
                 if isinstance(self.batch_tracks, List) and len(self.batch_tracks) > 0:
-                    for track in self.batch_tracks:
-                        result.append(track.id)
+                    result = [track.id for track in self.batch_tracks]
             case TaskType.FINGERPRINTER:
                 result: List[int] = []
                 if isinstance(self.batch_files, List) and len(self.batch_files) > 0:
-                    for file in self.batch_files:
-                        result.append(file.id)
+                    result = [file.id for file in self.batch_files]
             case TaskType.EXPORTER:
                 result: List[int] = []
                 if isinstance(self.batch_tracks, List) and len(self.batch_tracks) > 0:
-                    for track in self.batch_tracks:
-                        result.append(track.id)
+                    result = [track.id for track in self.batch_tracks]
             case TaskType.LYRICS_GETTER:
                 result: List[int] = []
                 if isinstance(self.batch_tracks, List) and len(self.batch_tracks) > 0:
-                    for track in self.batch_tracks:
-                        result.append(track.id)
+                    result = [track.id for track in self.batch_tracks]
             case TaskType.NORMALIZER:
                 result: List[int] = []
                 if isinstance(self.batch_files, List) and len(self.batch_files) > 0:
-                    for file in self.batch_files:
-                        result.append(file.id)
+                    result = [file.id for file in self.batch_files]
             case TaskType.DEDUPER:
                 result: List[int] = []
                 if isinstance(self.batch_tracks, List) and len(self.batch_tracks) > 0:
-                    for track in self.batch_tracks:
-                        result.append(track.id)
+                    result = [track.id for track in self.batch_tracks]
             case TaskType.TRIMMER:
-                result: List[int] = []
+                result: List[Path] = []  # type: ignore
                 if isinstance(self.batch_files, List) and len(self.batch_files) > 0:
-                    for file in self.batch_files:
-                        result.append(file.get_path())  # type: ignore
+                    result = [file.get_path() for file in self.batch_files]  # type: ignore
             case TaskType.CONVERTER:
                 result: dict[str, Codec] = {}  # type: ignore
                 if isinstance(self.batch_convert, List) and len(self.batch_convert) > 0:
                     for file in self.batch_convert:
                         result[file.file.id] = file.codec  # type: ignore
             case TaskType.PARSER:
-                result: List[int] = []
+                result: List[Path] = []  # type: ignore
                 if isinstance(self.batch_files, List) and len(self.batch_files) > 0:
-                    for file in self.batch_files:
-                        result.append(file.get_path())  # type: ignore
+                    result = [file.get_path() for file in self.batch_files]  # type: ignore
             case TaskType.SORTER:
                 result: List[int] = []
                 if isinstance(self.batch_tracks, List) and len(self.batch_tracks) > 0:
-                    for track in self.batch_tracks:
-                        result.append(track.id)
+                    result = [track.id for track in self.batch_tracks]
             case _:
                 result = None  # type: ignore
         return result
@@ -277,21 +243,8 @@ class DBStat(ItemBase, table=True):
 
     name: str = Field(String(30))
     value: int = Field(default=0)
-    range: Optional[DBStatRange] = Relationship(back_populates="stat")
-
-    def __repr__(self) -> str:
-        return f"Stat {self.name}"
-
-
-class DBStatRange(OptFieldBase, table=True):
-    """Range for statistics."""
-
-    __tablename__ = "stat_ranges"  # type: ignore
-
     range_start: float = Field(default=0)
     range_end: float = Field(default=None)
-
-    stat: Optional["DBStat"] = Relationship(back_populates="range")
 
 
 #######################################################################
@@ -324,8 +277,8 @@ class DBFile(ItemBase, table=True):
     def __repr__(self) -> str:
         return f"File {self.id}"
 
-    def get_file(self) -> Path:
-        return Path(self.path) or Path(self.path)
+    def get_path(self) -> Path:
+        return Path(self.path)
 
 
 class Track(BaseModel):
@@ -364,12 +317,8 @@ class Track(BaseModel):
 
         result["title"] = self.title
         result["subtitle"] = self.subtitle
-        result["artists"] = ",".join(
-            map(str, [DBPerson(id=artist_id).full_name for artist_id in self.artists])
-        )
-        result["albums"] = ",".join(
-            map(str, [DBAlbum(id=album_id).title for album_id in self.albums])
-        )
+        result["artists"] = ",".join(map(str, [DBPerson(id=artist_id).full_name for artist_id in self.artists]))
+        result["albums"] = ",".join(map(str, [DBAlbum(id=album_id).title for album_id in self.albums]))
         result["key"] = self.key
         result["genres"] = ",".join(map(str, self.genres))
         result["fingerprint"] = self.fingerprint
@@ -388,30 +337,18 @@ class Track(BaseModel):
         album_id = self.albums[0]
 
         result["title_sort"] = self.title_sort
-        result["artist_sort"] = (
-            DBPerson(id=self.artists[0]).sort_name
-            if self.artists
-            else "[Unknown Artist]"
-        )
-        result["album_title_sort"] = (
-            DBAlbum(id=album_id).title_sort or "[Unknown Album]"
-        )
-        result["year"] = str(
-            DBAlbum(id=album_id).release_date.year if self.albums else "0000"
-        )
+        result["artist_sort"] = DBPerson(id=self.artists[0]).sort_name if self.artists else "[Unknown Artist]"
+        result["album_title_sort"] = DBAlbum(id=album_id).title_sort or "[Unknown Album]"
+        result["year"] = str(DBAlbum(id=album_id).release_date.year if self.albums else "0000")
         result["disc_number"] = str(
-            DBAlbumTrack(album_id=album_id, track_id=self.id).disc_number # type: ignore
+            DBAlbumTrack(album_id=album_id, track_id=self.id).disc_number  # type: ignore
             if self.albums
             else 1
         )
-        result["disc_count"] = str(
-            DBAlbum(id=album_id).disc_count if self.albums else 1
-        )
-        result["track_count"] = str(
-            DBAlbum(id=album_id).track_count if self.albums else 1
-        )
+        result["disc_count"] = str(DBAlbum(id=album_id).disc_count if self.albums else 1)
+        result["track_count"] = str(DBAlbum(id=album_id).track_count if self.albums else 1)
         result["track_number"] = str(
-            DBAlbumTrack(album_id=album_id, track_id=self.id).track_number # type: ignore
+            DBAlbumTrack(album_id=album_id, track_id=self.id).track_number  # type: ignore
             if self.albums
             else 1
         )
@@ -452,9 +389,7 @@ class DBAlbum(ItemBase, table=True):
     title: str = Field(default="")
     title_sort: str = Field(default="")
     subtitle: Optional[str] = Field(default=None)
-    release_date: dt.date = Field(
-        default=dt.date(0000, 0, 0), sa_column_kwargs={"nullable": False}
-    )
+    release_date: dt.date = Field(default=dt.date(0000, 0, 0), sa_column_kwargs={"nullable": False})
     label: "DBLabel" = Relationship(back_populates="albums")
     tracks: List["DBAlbumTrack"] = Relationship(back_populates="albums")
     genres: List["DBGenre"] = Relationship(back_populates="albums")
@@ -486,9 +421,7 @@ class DBPerson(ItemBase, table=True):
     __tablename__ = "persons"  # type: ignore
 
     date_of_birth: dt.date = Field(default=None, sa_column_kwargs={"nullable": True})
-    date_of_death: Optional[dt.date] = Field(
-        default=None, sa_column_kwargs={"nullable": True}
-    )
+    date_of_death: Optional[dt.date] = Field(default=None, sa_column_kwargs={"nullable": True})
     mbid: str = Field(default="", sa_type=String, unique=True)
     names: List["DBPersonName"] = Relationship(back_populates="person")
     first_name: str = Field(default="")

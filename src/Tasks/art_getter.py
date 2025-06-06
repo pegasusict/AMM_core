@@ -23,7 +23,7 @@ from Enums import TaskType, ArtType
 from Singletons.config import Config
 from Singletons.logger import Logger
 from Singletons.database import DB
-from Clients.mb_client import MusicBrainzClient as mbclient
+from AudioUtils.mb_client import MusicBrainzClient as mbclient
 
 
 def is_valid_url(url):
@@ -40,9 +40,7 @@ def is_valid_url(url):
 
 
 class ArtGetter(Task):
-    """
-    This class retrieves art from online archives.
-    """
+    """This class retrieves art from online archives."""
 
     def __init__(self, batch: dict[str, ArtType], config: Config):
         """

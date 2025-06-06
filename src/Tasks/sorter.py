@@ -54,15 +54,15 @@ class Sorter(Task):
         """
         initial = str(artist_sort)[0].upper()
         # Normalize to NFD (decomposes characters)
-        norm_initial = unicodedata.normalize('NFD', initial)
+        norm_initial = unicodedata.normalize("NFD", initial)
         # Remove diacritical marks (category Mn = "Mark, Nonspacing")
-        initial = ''.join(char for char in norm_initial if unicodedata.category(char) != 'Mn')
+        initial = "".join(char for char in norm_initial if unicodedata.category(char) != "Mn")
         # make sure initial is an ascii letter without accents
         if not initial.isascii() or not initial.isalpha():
             return "0-9"
         return initial
 
-    def get_number_width(self, number: str, count: str) -> tuple[str, int]:
+    def format_number(self, number: str, count: str) -> str:
         """
         Determines the width of the number based on the count.
         Args:
@@ -76,7 +76,35 @@ class Sorter(Task):
             width = 0
         else:
             width = len(str(count))
-        return str(number).zfill(width), width
+        number = str(number).zfill(width)
+        number = number + "." if width > 0 else ""
+        return number
+
+    def clean_string(self, string: str) -> str:
+        """
+        Cleans a string to make it suitable for use as a directory name.
+
+        Args:
+            string: The string to clean.
+
+        Returns:
+            A cleaned string with invalid characters replaced.
+        """
+        return string.replace("/", "-").replace("\\", "-").replace(":", "-").strip()
+
+    def fix_duration(self, duration: int) -> str:
+        """
+        Fixes the duration format to always be 2 digits.
+
+        Args:
+            duration: The duration in seconds.
+
+        Returns:
+            A string representing the duration in MM:SS format.
+        """
+        minutes = duration // 60
+        seconds = duration % 60
+        return f"{minutes:02}:{seconds:02}"
 
     def run(self):
         """Runs The Sorter Task."""
@@ -92,9 +120,7 @@ class Sorter(Task):
             # Get metadata needed for sorting
             metadata = track.get_sortdata()
             if not metadata:
-                self.logger.info(
-                    f"Skipping {input_path}: No metadata available for sorting"
-                )
+                self.logger.info(f"Skipping {input_path}: No metadata available for sorting")
                 continue
             # Determine the target directory based on metadata and configuration
             base_path = Path(self.config.get_path("base"))
@@ -106,28 +132,28 @@ class Sorter(Task):
             duration = int(metadata.get("duration", 0))
             year = str(metadata.get("year", "0000"))
 
-            # Create an index symbol based on the artist_sort
             initial = self.create_index_symbol(artist_sort)
-            # Ensure the artist_sort is a valid directory name
-            artist_sort = artist_sort.replace("/", "-").replace("\\", "-").replace(":", "-")
-            # Ensure the album name is a valid directory name
-            album = album.replace("/", "-").replace("\\", "-").replace(":", "-")
+            artist_sort = self.clean_string(artist_sort)
+            album = self.clean_string(album)
             # Get year, disc number, and track number from metadata
 
-            disc_number, disc_width = self.get_number_width(str(metadata.get("disc_number", "1")), str(metadata.get("disc_count", "1")))
-            disc_number = disc_number + "." if disc_width > 0 else ""
-            tracknumber, track_width = self.get_number_width(str(metadata.get("track_number", "1")), str(metadata.get("track_count", "1")))
-            tracknumber = tracknumber + ". " if track_width > 0 else ""
+            disc_number = self.format_number(
+                str(metadata.get("disc_number", "1")),
+                str(metadata.get("disc_count", "1")),
+            )
+            track_number = self.format_number(
+                str(metadata.get("track_number", "1")),
+                str(metadata.get("track_count", "1")),
+            )
 
-            if duration > 60:
-                duration = f"{duration // 60:02}_{duration % 60:02}"
-
+            duration = self.fix_duration(duration)
 
             target_dir = base_path / initial / artist_sort / f"({year}) - {album}"
             # Create the target directory if it doesn't exist
             target_dir.mkdir(parents=True, exist_ok=True)
             # Construct the target file path
-            target_file = target_dir / f"{disc_number}{tracknumber}{artist_sort} - {track_title} [{bitrate}] [{duration}].mp3"
+            target_file = (f"{disc_number}{track_number} {artist_sort} - {track_title} [{bitrate}] [{duration}].mp3").strip()
+            target_file = target_dir / self.clean_string(target_file)
             # Move the file to the target directory
             try:
                 input_path.rename(target_file)
