@@ -56,7 +56,9 @@ class Sorter(Task):
         # Normalize to NFD (decomposes characters)
         norm_initial = unicodedata.normalize("NFD", initial)
         # Remove diacritical marks (category Mn = "Mark, Nonspacing")
-        initial = "".join(char for char in norm_initial if unicodedata.category(char) != "Mn")
+        initial = "".join(
+            char for char in norm_initial if unicodedata.category(char) != "Mn"
+        )
         # make sure initial is an ascii letter without accents
         if not initial.isascii() or not initial.isalpha():
             return "0-9"
@@ -120,7 +122,9 @@ class Sorter(Task):
             # Get metadata needed for sorting
             metadata = track.get_sortdata()
             if not metadata:
-                self.logger.info(f"Skipping {input_path}: No metadata available for sorting")
+                self.logger.info(
+                    f"Skipping {input_path}: No metadata available for sorting"
+                )
                 continue
             # Determine the target directory based on metadata and configuration
             base_path = Path(self.config.get_path("base"))
@@ -152,7 +156,9 @@ class Sorter(Task):
             # Create the target directory if it doesn't exist
             target_dir.mkdir(parents=True, exist_ok=True)
             # Construct the target file path
-            target_file = (f"{disc_number}{track_number} {artist_sort} - {track_title} [{bitrate}] [{duration}].mp3").strip()
+            target_file = (
+                f"{disc_number}{track_number} {artist_sort} - {track_title} [{bitrate}] [{duration}].mp3"
+            ).strip()
             target_file = target_dir / self.clean_string(target_file)
             # Move the file to the target directory
             try:

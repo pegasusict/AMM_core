@@ -117,6 +117,28 @@ class DBTask(SQLModel, table=True):
         "task_type",
     )
 
+    def fill_required_fields(self, task: Task) -> None:
+        """
+        Checks if all required fields are set.
+
+        Raises:
+            ValueError: If any required field is missing.
+        """
+        for field in self.required_fields:
+            if not hasattr(self, field):
+                raise ValueError(f"Task is missing required attribute: {field}")
+            setattr(self, field, getattr(task, field))
+
+    def validate_art_type(self, art_type: ArtType) -> None:
+        """
+        Validates the art type.
+
+        Raises:
+            InvalidValueError: If the art type is not valid.
+        """
+        if art_type not in ArtType:
+            raise InvalidValueError(f"Invalid task type: {art_type}")
+
     def import_task(self, task: Task) -> None:
         """
         Imports a task into the database.
@@ -124,15 +146,10 @@ class DBTask(SQLModel, table=True):
         Args:
             task: The task to import.
         """
-        for key in self.required_fields:
-            if not hasattr(task, key):
-                raise ValueError(f"Task is missing required attribute: {key}")
-            setattr(self, key, getattr(task, key))
+        self.fill_required_fields(task)
         match task.task_type:
             case TaskType.ART_GETTER:
                 for mbid, art_type in task.batch:  # type: ignore
-                    if art_type not in (ArtType.ALBUM, ArtType.ARTIST):
-                        raise InvalidValueError(f"Invalid art type: {art_type}")
                     if art_type == ArtType.ALBUM:
                         self.batch_albums = [DBAlbum(mbid=mbid)]  # type: ignore
                     else:
@@ -167,9 +184,10 @@ class DBTask(SQLModel, table=True):
         self,
     ) -> List[str] | List[int] | List[Path] | dict[str, ArtType] | dict[int, Codec] | None:
         """Gets the correctly formatted Batch List/Dict."""
+        result = None
         match self.task_type:
             case TaskType.ART_GETTER:
-                result: dict[str, ArtType] = {}  # type: ignore
+                # result: dict[str, ArtType] = {}  # type: ignore
                 if isinstance(self.batch_albums, List) and len(self.batch_albums) > 0:
                     for album in self.batch_albums:
                         result[album.get_mbid()] = ArtType.ALBUM  # type: ignore
@@ -177,44 +195,44 @@ class DBTask(SQLModel, table=True):
                     for person in self.batch_persons:
                         result[person.get_mbid()] = ArtType.ARTIST  # type: ignore
             case TaskType.TAGGER:
-                result: List[int] = []
+                # result: List[int] = []
                 if isinstance(self.batch_tracks, List) and len(self.batch_tracks) > 0:
                     result = [track.id for track in self.batch_tracks]
             case TaskType.FINGERPRINTER:
-                result: List[int] = []
+                # result: List[int] = []
                 if isinstance(self.batch_files, List) and len(self.batch_files) > 0:
                     result = [file.id for file in self.batch_files]
             case TaskType.EXPORTER:
-                result: List[int] = []
+                # result: List[int] = []
                 if isinstance(self.batch_tracks, List) and len(self.batch_tracks) > 0:
                     result = [track.id for track in self.batch_tracks]
             case TaskType.LYRICS_GETTER:
-                result: List[int] = []
+                # result: List[int] = []
                 if isinstance(self.batch_tracks, List) and len(self.batch_tracks) > 0:
                     result = [track.id for track in self.batch_tracks]
             case TaskType.NORMALIZER:
-                result: List[int] = []
+                # result: List[int] = []
                 if isinstance(self.batch_files, List) and len(self.batch_files) > 0:
                     result = [file.id for file in self.batch_files]
             case TaskType.DEDUPER:
-                result: List[int] = []
+                # result: List[int] = []
                 if isinstance(self.batch_tracks, List) and len(self.batch_tracks) > 0:
                     result = [track.id for track in self.batch_tracks]
             case TaskType.TRIMMER:
-                result: List[Path] = []  # type: ignore
+                # result: List[Path] = []  # type: ignore
                 if isinstance(self.batch_files, List) and len(self.batch_files) > 0:
                     result = [file.get_path() for file in self.batch_files]  # type: ignore
             case TaskType.CONVERTER:
-                result: dict[str, Codec] = {}  # type: ignore
+                # result: dict[str, Codec] = {}  # type: ignore
                 if isinstance(self.batch_convert, List) and len(self.batch_convert) > 0:
                     for file in self.batch_convert:
                         result[file.file.id] = file.codec  # type: ignore
             case TaskType.PARSER:
-                result: List[Path] = []  # type: ignore
+                # result: List[Path] = []  # type: ignore
                 if isinstance(self.batch_files, List) and len(self.batch_files) > 0:
                     result = [file.get_path() for file in self.batch_files]  # type: ignore
             case TaskType.SORTER:
-                result: List[int] = []
+                # result: List[int] = []
                 if isinstance(self.batch_tracks, List) and len(self.batch_tracks) > 0:
                     result = [track.id for track in self.batch_tracks]
             case _:

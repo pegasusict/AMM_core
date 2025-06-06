@@ -58,7 +58,9 @@ class TaskManager:
         self.tasks: dict[str, dict[str, Task]] = {}
         self.task_queue: list[Task] = []
         self.running_tasks = 0
-        self.max_concurrent_tasks = 2 * (os.cpu_count() or 2)  # Default to 2 if cpu_count() is None
+        self.max_concurrent_tasks = 2 * (
+            os.cpu_count() or 2
+        )  # Default to 2 if cpu_count() is None
         self.exclusive_task_types: Set[TaskType] = set(
             [
                 TaskType.IMPORTER,
@@ -158,7 +160,9 @@ class TaskManager:
         # Check if task type is exclusive and already running
         if task.task_type in self.exclusive_task_types:
             if self.exclusive_task_running(task.task_type):
-                self.logger.info(f"Task {task.task_id} is exclusive and another task of type {task.task_type} is already running.")
+                self.logger.info(
+                    f"Task {task.task_id} is exclusive and another task of type {task.task_type} is already running."
+                )
                 # Queue the task if an exclusive type is already running
                 self.task_queue.append(task)
                 return task.task_id
@@ -218,7 +222,11 @@ def resume_tasks(self):
     for record in paused_tasks:
         try:
             task_type = TaskType(record.task_type)
-            batch = record.get_batch() if hasattr(record, "get_batch") else json.loads(record.batch)
+            batch = (
+                record.get_batch()
+                if hasattr(record, "get_batch")
+                else json.loads(record.batch)
+            )
             kwargs = json.loads(record.kwargs or "{}")
 
             # You need to know which task class to use — map or store it
