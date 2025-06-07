@@ -68,19 +68,17 @@ def resolve_track(
     """Logic to resolve a track by ID, MBid or title and artist."""
     statement = select(DBTrack)
 
-    # title = info.get("title", None)
-    # artist = info.get("artist", None)
-    # album_id = info.get("album_id", None)
-    # track_no = info.get("track_no", None)
+    title = info.get("title", None)
+    artist = info.get("artist", None)
 
     if track_id is not None:
         statement = statement.where(DBTrack.id == track_id)
     elif mbid := info.get("mbid", None) is not None:
         statement = statement.where(DBTrack.mbid == mbid)
-    # elif title is not None and artist is not None:
-    #     statement = statement.where(DBTrack.title == title).where(DBTrack.artists == artist)
-    # elif album_id is not None and track_no is not None:
-    #     statement = statement.where(DBTrack.album_id == album_id).where(DBTrack.track_no == track_no)
+    elif title is not None and artist is not None:
+        statement = statement.where(DBTrack.title == title).where(
+            artist in DBTrack.performers
+        )
     else:
         raise ValueError("Invalid arguments for track resolution")
 
@@ -98,15 +96,17 @@ def resolve_album(self, info: dict, album_id: int) -> Album:
     """Logic to resolve an album by ID, MBid, title and artist or release date."""
     statement = select(DBAlbum)
 
-    # title = info.get("title", None)
-    # artist = info.get("artist", None)
+    title = info.get("title", None)
+    artist = info.get("artist", None)
 
     if album_id is not None:
         statement = statement.where(DBAlbum.id == album_id)
     elif mbid := info.get("mbid", None) is not None:
         statement = statement.where(DBAlbum.mbid == mbid)
-    # elif title is not None and artist is not None:
-    # statement = statement.where(DBAlbum.title == title).where(DBAlbum.artists == artist)
+    elif title is not None and artist is not None:
+        statement = statement.where(DBAlbum.title == title).where(
+            artist in DBAlbum.performers
+        )
     elif release_date := info.get("release_date", None) is not None:
         statement = statement.where(DBAlbum.release_date == release_date)
     else:
@@ -130,8 +130,6 @@ def resolve_person(self, info: dict, person_id: int) -> Person:
         statement = statement.where(DBPerson.id == person_id)
     elif mbid := info.get("mbid", None) is not None:
         statement = statement.where(DBPerson.mbid == mbid)
-    # elif name := info.get("name", None) is not None:
-    #     statement = statement.where(DBPerson.name == name)
     elif nickname := info.get("nickname", None) is not None:
         statement = statement.where(DBPerson.nickname == nickname)
     elif birth_date := info.get("birth_date", None) is not None:
@@ -292,29 +290,14 @@ class Mutation:
     @strawberry.mutation()
     def update_user(self, info: dict, user_id: int) -> User:
         """Updates user information."""
-        if user_id is None:
-            raise ValueError("User ID is required for updating user information")
-        if not isinstance(user_id, int):
-            raise ValueError("User ID must be an integer")
-        if not info:
-            raise ValueError("No information provided to update user")
-        if "id" in info:
-            raise ValueError("Cannot update user ID directly")
+        self._verify_update_args(info, user_id)
         if "email" in info and not isinstance(info["email"], str):
             raise ValueError("Email must be a string")
         if "username" in info and not isinstance(info["username"], str):
             raise ValueError("Username must be a string")
 
-        # Load user from Database
-        session = DB().get_session()
-        user = session.exec(select(DBUser).where(DBUser.id == user_id)).first()
-        # update user fields
-        user = set_fields(info, user)
-        # Save changes to Database
-        session.add(user)
-        session.commit()
-        session.refresh(user)
-        session.close()
+        statement = select(DBUser).where(DBUser.id == user_id)
+        user = self._update_db(info, statement)
 
         user_obj = User()
         user_obj.__dict__.update(user.__dict__)
@@ -344,28 +327,51 @@ class Mutation:
 
         return user_obj
 
+    def _verify_update_args(self, info: dict, track_id: int) -> None:
+        """Verifies the arguments for updating a track."""
+        if track_id is None:
+            raise InvalidValueError(
+                "Track ID is required for updating track information"
+            )
+        if not isinstance(track_id, int):
+            raise InvalidValueError("Track ID must be an integer")
+        if not info:
+            raise InvalidValueError("No information provided to update track")
+        if "id" in info:
+            raise InvalidValueError("Cannot update track ID directly")
+
+    def _update_db(self, info: dict, statement: object) -> object:
+        """Helper method to update a database object."""
+        if not info:
+            raise ValueError("No information provided to update the object")
+        if "id" in info:
+            raise ValueError("Cannot update ID directly")
+
+        # Load object from Database
+        session = DB().get_session()
+        obj = session.exec(statement=statement).first()  # type: ignore
+        if obj is None:
+            raise ValueError("Object not found")
+
+        # Update fields
+        obj = set_fields(info, obj)
+        # Save changes to Database
+        session.add(obj)
+        session.commit()
+        session.refresh(obj)
+        session.close()
+
+        return obj
+
     @strawberry.mutation()
     def update_track(self, info: dict, track_id: int) -> Track:
-        """Updates information related to a track."""
-        if track_id is None:
-            raise ValueError("Track ID is required for updating track information")
-        if not isinstance(track_id, int):
-            raise ValueError("Track ID must be an integer")
-        if not info:
-            raise ValueError("No information provided to update track")
-        if "id" in info:
-            raise ValueError("Cannot update track ID directly")
+        """Updates track information."""
+        self._verify_update_args(info, track_id)
 
-        # Load track from Database
-        session = DB().get_session()
-        track = session.exec(select(DBTrack).where(DBTrack.id == track_id)).first()
-        # update track fields
-        track = set_fields(info, track)
-        # Save changes to Database
-        session.add(track)
-        session.commit()
-        session.refresh(track)
-        session.close()
+        statement = select(DBTrack).where(DBTrack.id == track_id)
+        track = self._update_db(info, statement)
+        if track is None:
+            raise InvalidValueError("Track not found")
 
         track_obj = Track()
         track_obj.__dict__.update(track.__dict__)
@@ -375,25 +381,12 @@ class Mutation:
     @strawberry.mutation()
     def update_album(self, info: dict, album_id: int) -> Album:
         """Updates album information."""
-        if album_id is None:
-            raise ValueError("Album ID is required for updating album information")
-        if not isinstance(album_id, int):
-            raise ValueError("Album ID must be an integer")
-        if not info:
-            raise ValueError("No information provided to update album")
-        if "id" in info:
-            raise ValueError("Cannot update album ID directly")
+        self._verify_update_args(info, album_id)
 
-        # Load album from Database
-        session = DB().get_session()
-        album = session.exec(select(DBAlbum).where(DBAlbum.id == album_id)).first()
-        # update album fields
-        album = set_fields(info, album)
-        # Save changes to Database
-        session.add(album)
-        session.commit()
-        session.refresh(album)
-        session.close()
+        statement = select(DBAlbum).where(DBAlbum.id == album_id)
+        album = self._update_db(info, statement)
+        if album is None:
+            raise InvalidValueError("Album not found")
 
         album_obj = Album()
         album_obj.__dict__.update(album.__dict__)
@@ -403,25 +396,12 @@ class Mutation:
     @strawberry.mutation()
     def update_person(self, info: dict, person_id: int) -> Person:
         """Updates person information."""
-        if person_id is None:
-            raise ValueError("Person ID is required for updating person information")
-        if not isinstance(person_id, int):
-            raise ValueError("Person ID must be an integer")
-        if not info:
-            raise ValueError("No information provided to update person")
-        if "id" in info:
-            raise ValueError("Cannot update person ID directly")
+        self._verify_update_args(info, person_id)
 
-        # Load person from Database
-        session = DB().get_session()
-        person = session.exec(select(DBPerson).where(DBPerson.id == person_id)).first()
-        # update person fields
-        person = set_fields(info, person)
-        # Save changes to Database
-        session.add(person)
-        session.commit()
-        session.refresh(person)
-        session.close()
+        statement = select(DBPerson).where(DBPerson.id == person_id)
+        person = self._update_db(info, statement)
+        if person is None:
+            raise InvalidValueError("Person not found")
 
         person_obj = Person()
         person_obj.__dict__.update(person.__dict__)
@@ -431,25 +411,10 @@ class Mutation:
     @strawberry.mutation()
     def update_label(self, info: dict, label_id: int) -> Label:
         """Updates label information."""
-        if label_id is None:
-            raise ValueError("Label ID is required for updating label information")
-        if not isinstance(label_id, int):
-            raise ValueError("Label ID must be an integer")
-        if not info:
-            raise ValueError("No information provided to update label")
-        if "id" in info:
-            raise ValueError("Cannot update label ID directly")
+        self._verify_update_args(info, label_id)
 
-        # Load label from Database
-        session = DB().get_session()
-        label = session.exec(select(DBLabel).where(DBLabel.id == label_id)).first()
-        # update label fields
-        label = set_fields(info, label)
-        # Save changes to Database
-        session.add(label)
-        session.commit()
-        session.refresh(label)
-        session.close()
+        statement = select(DBLabel).where(DBLabel.id == label_id)
+        label = self._update_db(info, statement)
 
         label_obj = Label()
         label_obj.__dict__.update(label.__dict__)
@@ -459,25 +424,10 @@ class Mutation:
     @strawberry.mutation()
     def update_file(self, info: dict, file_id: int) -> File:
         """Updates file information."""
-        if file_id is None:
-            raise ValueError("File ID is required for updating file information")
-        if not isinstance(file_id, int):
-            raise ValueError("File ID must be an integer")
-        if not info:
-            raise ValueError("No information provided to update file")
-        if "id" in info:
-            raise ValueError("Cannot update file ID directly")
+        self._verify_update_args(info, file_id)
 
-        # Load file from Database
-        session = DB().get_session()
-        file = session.exec(select(DBFile).where(DBFile.id == file_id)).first()
-        # update file fields
-        file = set_fields(info, file)
-        # Save changes to Database
-        session.add(file)
-        session.commit()
-        session.refresh(file)
-        session.close()
+        statement = select(DBFile).where(DBFile.id == file_id)
+        file = self._update_db(info, statement)
 
         file_obj = File()
         file_obj.__dict__.update(file.__dict__)
@@ -487,25 +437,10 @@ class Mutation:
     @strawberry.mutation()
     def update_genre(self, info: dict, genre_id: int) -> Genre:
         """Updates genre information."""
-        if genre_id is None:
-            raise ValueError("Genre ID is required for updating genre information")
-        if not isinstance(genre_id, int):
-            raise ValueError("Genre ID must be an integer")
-        if not info:
-            raise ValueError("No information provided to update genre")
-        if "id" in info:
-            raise ValueError("Cannot update genre ID directly")
+        self._verify_update_args(info, genre_id)
 
-        # Load genre from Database
-        session = DB().get_session()
-        genre = session.exec(select(DBGenre).where(DBGenre.id == genre_id)).first()
-        # update genre fields
-        genre = set_fields(info, genre)
-        # Save changes to Database
-        session.add(genre)
-        session.commit()
-        session.refresh(genre)
-        session.close()
+        statement = select(DBGenre).where(DBGenre.id == genre_id)
+        genre = self._update_db(info, statement)
 
         genre_obj = Genre()
         genre_obj.__dict__.update(genre.__dict__)

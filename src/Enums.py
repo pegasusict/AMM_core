@@ -95,7 +95,9 @@ class Stage(StrEnum):
     IMPORTED = auto()
     FINGERPRINTED = auto()
     TAGS_RETRIEVED = auto()
-    ART_RETRIEVED = auto()  # TODO: is Album/artist related, but album is needed for file
+    ART_RETRIEVED = (
+        auto()
+    )  # TODO: is Album/artist related, but album is needed for file
     LYRICS_RETRIEVED = auto()  # TODO: is track related, but needed for file...
     TRIMMED = auto()
     NORMALIZED = auto()

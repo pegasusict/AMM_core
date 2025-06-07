@@ -22,7 +22,9 @@ from sqlalchemy.future import select
 
 class AutoFetchable(SQLModel):
     @classmethod
-    def _build_recursive_loads(cls, visited: Optional[Set[Type[SQLModel]]] = None, depth: int = 2) -> List[Load]:
+    def _build_recursive_loads(
+        cls, visited: Optional[Set[Type[SQLModel]]] = None, depth: int = 2
+    ) -> List[Load]:
         if visited is None:
             visited = set()
         if cls in visited or depth == 0:
@@ -43,7 +45,9 @@ class AutoFetchable(SQLModel):
         return options
 
     @classmethod
-    def load_full(cls: Type[SQLModel], session: Session, object_id: int, depth: int = 2) -> Optional[SQLModel]:
+    def load_full(
+        cls: Type[SQLModel], session: Session, object_id: int, depth: int = 2
+    ) -> Optional[SQLModel]:
         """Load an object by primary key with all relationships eagerly loaded."""
         pk_col = list(cls.__table__.primary_key.columns)[0]  # type: ignore
         options = cls._build_recursive_loads(depth=depth)  # type: ignore

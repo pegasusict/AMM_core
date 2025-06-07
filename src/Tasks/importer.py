@@ -13,16 +13,17 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
+"""This module implements the Importer task for scanning directories
+and importing files based on configured extensions, with optional cleanup."""
+
 from pathlib import Path
-from typing import List
+from typing import List, Type
 
 from Singletons.stack import Stack
 from Singletons.logger import Logger
 from Singletons.config import Config
 from task import Task
 from Enums import TaskType
-from parser import Parser
-from taskmanager import TaskManager
 
 
 class Importer(Task):
@@ -31,7 +32,14 @@ class Importer(Task):
     Optionally removes files not matching allowed extensions.
     """
 
-    def __init__(self, config: Config):
+    def __init__(
+        self,
+        config: Config,
+        task_manager_class: Type = None,  # type: ignore
+        parser_class: Type = None,  # type: ignore
+        # Allow dependency injection for easier testing
+        # and mocking of TaskManager and Parser classes
+    ):
         super().__init__(config=config, task_type=TaskType.IMPORTER)
         self.config = config
         self.logger = Logger(config)
@@ -41,7 +49,6 @@ class Importer(Task):
 
         self.base_path = Path(self.config.get_path("import"))
 
-        # Normalize extensions
         ext_val = self.config.get("extensions", "import")
         if isinstance(ext_val, str):
             self.ext = [ext_val.lower()]
@@ -52,8 +59,22 @@ class Importer(Task):
 
         self.clean = self.config.get("import", "clean", False)
 
-        for counter in ("all_files", "all_folders", "removed_files", "scanned_folders", "scanned_files", "imported_files"):
+        for counter in (
+            "all_files",
+            "all_folders",
+            "removed_files",
+            "scanned_folders",
+            "scanned_files",
+            "imported_files",
+        ):
             self.stack.add_counter(counter)
+
+        # Dependency-injected components for easier testing
+        from taskmanager import TaskManager
+        from parser import Parser
+
+        self.TaskManager = task_manager_class or TaskManager
+        self.Parser = parser_class or Parser
 
     def run(self):
         """Start the import task by scanning and invoking the parser."""
@@ -64,8 +85,8 @@ class Importer(Task):
         self._scan(self.base_path)
 
         if self.files:
-            tm = TaskManager()
-            tm.start_task(Parser, TaskType.PARSER, self.files)
+            tm = self.TaskManager()
+            tm.start_task(self.Parser, TaskType.PARSER, self.files)
 
     def _scan(self, path: Path):
         """Recursively scans path using pathlib."""
