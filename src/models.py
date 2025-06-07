@@ -376,21 +376,24 @@ class Track(BaseModel):
         """Gets all the sortdata, converts if necessary and returns it as a dictionary."""
 
         album = self._get_album()
-        album_track = self._get_album_track(album.id) if album else None
         artist = self._get_artist()
+        album_track = self._get_album_track(album.id) if album else None
         file = self.files[0] if self.files else None
+
+        def safe(attr: Any, default: Any = "") -> Any:
+            return attr if attr is not None else default
 
         return {
             "title_sort": self.title_sort,
-            "artist_sort": artist.sort_name if artist else "[Unknown Artist]",
-            "album_title_sort": album.title_sort if album and album.title_sort else "[Unknown Album]",
-            "year": str(album.release_date.year) if album else "0000",
-            "disc_number": str(album_track.disc_number) if album_track else "1",
-            "disc_count": str(album.disc_count) if album else "1",
-            "track_count": str(album.track_count) if album else "1",
-            "track_number": str(album_track.track_number) if album_track else "1",
-            "bitrate": file.bitrate if file else 0,
-            "duration": file.length if file else 0,
+            "artist_sort": safe(getattr(artist, "sort_name", None), "[Unknown Artist]"),
+            "album_title_sort": safe(getattr(album, "title_sort", None), "[Unknown Album]"),
+            "year": str(safe(getattr(album, "release_date", None), "0000").year if album else "0000"),
+            "disc_number": str(safe(getattr(album_track, "disc_number", None), 1)),
+            "disc_count": str(safe(getattr(album, "disc_count", None), 1)),
+            "track_count": str(safe(getattr(album, "track_count", None), 1)),
+            "track_number": str(safe(getattr(album_track, "track_number", None), 1)),
+            "bitrate": safe(getattr(file, "bitrate", None), 0),
+            "duration": safe(getattr(file, "length", None), 0),
         }
 
     def _get_album(self) -> DBAlbum | None:

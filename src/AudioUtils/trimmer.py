@@ -16,7 +16,6 @@
 """Trims silences of start and end of songs."""
 
 from pathlib import Path
-
 from pydub import AudioSegment
 
 from ..Exceptions import OperationFailedError
@@ -24,92 +23,94 @@ from ..models import Codec
 
 
 class SilenceTrimmer:
-    """Trims the silences of the start and end of an audiofile."""
-
-    file: Path | None = None
-    codec: Codec | None = None
-    threshold: int = -50
-    chunk: int = 10
-    sound: AudioSegment | None = None
-    duration: int = 0
-    start_trim: int = 0
-    end_trim: int = 0
-    trimmed_sound: AudioSegment | None = None
+    """Trims the silences from the start and end of an audio file."""
 
     def __init__(
-        self, file: Path, codec: Codec, threshold: int = -50, chunk_size: int = 10
+        self,
+        file: Path,
+        codec: Codec,
+        threshold: int = -50,
+        chunk_size: int = 10,
+        dry_run: bool = False,
     ) -> None:
-        """Initializer of the SilenceTrimmer Class.
+        """
+        Initialize the SilenceTrimmer.
 
         Args:
-            file (Path):                File path to the target
-            codec (Codecs):             Codec used in the file
-            threshold (int, optional):  Silence threshold. Defaults to -50
-            chunk_size (int, optional): Size in ms of the chunks to be processed. Defaults to 10.
-
-        Raises:
-            ValueError: Raises an error if the chunksize is smaller than 10 ms.
+            file (Path): Path to the audio file.
+            codec (Codec): The codec/format of the file.
+            threshold (int): Silence threshold in dBFS. Defaults to -50.
+            chunk_size (int): Chunk size in milliseconds. Defaults to 10.
+            dry_run (bool): If True, do not export changes. Defaults to False.
         """
-        self.file = file
-        self.codec = codec
-        self.threshold = threshold
         if chunk_size < 10:
-            raise ValueError("Chunksize must be at least 10 ms.")
-        self.chunk = chunk_size
+            raise ValueError("Chunk size must be at least 10 ms.")
+        if not file.is_file():
+            raise FileNotFoundError(f"File not found: {file}")
 
-        self.sound = AudioSegment.from_file(self.file, format=self.codec)
-        if self.sound is not None:
-            self.duration = len(self.sound)
-        else:
-            self.duration = 0
+        self.file: Path = file
+        self.codec: Codec = codec
+        self.threshold: int = threshold
+        self.chunk: int = chunk_size
+        self.dry_run: bool = dry_run
 
-    def _detect_silence(self, begin: bool) -> None:
+        try:
+            self.sound: AudioSegment = AudioSegment.from_file(file, format=str(codec))
+        except Exception as e:
+            raise OperationFailedError(f"Failed to load audio: {e}")
+
+        self.duration: int = len(self.sound)
+        self.start_trim: int = 0
+        self.end_trim: int = 0
+        self.trimmed_sound: AudioSegment | None = None
+
+    def _detect_silence_boundary(self, reverse: bool = False) -> int:
         """
-        iterate over chunks until you find the first one with sound.
+        Detect silence length from one end.
 
-        Arguments:
-            begin: bool     Wether to trim the beginning or the end.
+        Args:
+            reverse (bool): If True, scans from end of file.
+
+        Returns:
+            int: Milliseconds of silence detected.
         """
-        if self.sound is None:
-            raise OperationFailedError("empty file")
+        sound = self.sound.reverse() if reverse else self.sound
         trim_ms = 0
-
-        if begin:
-            sound = self.sound
-        else:
-            sound = self.sound.reverse()
 
         while trim_ms < self.duration:
             segment = sound[trim_ms : trim_ms + self.chunk]
-            if (
-                not isinstance(segment, AudioSegment)
-                or len(segment) == 0
-                or segment.dBFS >= self.threshold
-            ):
+            if len(segment) == 0 or segment.dBFS >= self.threshold:  # type: ignore
                 break
             trim_ms += self.chunk
 
-        if begin:
-            self.start_trim = trim_ms
-        else:
-            self.end_trim = trim_ms
+        return trim_ms
 
-    def trim_silences(self):
-        """Trims the silences of the start and end of an audiofile."""
-        self._detect_silence(True)
-        self._detect_silence(False)
+    def get_trim_times(self) -> tuple[int, int]:
+        """
+        Calculate and return the leading and trailing silence durations.
 
-        if self.sound is not None:
-            self.trimmed_sound = self.sound[
-                self.start_trim : self.duration - self.end_trim
-            ]  # type: ignore
-            # save the audio in the original format
-            if self.trimmed_sound is not None:
-                self.trimmed_sound.export(self.file, format=str(self.codec))
-            else:
-                raise OperationFailedError(
-                    "Trimming resulted in no audio data to export."
-                )
-        else:
-            self.trimmed_sound = None
-            raise OperationFailedError("No audio data loaded to trim.")
+        Returns:
+            tuple[int, int]: start_trim_ms, end_trim_ms
+        """
+        self.start_trim = self._detect_silence_boundary()
+        self.end_trim = self._detect_silence_boundary(reverse=True)
+        return self.start_trim, self.end_trim
+
+    def trim_silences(self) -> None:
+        """Trim leading and trailing silence. If not dry_run, overwrite the file."""
+        if self.duration == 0:
+            raise OperationFailedError("Audio file is empty.")
+
+        start, end = self.get_trim_times()
+        if end <= start:
+            raise OperationFailedError("Trimming would remove all audio data.")
+
+        self.trimmed_sound = self.sound[start : self.duration - end]  # type: ignore
+
+        if self.dry_run:
+            return  # Skip export in dry-run mode
+
+        try:
+            self.trimmed_sound.export(self.file, format=str(self.codec))  # type: ignore
+        except Exception as e:
+            raise OperationFailedError(f"Failed to export trimmed audio: {e}")
