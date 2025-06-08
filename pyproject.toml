@@ -8,6 +8,7 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aiohttp>=3.12.11",
     "chromaprint>=0.5",
     "click>=8.1.8",
     "configargparse>=1.7",
@@ -30,6 +31,7 @@ dev = [
 ]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+python_files = test_*.py
 pythonpath = "src"
 
 [tool.ruff]

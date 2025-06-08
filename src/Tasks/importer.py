@@ -18,12 +18,72 @@ and importing files based on configured extensions, with optional cleanup."""
 
 from pathlib import Path
 from typing import List, Type
+from dataclasses import dataclass
 
 from Singletons.stack import Stack
 from Singletons.logger import Logger
 from Singletons.config import Config
 from task import Task
 from Enums import TaskType
+
+
+@dataclass
+class ImporterConfig:
+    base_path: Path
+    extensions: List[str]
+    clean: bool
+    dry_run: bool
+
+    @classmethod
+    def from_config(cls, config, dry_run: bool = False) -> "ImporterConfig":
+        base_path = Path(config.get_path("import"))
+        raw_ext = config.get("extensions", "import")
+        if isinstance(raw_ext, str):
+            extensions = [raw_ext.lower()]
+        elif isinstance(raw_ext, list):
+            extensions = [str(e).lower() for e in raw_ext]
+        else:
+            extensions = []
+
+        clean = config.get("import", "clean", False)
+        return cls(base_path=base_path, extensions=extensions, clean=clean, dry_run=dry_run)
+
+
+class DirectoryScanner:
+    def __init__(self, config: ImporterConfig, logger, stack):
+        self.config = config
+        self.logger = logger
+        self.stack = stack
+        self.files: List[Path] = []
+        self.folders: List[Path] = []
+
+    def scan(self, path: Path):
+        self.stack.add_counter("scanned_folders")
+        try:
+            for entry in path.iterdir():
+                if entry.is_dir():
+                    self.folders.append(entry)
+                    self.stack.add_counter("all_folders")
+                    self.scan(entry)
+                elif entry.is_file():
+                    self._handle_file(entry)
+        except Exception as e:
+            self.logger.error(f"Error scanning {path}: {e}")
+
+    def _handle_file(self, file_path: Path):
+        suffix = file_path.suffix.lower()
+        if not self.config.extensions or suffix in self.config.extensions:
+            self.files.append(file_path)
+            self.stack.add_counter("all_files")
+        elif self.config.clean:
+            if self.config.dry_run:
+                self.logger.info(f"[Dry-run] Would remove: {file_path}")
+            else:
+                try:
+                    file_path.unlink(missing_ok=True)
+                    self.stack.add_counter("removed_files")
+                except Exception as e:
+                    self.logger.warning(f"Failed to delete {file_path}: {e}")
 
 
 class Importer(Task):
@@ -40,24 +100,9 @@ class Importer(Task):
         dry_run: bool = False,
     ):
         super().__init__(config=config, task_type=TaskType.IMPORTER)
-        self.config = config
         self.logger = Logger(config)
         self.stack = Stack()
-        self.files: List[Path] = []
-        self.folders: List[Path] = []
-        self.dry_run = dry_run
-
-        self.base_path = Path(self.config.get_path("import"))
-
-        ext_val = self.config.get("extensions", "import")
-        if isinstance(ext_val, str):
-            self.ext = [ext_val.lower()]
-        elif isinstance(ext_val, list):
-            self.ext = [str(e).lower() for e in ext_val]
-        else:
-            self.ext = []
-
-        self.clean = self.config.get("import", "clean", False)
+        self.config_data = ImporterConfig.from_config(config, dry_run=dry_run)
 
         for counter in (
             "all_files",
@@ -77,46 +122,15 @@ class Importer(Task):
         self.Parser = parser_class or Parser
 
     def run(self):
-        """Start the import task by scanning and invoking the parser."""
-        if not self.base_path.exists():
-            self.logger.error(f"Base path {self.base_path} does not exist.")
+        if not self.config_data.base_path.exists():
+            self.logger.error(f"Base path {self.config_data.base_path} does not exist.")
             return
 
-        self._scan(self.base_path)
+        scanner = DirectoryScanner(config=self.config_data, logger=self.logger, stack=self.stack)
+        scanner.scan(self.config_data.base_path)
 
-        if self.files and not self.dry_run:
+        if scanner.files and not self.config_data.dry_run:
             tm = self.TaskManager()
-            tm.start_task(self.Parser, TaskType.PARSER, self.files)
-        elif self.dry_run:
-            self.logger.info(f"[Dry-run] Found {len(self.files)} files for parsing. No changes made.")
-
-    def _scan(self, path: Path):
-        """Recursively scans path using pathlib."""
-        self.stack.add_counter("scanned_folders")
-
-        try:
-            for entry in path.iterdir():
-                if entry.is_dir():
-                    self.folders.append(entry)
-                    self.stack.add_counter("all_folders")
-                    self._scan(entry)
-                elif entry.is_file():
-                    self._handle_file(entry)
-        except Exception as e:
-            self.logger.error(f"Error scanning {path}: {e}")
-
-    def _handle_file(self, file_path: Path):
-        """Handle a single file: include or optionally delete."""
-        suffix = file_path.suffix.lower()
-        if not self.ext or suffix in self.ext:
-            self.files.append(file_path)
-            self.stack.add_counter("all_files")
-        elif self.clean:
-            if self.dry_run:
-                self.logger.info(f"[Dry-run] Would remove: {file_path}")
-            else:
-                try:
-                    file_path.unlink(missing_ok=True)
-                    self.stack.add_counter("removed_files")
-                except Exception as e:
-                    self.logger.warning(f"Failed to delete {file_path}: {e}")
+            tm.start_task(self.Parser, TaskType.PARSER, scanner.files)
+        elif self.config_data.dry_run:
+            self.logger.info(f"[Dry-run] Found {len(scanner.files)} files for parsing. No changes made.")

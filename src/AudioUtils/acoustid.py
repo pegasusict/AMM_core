@@ -15,67 +15,119 @@
 
 """This Module generates a Acoustid fingerprint if needed."""
 
-from os import getenv
 from pathlib import Path
+from typing import Optional, Protocol, Any
+from os import getenv
 
-import acoustid
-from Exceptions import FileError
+from ..Exceptions import FileError, OperationFailedError
 
-from ..Singletons.logger import Logger
-from ..Singletons.config import Config
-from ..AudioUtils.tagger import Tagger
-from ..AudioUtils.media_parser import MediaParser as Parser
-from . import get_file_type
+
+class AcoustIDClient(Protocol):
+    async def fingerprint_file(self, path: Path) -> tuple[int, str]: ...
+    async def lookup(self, api_key: str, fingerprint: str, duration: int) -> Any: ...
+    def parse_lookup_result(self, response: Any) -> tuple[str, str, str, str]: ...
+
+
+class TaggerProtocol(Protocol):
+    def get_mbid(self) -> Optional[str]: ...
+    def get_acoustid(self) -> Optional[str]: ...
+
+
+class ParserProtocol(Protocol):
+    def get_duration(self, path: Path) -> int: ...
+
+
+class LoggerProtocol(Protocol):
+    def info(self, message: str) -> None: ...
+    def debug(self, message: str) -> None: ...
+    def error(self, message: str) -> None: ...
 
 
 class AcoustID:
-    """This class generates a AcoustID fingerprint if one is needed."""
+    """Async-capable AcoustID metadata fetcher with low complexity and high testability."""
 
-    fileinfo = {}
-    duration: int | None
-    fingerprint: str | None
-
-    def __init__(self, path: Path):
-        self.config = Config()
-        self.log = Logger(self.config)
-        self.api_key = getenv("ACOUSTID_APIKEY")
-        if not self.api_key:
-            raise EnvironmentError("Environment variable 'ACOUSTID_APIKEY' is not set.")
+    def __init__(
+        self,
+        path: Path,
+        acoustid_client: AcoustIDClient,
+        tagger: TaggerProtocol,
+        parser: ParserProtocol,
+        logger: LoggerProtocol,
+        api_key: Optional[str] = None,
+    ):
         self.path = path
+        self.acoustid = acoustid_client
+        self.tagger = tagger
+        self.parser = parser
+        self.log = logger
+        self.api_key = api_key or getenv("ACOUSTID_APIKEY")
+        if not self.api_key:
+            raise EnvironmentError("ACOUSTID_APIKEY is not set in environment.")
 
-    def _scan_file(self, path: Path):
-        """Scans the file for its fingerprint and duration."""
-        result = acoustid.fingerprint_file(path)  # type: ignore
-        if isinstance(result, tuple) and len(result) == 2:
-            self.duration, self.fingerprint = int(result[0]), str(result[1])
-        else:
-            raise RuntimeError("acoustid.fingerprint_file did not return (duration, fingerprint) tuple")
+        self.duration: Optional[int] = None
+        self.fingerprint: Optional[str] = None
+        self.fileinfo: dict[str, str | None] = {}
 
-    def _get_track_info(self) -> None:
-        """Retrieves track information from AcoustID Server."""
-        response = acoustid.lookup(self.api_key, self.fingerprint, self.duration)
-        score, mbid, title, artist = acoustid.parse_lookup_result(response)
-        if not (score and mbid and title and artist):
-            raise RuntimeError("Failed to retrieve track information from AcoustID")
-        self.fileinfo["fingerprint"] = self.fingerprint
-        self.fileinfo["score"] = score
-        self.fileinfo["mbid"] = mbid
-        self.fileinfo["title"] = title
-        self.fileinfo["artist"] = artist
-
-    def process(self) -> dict[str, str | None]:
-        """Processes the given file, returning the MBID and the fingerprint"""
-        file_type = get_file_type(self.path)
-        if file_type is None:
-            raise FileError("Invalid or non-existing file extension")
-        tagger = Tagger(self.path, file_type)
-        mbid = tagger.get_mbid()
-        if not mbid:
-            self.fingerprint = tagger.get_acoustid()
-        if not self.fingerprint:
-            self._scan_file(self.path)
-        elif self.duration is None:
-            parser = Parser()
-            self.duration = parser.get_duration(self.path)
-            self._get_track_info()
+    async def process(self) -> dict[str, str | None]:
+        self._validate_extension()
+        if await self._try_get_metadata_from_tags():
+            return self.fileinfo
+        await self._ensure_fingerprint()
+        await self._ensure_duration()
+        await self._lookup_metadata()
         return self.fileinfo
+
+    def _validate_extension(self) -> None:
+        if not self.path.suffix:
+            raise FileError(f"Invalid file extension: {self.path}")
+        self.log.debug(f"Validated extension for {self.path}")
+
+    async def _try_get_metadata_from_tags(self) -> bool:
+        mbid = self.tagger.get_mbid()
+        if mbid:
+            self.fileinfo["mbid"] = mbid
+            self.log.info(f"MBID from tags: {mbid}")
+            return True
+        self.fingerprint = self.tagger.get_acoustid()
+        return False
+
+    async def _ensure_fingerprint(self) -> None:
+        if self.fingerprint:
+            self.log.debug("Fingerprint already available from tags.")
+            return
+        try:
+            self.duration, self.fingerprint = await self.acoustid.fingerprint_file(self.path)
+            self.log.debug(f"Generated fingerprint: {self.fingerprint} (duration: {self.duration})")
+        except Exception as e:
+            self.log.error(f"Fingerprinting failed: {e}")
+            raise OperationFailedError("Could not generate fingerprint.") from e
+
+    async def _ensure_duration(self) -> None:
+        if self.duration is not None:
+            return
+        try:
+            self.duration = self.parser.get_duration(self.path)
+            self.log.debug(f"Parsed duration: {self.duration}")
+        except Exception as e:
+            raise OperationFailedError("Failed to determine duration.") from e
+
+    async def _lookup_metadata(self) -> None:
+        try:
+            response = await self.acoustid.lookup(self.api_key, self.fingerprint, self.duration)  # type: ignore
+            score, mbid, title, artist = self.acoustid.parse_lookup_result(response)
+        except Exception as e:
+            raise OperationFailedError("Lookup failed.") from e
+
+        if not all([score, mbid, title, artist]):
+            raise OperationFailedError("Incomplete metadata from AcoustID.")
+
+        self.fileinfo.update(
+            {
+                "fingerprint": self.fingerprint,
+                "score": score,
+                "mbid": mbid,
+                "title": title,
+                "artist": artist,
+            }
+        )
+        self.log.info(f"Metadata fetched: {self.fileinfo}")
