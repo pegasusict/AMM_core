@@ -15,14 +15,15 @@
 
 
 from pathlib import Path
+from typing import Any
 
-from mutagen._file import File  # type: ignore
+from mutagen._file import File
 
 from mutagen.id3._util import ID3NoHeaderError
 from mutagen.flac import FLACNoHeaderError
 
-from src.Singletons.config import Config
-from src.Singletons.logger import Logger
+from Singletons.config import Config
+from Singletons.logger import Logger
 from AudioUtils import get_file_type, get_file_extension
 
 
@@ -61,6 +62,30 @@ class MediaParser:
 
         return metadata
 
+    def _safe(self, attr: Any, default: Any = "") -> Any:
+        """Acts as a safetynet for attributes that may not exist."""
+        return attr if attr is not None else default
+
+    def _get_audio_info_from_file(self, file_path: Path, key: str) -> str | int | None:
+        """
+        Returns the audio file object from the media file.
+        Args:
+                file_path: The path to the media file.
+        Returns:
+                File: The audio file object.
+        """
+        try:
+            audio = File(file_path)  # type: ignore
+            result = self._safe(getattr(audio.info, key), None)  # type: ignore
+
+            # if result is a number in a string or a float, convert to an integer
+            if (isinstance(result, str) and result.isdigit()) or isinstance(result, float):
+                result = int(result)
+            return result
+        except Exception as e:
+            self.logger.error(f"Error getting audio info '{key}' from file {file_path}: {e}")
+            return None
+
     def get_bitrate(self, file_path: Path) -> int | None:
         """
         Returns the bitrate of the media file.
@@ -69,12 +94,7 @@ class MediaParser:
         Returns:
                 int: The bitrate of the media file.
         """
-        audio = File(file_path)  # type: ignore
-        if audio is not None:
-            return audio.info.bitrate  # type: ignore
-        else:
-            self.logger.error(f"Error getting bitrate for file {file_path}")
-            return None
+        return self._get_audio_info_from_file(file_path, "bitrate")  # type: ignore
 
     def get_duration(self, file_path: Path) -> int | None:
         """
@@ -84,12 +104,7 @@ class MediaParser:
         Returns:
                 int: The duration of the media file.
         """
-        audio = File(file_path)  # type: ignore
-        if audio is not None:
-            return audio.info.length  # type: ignore
-        else:
-            self.logger.error(f"Error getting duration for file {file_path}")
-            return None
+        return self._get_audio_info_from_file(file_path, "duration")  # type: ignore
 
     def get_sample_rate(self, file_path: Path) -> int | None:
         """
@@ -99,12 +114,7 @@ class MediaParser:
         Returns:
                 int: The sample rate of the media file.
         """
-        audio = File(file_path)  # type: ignore
-        if audio is not None:
-            return audio.info.sample_rate  # type: ignore
-        else:
-            self.logger.error(f"Error getting sample rate for file {file_path}")
-            return None
+        return self._get_audio_info_from_file(file_path, "sample_rate")  # type: ignore
 
     def get_channels(self, file_path: Path) -> int | None:
         """
@@ -114,12 +124,7 @@ class MediaParser:
         Returns:
                 int: The number of channels of the media file.
         """
-        audio = File(file_path)  # type: ignore
-        if audio is not None:
-            return audio.info.channels  # type: ignore
-        else:
-            self.logger.error(f"Error getting channels for file {file_path}")
-            return None
+        return self._get_audio_info_from_file(file_path, "channels")  # type: ignore
 
     def get_codec(self, file_path: Path) -> str | None:
         """
@@ -129,9 +134,4 @@ class MediaParser:
         Returns:
                 str: The codec of the media file.
         """
-        audio = File(file_path)  # type: ignore
-        if audio is not None:
-            return audio.info.codec  # type: ignore
-        else:
-            self.logger.error(f"Error getting codec for file {file_path}")
-            return None
+        return self._get_audio_info_from_file(file_path, "codec")  # type: ignore

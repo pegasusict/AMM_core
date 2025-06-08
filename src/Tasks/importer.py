@@ -29,7 +29,7 @@ from Enums import TaskType
 class Importer(Task):
     """
     Scans directories for files to import based on configured extensions.
-    Optionally removes files not matching allowed extensions.
+    Optionally removes files not matching allowed extensions (unless in dry-run mode).
     """
 
     def __init__(
@@ -37,8 +37,7 @@ class Importer(Task):
         config: Config,
         task_manager_class: Type = None,  # type: ignore
         parser_class: Type = None,  # type: ignore
-        # Allow dependency injection for easier testing
-        # and mocking of TaskManager and Parser classes
+        dry_run: bool = False,
     ):
         super().__init__(config=config, task_type=TaskType.IMPORTER)
         self.config = config
@@ -46,6 +45,7 @@ class Importer(Task):
         self.stack = Stack()
         self.files: List[Path] = []
         self.folders: List[Path] = []
+        self.dry_run = dry_run
 
         self.base_path = Path(self.config.get_path("import"))
 
@@ -69,7 +69,7 @@ class Importer(Task):
         ):
             self.stack.add_counter(counter)
 
-        # Dependency-injected components for easier testing
+        # Dependency-injected components for testability
         from taskmanager import TaskManager
         from parser import Parser
 
@@ -84,9 +84,11 @@ class Importer(Task):
 
         self._scan(self.base_path)
 
-        if self.files:
+        if self.files and not self.dry_run:
             tm = self.TaskManager()
             tm.start_task(self.Parser, TaskType.PARSER, self.files)
+        elif self.dry_run:
+            self.logger.info(f"[Dry-run] Found {len(self.files)} files for parsing. No changes made.")
 
     def _scan(self, path: Path):
         """Recursively scans path using pathlib."""
@@ -110,8 +112,11 @@ class Importer(Task):
             self.files.append(file_path)
             self.stack.add_counter("all_files")
         elif self.clean:
-            try:
-                file_path.unlink(missing_ok=True)
-                self.stack.add_counter("removed_files")
-            except Exception as e:
-                self.logger.warning(f"Failed to delete {file_path}: {e}")
+            if self.dry_run:
+                self.logger.info(f"[Dry-run] Would remove: {file_path}")
+            else:
+                try:
+                    file_path.unlink(missing_ok=True)
+                    self.stack.add_counter("removed_files")
+                except Exception as e:
+                    self.logger.warning(f"Failed to delete {file_path}: {e}")

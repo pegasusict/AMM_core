@@ -49,14 +49,14 @@ class AcoustID:
         if isinstance(result, tuple) and len(result) == 2:
             self.duration, self.fingerprint = int(result[0]), str(result[1])
         else:
-            raise RuntimeError(
-                "acoustid.fingerprint_file did not return (duration, fingerprint) tuple"
-            )
+            raise RuntimeError("acoustid.fingerprint_file did not return (duration, fingerprint) tuple")
 
     def _get_track_info(self) -> None:
         """Retrieves track information from AcoustID Server."""
         response = acoustid.lookup(self.api_key, self.fingerprint, self.duration)
         score, mbid, title, artist = acoustid.parse_lookup_result(response)
+        if not (score and mbid and title and artist):
+            raise RuntimeError("Failed to retrieve track information from AcoustID")
         self.fileinfo["fingerprint"] = self.fingerprint
         self.fileinfo["score"] = score
         self.fileinfo["mbid"] = mbid

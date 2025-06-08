@@ -14,42 +14,47 @@
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 """This Module provides a mixin for SQLModel models to automatically fetch related objects."""
 
-from typing import Optional, Type, List, Set
+from typing import Optional, Type, List, Set, TypeVar
 from sqlmodel import SQLModel, Session
 from sqlalchemy.orm import selectinload, class_mapper, RelationshipProperty, Load
 from sqlalchemy.future import select
 
+T = TypeVar("T", bound=SQLModel)
+
 
 class AutoFetchable(SQLModel):
     @classmethod
-    def _build_recursive_loads(
-        cls, visited: Optional[Set[Type[SQLModel]]] = None, depth: int = 2
-    ) -> List[Load]:
+    def _recursive_loads(cls, visited: Optional[Set[Type[SQLModel]]] = None, depth: int = 2) -> List[Load]:
         if visited is None:
             visited = set()
-        if cls in visited or depth == 0:
+        if cls in visited or depth <= 0:
             return []
+
         visited.add(cls)
+        loaders: List[Load] = []
 
-        options = []
         for prop in class_mapper(cls).iterate_properties:
-            if isinstance(prop, RelationshipProperty):
-                rel_attr = getattr(cls, prop.key)
-                loader = selectinload(rel_attr)
-                options.append(loader)
+            if not isinstance(prop, RelationshipProperty):
+                continue
 
-                related_class = prop.mapper.class_
-                nested = related_class._build_recursive_loads(visited.copy(), depth - 1)
-                for sub_loader in nested:
-                    options.append(loader.subqueryload_all(sub_loader._to_bind))  # type: ignore
-        return options
+            rel_attr = getattr(cls, prop.key)
+            loader = selectinload(rel_attr)
+            # Add the selectinload for the relationship
+            loaders.append(loader)  # type: ignore
+
+            # Recurse into related model
+            related_cls = prop.mapper.class_
+            nested_loads = related_cls._recursive_loads(visited, depth - 1)  # type: ignore
+
+            for nested in nested_loads:
+                # simplified join chaining
+                loaders.append(loader.joinedload(nested.path[0]))  # type: ignore
+
+        return loaders
 
     @classmethod
-    def load_full(
-        cls: Type[SQLModel], session: Session, object_id: int, depth: int = 2
-    ) -> Optional[SQLModel]:
-        """Load an object by primary key with all relationships eagerly loaded."""
-        pk_col = list(cls.__table__.primary_key.columns)[0]  # type: ignore
-        options = cls._build_recursive_loads(depth=depth)  # type: ignore
-        stmt = select(cls).where(pk_col == object_id).options(*options)
-        return session.exec(statement=stmt).first()  # type: ignore
+    def load_full(cls: Type[T], session: Session, object_id: int, depth: int = 2) -> Optional[T]:
+        """Load an object by primary key with relationships up to `depth` levels deep."""
+        pk = list(cls.__table__.primary_key.columns)[0]  # type: ignore
+        stmt = select(cls).where(pk == object_id).options(*cls._recursive_loads(depth=depth))  # type: ignore
+        return session.exec(stmt).first()  # type: ignore

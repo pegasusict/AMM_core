@@ -44,14 +44,6 @@ class Tagger:
             case _:
                 self.audio = ID3(file=self.file_path)
 
-    def get_mbid(self) -> str | None:
-        """Retrieve the MBid tag if it exists."""
-        return self.audio["mbid"] or None
-
-    def get_acoustid(self) -> str | None:
-        """Retrieve the acoustid tag if it exists."""
-        return self.audio["acoustid"] or None
-
     def get_all(self) -> dict:
         """Retrieve all tags as a dictionary."""
         return dict(self.audio)
@@ -59,6 +51,14 @@ class Tagger:
     def get(self, tag: str) -> str | None:
         """Retrieve the requested Tag or None if not available."""
         return self.audio[tag] or None
+
+    def get_mbid(self) -> str | None:
+        """Retrieve the MBid tag if it exists."""
+        return self.get("mbid")
+
+    def get_acoustid(self) -> str | None:
+        """Retrieve the acoustid tag if it exists."""
+        return self.get("acoustid")
 
     def set_tag(self, tag: str, value: str) -> None:
         """Set the value of a tag and save to file."""

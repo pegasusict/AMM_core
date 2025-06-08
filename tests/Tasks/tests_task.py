@@ -1,7 +1,7 @@
 import time
-from src.Tasks.task import Task
-from src.Enums import TaskType, TaskStatus
-from src.Singletons.config import Config
+from Tasks.task import Task
+from Enums import TaskType, TaskStatus
+from Singletons.config import Config
 
 
 class DummyTask(Task):

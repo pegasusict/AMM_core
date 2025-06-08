@@ -16,7 +16,7 @@
 import logging
 from logging import getLogger, FileHandler, Formatter, StreamHandler
 
-from config import Config
+from .config import Config
 
 
 class Logger:
@@ -67,9 +67,7 @@ class Logger:
         # Ensure log level is an int or valid string
         level_for_console = self.log_level
         if isinstance(level_for_console, str):
-            level_for_console = logging._nameToLevel.get(
-                level_for_console.upper(), logging.INFO
-            )
+            level_for_console = logging._nameToLevel.get(level_for_console.upper(), logging.INFO)
         if not isinstance(level_for_console, int):
             level_for_console = logging.INFO
         console_handler.setLevel(level_for_console)

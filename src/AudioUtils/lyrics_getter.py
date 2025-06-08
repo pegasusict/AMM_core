@@ -15,7 +15,7 @@
 
 """This module retrieves lyrics from internet"""
 
-from lyricsgenius import Genius  # type: ignore
+from lyricsgenius.genius import Genius
 
 
 class LyricsGetter:

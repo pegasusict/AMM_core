@@ -24,8 +24,8 @@ from mutagen.mp3 import MP3
 from mutagen.wavpack import WavPack
 from mutagen.asf import ASF
 
-from src.Singletons.config import Config
-from src.Singletons.logger import Logger
+from Singletons.config import Config
+from Singletons.logger import Logger
 
 
 class FileTypes(Enum):
@@ -61,10 +61,12 @@ def get_file_type(file_path: Path) -> str | None:
             file_path: The path to the media file.
 
     Returns:
-            str: The file type of the media file.
+            str: The file type of the media file, or None if unsupported.
     """
     file_extension = get_file_extension(file_path)
-    if file_extension.upper in FileTypes:
+    # Remove the dot and convert to uppercase to match enum names
+    extension_key = file_extension[1:].upper() if file_extension else ""
+    if extension_key in FileTypes.__members__:
         return file_extension
     else:
         Logger(Config()).error(message=f"Unsupported file type: {file_extension}")

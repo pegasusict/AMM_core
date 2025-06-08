@@ -19,22 +19,13 @@ It is used to retrieve information about artists, albums, and tracks.
 It is also used to retrieve the cover art for albums and artists.
 """
 
-from enum import StrEnum, auto
 import musicbrainzngs
 from musicbrainzngs import NetworkError, WebServiceError, ResponseError
 
 from Exceptions import InvalidValueError
 from Singletons.config import Config
 from Singletons.logger import Logger
-
-
-class QueryType(StrEnum):
-    ARTIST = auto()
-    ALBUM = auto()
-    RELEASE = auto()
-    TRACK = auto()
-    RECORDING = auto()
-    RELEASE_GROUP = auto()
+from Enums import MBQueryType
 
 
 class MusicBrainzClient:
@@ -45,9 +36,7 @@ class MusicBrainzClient:
         self.logger = Logger(config)
         self.config = config
         self.musicbrainz = musicbrainzngs
-        self.musicbrainz.set_useragent(
-            "Audiophiles' Music Manager", "0.1", "pegasus.ict@gmail.com"
-        )
+        self.musicbrainz.set_useragent("Audiophiles' Music Manager", "0.1", "pegasus.ict@gmail.com")
         self.musicbrainz.set_rate_limit(True)
 
     def get_art(self, mbid: str) -> str | None:
@@ -70,7 +59,7 @@ class MusicBrainzClient:
             self.logger.error(f"Error retrieving art: {e}")
             return None
 
-    def _get_by_id(self, query_type: QueryType, mbid: str) -> dict | None:
+    def _get_by_id(self, query_type: MBQueryType, mbid: str) -> dict | None:
         """Gets item by id
 
         Args:
@@ -83,17 +72,17 @@ class MusicBrainzClient:
         try:
             result = ""
             match query_type:
-                case QueryType.ARTIST:
+                case MBQueryType.ARTIST:
                     result = self.musicbrainz.get_artist_by_id(mbid)
-                case QueryType.RECORDING:
+                case MBQueryType.RECORDING:
                     result = self.musicbrainz.get_recording_by_id(mbid)
-                case QueryType.TRACK:
+                case MBQueryType.TRACK:
                     result = self.musicbrainz.get_recording_by_id(mbid)
-                case QueryType.RELEASE:
+                case MBQueryType.RELEASE:
                     result = self.musicbrainz.get_release_by_id(mbid)
-                case QueryType.ALBUM:
+                case MBQueryType.ALBUM:
                     result = self.musicbrainz.get_release_by_id(mbid)
-                case QueryType.RELEASE_GROUP:
+                case MBQueryType.RELEASE_GROUP:
                     result = self.musicbrainz.get_release_group_by_id(mbid)
                 case _:
                     raise InvalidValueError(f"Not a correct QueryType: {query_type}")
@@ -112,7 +101,7 @@ class MusicBrainzClient:
         Returns:
                 The artist information.
         """
-        return self._get_by_id(QueryType.ARTIST, mbid)
+        return self._get_by_id(MBQueryType.ARTIST, mbid)
 
     def get_release_by_id(self, mbid: str) -> dict | None:
         """
@@ -124,7 +113,7 @@ class MusicBrainzClient:
         Returns:
                 The release information.
         """
-        return self._get_by_id(QueryType.RELEASE, mbid)
+        return self._get_by_id(MBQueryType.RELEASE, mbid)
 
     def get_release_group_by_id(self, mbid: str) -> dict | None:
         """
@@ -136,7 +125,7 @@ class MusicBrainzClient:
         Returns:
                 The release_group information.
         """
-        return self._get_by_id(QueryType.RELEASE_GROUP, mbid)
+        return self._get_by_id(MBQueryType.RELEASE_GROUP, mbid)
 
     def get_recording_by_id(self, mbid: str) -> dict | None:
         """
@@ -148,7 +137,7 @@ class MusicBrainzClient:
         Returns:
                 The recording information.
         """
-        return self._get_by_id(QueryType.RECORDING, mbid)
+        return self._get_by_id(MBQueryType.RECORDING, mbid)
 
     def get_track_by_id(self, mbid: str) -> dict | None:
         """
@@ -160,7 +149,7 @@ class MusicBrainzClient:
         Returns:
                 The track information.
         """
-        return self._get_by_id(QueryType.TRACK, mbid)
+        return self._get_by_id(MBQueryType.TRACK, mbid)
 
     def get_album_by_id(self, mbid: str) -> dict | None:
         """
@@ -172,9 +161,9 @@ class MusicBrainzClient:
         Returns:
                 The album information.
         """
-        return self._get_by_id(QueryType.ALBUM, mbid)
+        return self._get_by_id(MBQueryType.ALBUM, mbid)
 
-    def _get_by_name(self, query_type: QueryType, name: str) -> dict | None:
+    def _get_by_name(self, query_type: MBQueryType, name: str) -> dict | None:
         """
         Retrieves information by name.
 
@@ -188,17 +177,17 @@ class MusicBrainzClient:
         try:
             result = ""
             match query_type:
-                case QueryType.ARTIST:
+                case MBQueryType.ARTIST:
                     result = self.musicbrainz.search_artists(name=name)
-                case QueryType.ALBUM:
+                case MBQueryType.ALBUM:
                     result = self.musicbrainz.search_releases(name=name)
-                case QueryType.TRACK:
+                case MBQueryType.TRACK:
                     result = self.musicbrainz.search_recordings(name=name)
-                case QueryType.RECORDING:
+                case MBQueryType.RECORDING:
                     result = self.musicbrainz.search_recordings(name=name)
-                case QueryType.RELEASE:
+                case MBQueryType.RELEASE:
                     result = self.musicbrainz.search_releases(name=name)
-                case QueryType.RELEASE_GROUP:
+                case MBQueryType.RELEASE_GROUP:
                     result = self.musicbrainz.search_release_groups(name=name)
                 case _:
                     raise InvalidValueError(f"Not a correct QueryType: {query_type}")
@@ -217,7 +206,7 @@ class MusicBrainzClient:
         Returns:
                 The artist information.
         """
-        return self._get_by_name(QueryType.ARTIST, name)
+        return self._get_by_name(MBQueryType.ARTIST, name)
 
     def get_album_by_name(self, name: str) -> dict | None:
         """
@@ -229,7 +218,7 @@ class MusicBrainzClient:
         Returns:
                 The album information.
         """
-        return self._get_by_name(QueryType.ALBUM, name)
+        return self._get_by_name(MBQueryType.ALBUM, name)
 
     def get_track_by_name(self, name: str) -> dict | None:
         """
@@ -241,7 +230,7 @@ class MusicBrainzClient:
         Returns:
                 The track information.
         """
-        return self._get_by_name(QueryType.TRACK, name)
+        return self._get_by_name(MBQueryType.TRACK, name)
 
     def get_release_group_by_name(self, name: str) -> dict | None:
         """
@@ -253,7 +242,7 @@ class MusicBrainzClient:
         Returns:
                 The release group information.
         """
-        return self._get_by_name(QueryType.RELEASE_GROUP, name)
+        return self._get_by_name(MBQueryType.RELEASE_GROUP, name)
 
     def get_recording_by_name(self, name: str) -> dict | None:
         """
@@ -265,7 +254,7 @@ class MusicBrainzClient:
         Returns:
                 The recording information.
         """
-        return self._get_by_name(QueryType.RECORDING, name)
+        return self._get_by_name(MBQueryType.RECORDING, name)
 
     def get_release_by_name(self, name: str) -> dict | None:
         """
@@ -277,7 +266,7 @@ class MusicBrainzClient:
         Returns:
                 The release information.
         """
-        return self._get_by_name(QueryType.RELEASE, name)
+        return self._get_by_name(MBQueryType.RELEASE, name)
 
     def get_track_by_audio_fingerprint(self, fingerprint: str) -> dict | None:
         """
