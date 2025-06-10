@@ -44,6 +44,34 @@ from .task import Task
 class TaskManager:
     """Manages tasks with a concurrency limit of 2 per CPU core."""
 
+    task_map = {
+        TaskType.ART_GETTER: ArtGetter,
+        TaskType.CONVERTER: Converter,
+        TaskType.DEDUPER: Deduper,
+        TaskType.EXPORTER: Exporter,
+        TaskType.FINGERPRINTER: FingerPrinter,
+        TaskType.IMPORTER: Importer,
+        TaskType.LYRICS_GETTER: LyricsGetter,
+        TaskType.NORMALIZER: Normalizer,
+        TaskType.PARSER: Parser,
+        TaskType.SORTER: Sorter,
+        TaskType.TAGGER: Tagger,
+        TaskType.TRIMMER: Trimmer,
+    }
+    exclusive_task_types: Set[TaskType] = set(
+        [
+            TaskType.IMPORTER,
+            TaskType.TAGGER,
+            TaskType.FINGERPRINTER,
+            TaskType.EXPORTER,
+            TaskType.NORMALIZER,
+            TaskType.DEDUPER,
+            TaskType.TRIMMER,
+            TaskType.CONVERTER,
+            TaskType.PARSER,
+            TaskType.SORTER,
+        ]
+    )
     _instance = None
 
     def __new__(cls):
@@ -58,34 +86,21 @@ class TaskManager:
         self.tasks: dict[str, dict[str, Task]] = {}
         self.task_queue: list[Task] = []
         self.running_tasks = 0
-        self.max_concurrent_tasks = 2 * (
-            os.cpu_count() or 2
-        )  # Default to 2 if cpu_count() is None
-        self.exclusive_task_types: Set[TaskType] = set(
-            [
-                TaskType.IMPORTER,
-                TaskType.TAGGER,
-                TaskType.FINGERPRINTER,
-                TaskType.EXPORTER,
-                TaskType.NORMALIZER,
-                TaskType.DEDUPER,
-                TaskType.TRIMMER,
-                TaskType.CONVERTER,
-                TaskType.PARSER,
-                TaskType.SORTER,
-            ]
-        )
+        self.max_concurrent_tasks = 2 * (os.cpu_count() or 2)  # Default to 2 if cpu_count() is None
         self.db = DB()
         self.config = Config()
         self.logger = Logger(self.config)
 
+        self.resume_tasks()
+
         # Background thread to monitor tasks
+        self._shutdown = False
         self.monitor_thread = Thread(target=self._monitor_loop, daemon=True)
         self.monitor_thread.start()
 
     def _monitor_loop(self):
         """Background thread to check for completed tasks and start queued ones."""
-        while True:
+        while not self._shutdown:
             self._check_running_tasks()
             time.sleep(1)
 
@@ -160,9 +175,7 @@ class TaskManager:
         # Check if task type is exclusive and already running
         if task.task_type in self.exclusive_task_types:
             if self.exclusive_task_running(task.task_type):
-                self.logger.info(
-                    f"Task {task.task_id} is exclusive and another task of type {task.task_type} is already running."
-                )
+                self.logger.info(f"Task {task.task_id} is exclusive and another task of type {task.task_type} is already running.")
                 # Queue the task if an exclusive type is already running
                 self.task_queue.append(task)
                 return task.task_id
@@ -214,59 +227,53 @@ class TaskManager:
                 )
         return result
 
+    def resume_tasks(self):
+        self.logger.info("Resuming paused tasks from database...")
 
-def resume_tasks(self):
-    self.logger.info("Resuming paused tasks from database...")
+        paused_tasks = self.db.get_paused_tasks()
+        for record in paused_tasks:
+            try:
+                task_type = TaskType(record.task_type)
+                batch = record.get_batch()
+                kwargs = json.loads(record.kwargs or "{}")
 
-    paused_tasks = self.db.get_paused_tasks()
-    for record in paused_tasks:
-        try:
-            task_type = TaskType(record.task_type)
-            batch = (
-                record.get_batch()
-                if hasattr(record, "get_batch")
-                else json.loads(record.batch)
-            )
-            kwargs = json.loads(record.kwargs or "{}")
+                # You need to know which task class to use — map or store it
+                task_class = self._get_task_class(task_type)
+                task = task_class(config=self.config, batch=batch, **kwargs)  # type: ignore
 
-            # You need to know which task class to use — map or store it
-            task_class = self._get_task_class(task_type)
-            task = task_class(config=self.config, task_type=task_type)
-            task.batch = batch
-            for k, v in kwargs.items():
-                setattr(task, k, v)
+                self.logger.info(f"Resuming task {record.id}")
+                self.register_task(task)
 
-            self.logger.info(f"Resuming task {record.id}")
-            self.register_task(task)
+                if task_type in self.exclusive_task_types:
+                    self.task_queue.append(task)
+                elif self.running_tasks < self.max_concurrent_tasks:
+                    task.start()
+                    self.running_tasks += 1
+                else:
+                    self.task_queue.append(task)
 
-            if task_type in self.exclusive_task_types:
-                self.task_queue.append(task)
-            elif self.running_tasks < self.max_concurrent_tasks:
-                task.start()
-                self.running_tasks += 1
-            else:
-                self.task_queue.append(task)
+            except Exception as e:
+                self.logger.error(f"Failed to resume task {record.task_id}: {e}")
 
-        except Exception as e:
-            self.logger.error(f"Failed to resume task {record.id}: {e}")
+    def _get_task_class(self, task_type: TaskType) -> type[Task]:
+        # You must fill in this mapping with your task types and classes
+        if task_type not in self.task_map:
+            raise ValueError(f"No task class mapped for {task_type}")
+        return self.task_map[task_type]
 
+    def _pause_all_running_tasks(self):
+        """Pause all currently running tasks and save their state to the DB."""
+        self.logger.info("Pausing all running tasks...")
+        for task in self.tasks[TaskStatus.RUNNING].values():
+            try:
+                task.pause()  # Assume Task subclasses implement a pause() method
+                self.logger.info(f"Paused task {task.task_id}")
+                self.save_task_to_db(task)
+            except Exception as e:
+                self.logger.error(f"Failed to pause task {task.task_id}: {e}")
 
-def _get_task_class(self, task_type: TaskType) -> type[Task]:
-    # You must fill in this mapping with your task types and classes
-    task_map = {
-        TaskType.ART_GETTER: ArtGetter,
-        TaskType.CONVERTER: Converter,
-        TaskType.DEDUPER: Deduper,
-        TaskType.EXPORTER: Exporter,
-        TaskType.FINGERPRINTER: FingerPrinter,
-        TaskType.IMPORTER: Importer,
-        TaskType.LYRICS_GETTER: LyricsGetter,
-        TaskType.NORMALIZER: Normalizer,
-        TaskType.PARSER: Parser,
-        TaskType.SORTER: Sorter,
-        TaskType.TAGGER: Tagger,
-        TaskType.TRIMMER: Trimmer,
-    }
-    if task_type not in task_map:
-        raise ValueError(f"No task class mapped for {task_type}")
-    return task_map[task_type]
+    def shutdown(self):
+        """Gracefully stop the monitor and pause running tasks."""
+        self.logger.info("Shutting down TaskManager...")
+        self._shutdown = True
+        self._pause_all_running_tasks()

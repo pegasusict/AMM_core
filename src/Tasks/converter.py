@@ -38,7 +38,7 @@ class Converter(Task):
         self.hq_format = config.get("convert", "hqformat", Codec.FLAC.value).lower()  # type: ignore
 
     def run(self):
-        for track_id in self.batch:
+        for track_id in self.batch:  # type: ignore
             track = Track(track_id)  # type: ignore
             if not track.files:
                 self.logger.warning(f"No files found for track {track_id}")
@@ -55,9 +55,7 @@ class Converter(Task):
 
         target_format = self.get_target_format(codec)
         if not target_format:
-            self.logger.warning(
-                f"Skipping {input_path}: no target format for codec {codec}"
-            )
+            self.logger.warning(f"Skipping {input_path}: no target format for codec {codec}")
             return
 
         output_path = input_path.with_suffix(f".{target_format}")
@@ -66,9 +64,7 @@ class Converter(Task):
             return
 
         try:
-            audio = AudioSegment.from_file(
-                input_path, format=input_path.suffix[1:].lower()
-            )
+            audio = AudioSegment.from_file(input_path, format=input_path.suffix[1:].lower())
             audio.export(output_path, format=target_format)
             self.logger.info(f"Converted: {input_path} -> {output_path}")
             input_path.unlink(missing_ok=True)

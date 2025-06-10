@@ -37,13 +37,13 @@ class Trimmer(Task):
             batch: A sequence of file paths to trim.
             config: Configuration object.
         """
-        super().__init__(config, task_type=TaskType.TRIMMER)
+        super().__init__(config=config, task_type=TaskType.TRIMMER)
         self.batch = batch  # type: ignore
         self.logger = Logger(config)
 
     def run(self) -> None:
         """Runs the trimmer on all files in the batch."""
-        for path in self.batch:
+        for path in self.batch:  # type: ignore
             self._trim_file(path)  # type: ignore
             self.set_progress()
 

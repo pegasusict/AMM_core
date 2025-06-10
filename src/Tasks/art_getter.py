@@ -49,7 +49,7 @@ class ArtGetter(Task):
         Args:
             config: The configuration object.
         """
-        super().__init__(config, task_type=TaskType.ART_GETTER)
+        super().__init__(config=config, task_type=TaskType.ART_GETTER)
         self.batch = batch  # type: ignore
         self.config = config
         self.art_path = self.config.get("paths", "art")
@@ -88,7 +88,7 @@ class ArtGetter(Task):
         else:
             self.logger.warning(f"No artist art found for MBID {mbid}")
         self.processed += 1
-        self.progress = (self.processed / len(self.batch)) * 100
+        self.progress = (self.processed / len(self.batch)) * 100  # type: ignore
         self.logger.info(f"Progress: {self.progress:.2f}%")
 
     async def save_art(self, url: str, mbid: str, art_type: ArtType) -> None:

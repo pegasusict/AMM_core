@@ -38,7 +38,7 @@ class Normalizer(Task):
         Args:
             config: The configuration object.
         """
-        super().__init__(config, task_type=TaskType.NORMALIZER)
+        super().__init__(config=config, task_type=TaskType.NORMALIZER)
         self.config = config
         self.batch = batch  # type: ignore
         self.db = DB()

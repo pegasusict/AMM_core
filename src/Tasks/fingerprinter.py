@@ -36,7 +36,7 @@ class FingerPrinter(Task):
     batch: list[int]
 
     def __init__(self, config: Config, batch: list[int]):
-        super().__init__(config, task_type=TaskType.FINGERPRINTER)
+        super().__init__(config=config, task_type=TaskType.FINGERPRINTER)
         self.config = config
         self.batch = batch  # type: ignore
         self.db = DB()

@@ -39,7 +39,7 @@ class LyricsGetter(Task):
             config: The configuration object.
             batch: A dictionary mapping track ids to track mbids
         """
-        super().__init__(config, task_type=TaskType.LYRICS_GETTER)
+        super().__init__(config=config, task_type=TaskType.LYRICS_GETTER)
         self.config = config
         self.batch = batch  # type: ignore
         self.db = DB()

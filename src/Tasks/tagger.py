@@ -39,17 +39,15 @@ class Tagger(Task):
         Args:
             config: The configuration object.
         """
-        super().__init__(config, task_type=TaskType.TAGGER)
+        super().__init__(config=config, task_type=TaskType.TAGGER)
         self.config = config
         self.batch = batch  # type: ignore
         self.db = DB()
         self.logger = Logger(config)
 
     def run(self) -> None:
-        """
-        Runs the Tagger task.
-        """
-        for track_id in self.batch:
+        """Runs the Tagger task."""
+        for track_id in self.batch:  # type: ignore
             # Parse the media file
             file = "Unknown file"
             try:

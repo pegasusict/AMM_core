@@ -19,17 +19,44 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 
 from GraphQL.GraphQL import GraphQL
+from .Tasks.taskmanager import TaskManager
+
+app = FastAPI()
+
+
+def start_graphql_server(app: FastAPI, path: str = "/"):
+    """
+    Start the GraphQL server with the given FastAPI application.
+
+    :param app: The FastAPI application instance.
+    :param path: The path to add the GraphQL route to. Default is "/".
+    """
+    graphql = GraphQL(app)
+    graphql.add_graphql_route(path)
+    graphql.run()
+
+
+def start_taskmanager():
+    """
+    Placeholder function for starting the task manager.
+    This function can be implemented to handle background tasks.
+    """
+    tm = TaskManager()
+    _ = tm.list_tasks()
+
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    task_manager = TaskManager()
+    task_manager._pause_all_running_tasks()
 
 
 def main():
     """Main function to run the AMM core functionality."""
     load_dotenv(".env")
 
-    app = FastAPI()
-
-    graphql = GraphQL(app)
-    graphql.add_graphql_route("/")
-    graphql.run()
+    start_graphql_server(app, "/")
+    start_taskmanager()
 
 
 if __name__ == "__main__":

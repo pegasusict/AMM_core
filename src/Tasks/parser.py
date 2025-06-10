@@ -40,7 +40,7 @@ class Parser(Task):
         Args:
             config: The configuration object.
         """
-        super().__init__(config, task_type=TaskType.PARSER)
+        super().__init__(config=config, task_type=TaskType.PARSER)
         self.config = config
         self.batch = batch  # type: ignore
         self.db = DB()
@@ -51,7 +51,7 @@ class Parser(Task):
         """
         Runs the parser task.
         """
-        for file in self.batch:
+        for file in self.batch:  # type: ignore
             # Parse the media file
             try:
                 metadata = self.parser.parse(Path(str(file)))
@@ -59,9 +59,7 @@ class Parser(Task):
                 if file_id := file.get("file_id", None) is not None:  # type: ignore
                     self.db.set_file_stage(file_id, Stage.IMPORTED)
                 else:
-                    raise DatabaseError(
-                        "An error occured saving the file to the Database."
-                    )
+                    raise DatabaseError("An error occured saving the file to the Database.")
             except Exception as e:
                 self.logger.error(f"Error processing file {file}: {e}")
                 continue

@@ -23,6 +23,8 @@ import multiprocessing as mproc
 from pathlib import Path
 from typing import Callable, Optional
 
+from models import Codec
+
 from ..Singletons.logger import Logger
 from ..Enums import TaskType, TaskStatus, ArtType
 from ..Singletons.config import Config
@@ -31,7 +33,16 @@ from ..Singletons.config import Config
 class Task:
     """Base class for asynchronous tasks managed by TaskManager."""
 
-    def __init__(self, config: Config, task_type: TaskType):
+    batch: list[str] | list[int] | list[Path] | dict[str, ArtType] | dict[int, Codec] | None = None
+
+    def __init__(
+        self,
+        *,
+        config: Config,
+        task_type: TaskType = TaskType.CUSTOM,
+        batch: list[str] | list[int] | list[Path] | dict[str, ArtType] | dict[int, Codec] | None = None,
+        **kwargs,
+    ):
         self.config = config
         self.logger = Logger(config)
         self._task_type = task_type
@@ -47,7 +58,8 @@ class Task:
         self._error: str = ""
 
         self._target: Optional[Callable] = None
-        self.batch: list[str] | list[int] | list[Path] | dict[str, ArtType] = []
+        self.batch = batch
+        self.kwargs = kwargs
         self.processed: int = 0
         self.process: Optional[mproc.Process] = None
 
@@ -223,7 +235,10 @@ class Task:
 
     def set_progress(self):
         self.processed += 1
-        total = len(self.batch)
+        if self.batch:
+            total = len(self.batch)
+        else:
+            total = 0
         if total > 0:
             self._progress = (self.processed / total) * 100
 
