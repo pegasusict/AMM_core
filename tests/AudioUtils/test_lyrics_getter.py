@@ -31,7 +31,15 @@ sys.modules["Singletons.config"] = mock_config
 sys.modules["Singletons.logger"] = mock_logger
 
 # Mock mutagen modules
-for module_name in ["mutagen.mp4", "mutagen.apev2", "mutagen.oggvorbis", "mutagen.flac", "mutagen.mp3", "mutagen.wavpack", "mutagen.asf"]:
+for module_name in [
+    "mutagen.mp4",
+    "mutagen.apev2",
+    "mutagen.oggvorbis",
+    "mutagen.flac",
+    "mutagen.mp3",
+    "mutagen.wavpack",
+    "mutagen.asf",
+]:
     sys.modules[module_name] = MagicMock()
 
 # Now we can import the class directly

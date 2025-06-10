@@ -46,7 +46,9 @@ class ImporterConfig:
             extensions = []
 
         clean = config.get("import", "clean", False)
-        return cls(base_path=base_path, extensions=extensions, clean=clean, dry_run=dry_run)
+        return cls(
+            base_path=base_path, extensions=extensions, clean=clean, dry_run=dry_run
+        )
 
 
 class DirectoryScanner:
@@ -126,11 +128,15 @@ class Importer(Task):
             self.logger.error(f"Base path {self.config_data.base_path} does not exist.")
             return
 
-        scanner = DirectoryScanner(config=self.config_data, logger=self.logger, stack=self.stack)
+        scanner = DirectoryScanner(
+            config=self.config_data, logger=self.logger, stack=self.stack
+        )
         scanner.scan(self.config_data.base_path)
 
         if scanner.files and not self.config_data.dry_run:
             tm = self.TaskManager()
             tm.start_task(self.Parser, TaskType.PARSER, scanner.files)
         elif self.config_data.dry_run:
-            self.logger.info(f"[Dry-run] Found {len(scanner.files)} files for parsing. No changes made.")
+            self.logger.info(
+                f"[Dry-run] Found {len(scanner.files)} files for parsing. No changes made."
+            )

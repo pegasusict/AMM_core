@@ -79,11 +79,15 @@ class MediaParser:
             result = self._safe(getattr(audio.info, key), None)  # type: ignore
 
             # if result is a number in a string or a float, convert to an integer
-            if (isinstance(result, str) and result.isdigit()) or isinstance(result, float):
+            if (isinstance(result, str) and result.isdigit()) or isinstance(
+                result, float
+            ):
                 result = int(result)
             return result
         except Exception as e:
-            self.logger.error(f"Error getting audio info '{key}' from file {file_path}: {e}")
+            self.logger.error(
+                f"Error getting audio info '{key}' from file {file_path}: {e}"
+            )
             return None
 
     def get_bitrate(self, file_path: Path) -> int | None:

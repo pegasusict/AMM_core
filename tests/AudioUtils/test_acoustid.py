@@ -21,7 +21,9 @@ def acoustid_client():
     client = Mock()
     client.fingerprint_file = AsyncMock(return_value=(240, "abc123fingerprint"))
     client.lookup = AsyncMock(return_value="dummy_response")
-    client.parse_lookup_result = Mock(return_value=("0.99", "mbid123", "Song Title", "Artist Name"))
+    client.parse_lookup_result = Mock(
+        return_value=("0.99", "mbid123", "Song Title", "Artist Name")
+    )
     return client
 
 
@@ -49,8 +51,17 @@ def tagger_without_mbid():
 
 
 @pytest.mark.asyncio
-async def test_process_with_mbid_from_tags(path, acoustid_client, tagger_with_mbid, parser, logger):
-    handler = AcoustID(path=path, acoustid_client=acoustid_client, tagger=tagger_with_mbid, parser=parser, logger=logger, api_key="fake_key")
+async def test_process_with_mbid_from_tags(
+    path, acoustid_client, tagger_with_mbid, parser, logger
+):
+    handler = AcoustID(
+        path=path,
+        acoustid_client=acoustid_client,
+        tagger=tagger_with_mbid,
+        parser=parser,
+        logger=logger,
+        api_key="fake_key",
+    )
     result = await handler.process()
 
     assert result["mbid"] == "mbid-from-tags"
@@ -59,8 +70,17 @@ async def test_process_with_mbid_from_tags(path, acoustid_client, tagger_with_mb
 
 
 @pytest.mark.asyncio
-async def test_process_with_fingerprint_fallback(path, acoustid_client, tagger_without_mbid, parser, logger):
-    handler = AcoustID(path=path, acoustid_client=acoustid_client, tagger=tagger_without_mbid, parser=parser, logger=logger, api_key="fake_key")
+async def test_process_with_fingerprint_fallback(
+    path, acoustid_client, tagger_without_mbid, parser, logger
+):
+    handler = AcoustID(
+        path=path,
+        acoustid_client=acoustid_client,
+        tagger=tagger_without_mbid,
+        parser=parser,
+        logger=logger,
+        api_key="fake_key",
+    )
     result = await handler.process()
 
     assert result["mbid"] == "mbid123"
@@ -71,27 +91,54 @@ async def test_process_with_fingerprint_fallback(path, acoustid_client, tagger_w
 
 
 @pytest.mark.asyncio
-async def test_process_missing_extension_raises(path, acoustid_client, tagger_with_mbid, parser, logger):
+async def test_process_missing_extension_raises(
+    path, acoustid_client, tagger_with_mbid, parser, logger
+):
     bad_path = Path("/music/no_extension")
-    handler = AcoustID(path=bad_path, acoustid_client=acoustid_client, tagger=tagger_with_mbid, parser=parser, logger=logger, api_key="fake_key")
+    handler = AcoustID(
+        path=bad_path,
+        acoustid_client=acoustid_client,
+        tagger=tagger_with_mbid,
+        parser=parser,
+        logger=logger,
+        api_key="fake_key",
+    )
     with pytest.raises(FileError):
         await handler.process()
 
 
 @pytest.mark.asyncio
-async def test_fingerprint_failure_raises(path, acoustid_client, tagger_without_mbid, parser, logger):
+async def test_fingerprint_failure_raises(
+    path, acoustid_client, tagger_without_mbid, parser, logger
+):
     acoustid_client.fingerprint_file.side_effect = Exception("fingerprint error")
 
-    handler = AcoustID(path=path, acoustid_client=acoustid_client, tagger=tagger_without_mbid, parser=parser, logger=logger, api_key="fake_key")
+    handler = AcoustID(
+        path=path,
+        acoustid_client=acoustid_client,
+        tagger=tagger_without_mbid,
+        parser=parser,
+        logger=logger,
+        api_key="fake_key",
+    )
     with pytest.raises(OperationFailedError, match="Could not generate fingerprint"):
         await handler.process()
 
 
 @pytest.mark.asyncio
-async def test_lookup_failure_raises(path, acoustid_client, tagger_without_mbid, parser, logger):
+async def test_lookup_failure_raises(
+    path, acoustid_client, tagger_without_mbid, parser, logger
+):
     acoustid_client.lookup.side_effect = Exception("lookup failure")
 
-    handler = AcoustID(path=path, acoustid_client=acoustid_client, tagger=tagger_without_mbid, parser=parser, logger=logger, api_key="fake_key")
+    handler = AcoustID(
+        path=path,
+        acoustid_client=acoustid_client,
+        tagger=tagger_without_mbid,
+        parser=parser,
+        logger=logger,
+        api_key="fake_key",
+    )
 
     # Pre-load fingerprint to skip _scan_file
     handler.fingerprint = "preset"

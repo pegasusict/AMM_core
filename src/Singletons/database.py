@@ -183,3 +183,9 @@ class DB:
             for db_task in db_tasks:
                 result.append(db_task)
         return result
+
+    def file_exists(self, file_path: str) -> bool:
+        session = self.get_session()
+        result = session.get_one(DBFile, DBFile.path == file_path)
+        session.close()
+        return result is not None

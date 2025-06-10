@@ -63,5 +63,11 @@ class FingerPrinter(Task):
 
     async def process_file(self, path: Path) -> dict[str, str | None]:
         """Fingerprints and looks up metadata for a single file."""
-        acoustid = AcoustID(path=path, acoustid_client=AcoustIDHttpClient(), tagger=SimpleTagger(path), parser=DurationParser(), logger=self.logger)
+        acoustid = AcoustID(
+            path=path,
+            acoustid_client=AcoustIDHttpClient(),
+            tagger=SimpleTagger(path),
+            parser=DurationParser(),
+            logger=self.logger,
+        )
         return await acoustid.process()

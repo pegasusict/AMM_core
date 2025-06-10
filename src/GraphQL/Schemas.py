@@ -176,15 +176,3 @@ class FilePath:
     path: Path | None = None
     definitive: bool | None = None  # TODO: do we need this field?
     file: int | None = None  # File id
-
-
-@strawberry.type()
-class MBid:
-    """MBid type for GraphQL schema."""
-
-    id: int | None = None
-    mbid: str | None = None
-    track: int | None = None  # Track id
-    album: int | None = None  # Album id
-    person: int | None = None  # Person id
-    label: int | None = None  # Label id

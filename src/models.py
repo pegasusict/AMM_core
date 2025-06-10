@@ -220,7 +220,14 @@ class DBTask(AutoFetchable, SQLModel, table=True):
 
     def get_batch(
         self,
-    ) -> List[str | int | Path] | dict[str, ArtType] | dict[int, Codec] | None:
+    ) -> (
+        List[str]
+        | List[int]
+        | List[Path]
+        | dict[str, ArtType]
+        | dict[int, Codec]
+        | None
+    ):
         """Gets the correctly formatted Batch List/Dict."""
 
         def is_populated_list(subject: List[Any]) -> bool:

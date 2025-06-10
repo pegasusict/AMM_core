@@ -30,38 +30,42 @@ from ..AudioUtils.media_parser import MediaParser
 
 class Parser(Task):
     """
-    This class is used to parse media files and extract metadata from them.
+    Parses media files in a batch, extracts metadata, and registers them in the database.
     """
 
     def __init__(self, config: Config, batch: list[Path]):
-        """
-        Initializes the Parser class.
-
-        Args:
-            config: The configuration object.
-        """
         super().__init__(config=config, task_type=TaskType.PARSER)
         self.config = config
-        self.batch = batch  # type: ignore
+        self.batch = batch
         self.db = DB()
         self.logger = Logger(config)
         self.parser = MediaParser(config)
 
     def run(self) -> None:
         """
-        Runs the parser task.
+        Parses all files in the batch, extracts metadata, and registers them in the database.
+        Skips files that are already imported.
         """
-        for file in self.batch:  # type: ignore
-            # Parse the media file
+        for file_path in self.batch:  # type: ignore
             try:
-                metadata = self.parser.parse(Path(str(file)))
-                file = self.db.register_file(str(file), metadata).first()  # type: ignore
-                if file_id := file.get("file_id", None) is not None:  # type: ignore
+                if self.db.file_exists(str(file_path)):
+                    self.logger.info(f"Skipping already imported file: {file_path}")
+                    continue
+
+                metadata = self.parser.parse(file_path)  # type: ignore
+                db_file = self.db.register_file(str(file_path), metadata).first()  # type: ignore
+
+                if db_file is None:
+                    raise DatabaseError("DB did not return a valid file object.")
+
+                file_id = db_file.get("file_id")
+                if file_id is not None:
                     self.db.set_file_stage(file_id, Stage.IMPORTED)
                 else:
-                    raise DatabaseError("An error occured saving the file to the Database.")
+                    raise DatabaseError("Missing file_id after saving to the database.")
+
             except Exception as e:
-                self.logger.error(f"Error processing file {file}: {e}")
+                self.logger.error(f"Error processing file {file_path}: {e}")
                 continue
 
             self.set_progress()

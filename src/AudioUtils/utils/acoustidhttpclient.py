@@ -6,14 +6,26 @@ from pathlib import Path
 
 class AcoustIDHttpClient:
     async def fingerprint_file(self, path: Path) -> tuple[int, str]:
-        result = subprocess.run(["fpcalc", "-json", str(path)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+        result = subprocess.run(
+            ["fpcalc", "-json", str(path)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True,
+        )
         data = json.loads(result.stdout)
         return data["duration"], data["fingerprint"]
 
     async def lookup(self, api_key: str, fingerprint: str, duration: int) -> dict:
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                "https://api.acoustid.org/v2/lookup", params={"client": api_key, "fingerprint": fingerprint, "duration": duration, "meta": "recordings"}
+                "https://api.acoustid.org/v2/lookup",
+                params={
+                    "client": api_key,
+                    "fingerprint": fingerprint,
+                    "duration": duration,
+                    "meta": "recordings",
+                },
             ) as resp:
                 resp.raise_for_status()
                 return await resp.json()

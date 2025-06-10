@@ -33,14 +33,26 @@ from ..Singletons.config import Config
 class Task:
     """Base class for asynchronous tasks managed by TaskManager."""
 
-    batch: list[str] | list[int] | list[Path] | dict[str, ArtType] | dict[int, Codec] | None = None
+    batch: (
+        list[str]
+        | list[int]
+        | list[Path]
+        | dict[str, ArtType]
+        | dict[int, Codec]
+        | None
+    ) = None
 
     def __init__(
         self,
         *,
         config: Config,
         task_type: TaskType = TaskType.CUSTOM,
-        batch: list[str] | list[int] | list[Path] | dict[str, ArtType] | dict[int, Codec] | None = None,
+        batch: list[str]
+        | list[int]
+        | list[Path]
+        | dict[str, ArtType]
+        | dict[int, Codec]
+        | None = None,
         **kwargs,
     ):
         self.config = config

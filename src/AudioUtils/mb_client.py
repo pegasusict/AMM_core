@@ -36,7 +36,9 @@ class MusicBrainzClient:
         self.logger = Logger(config)
         self.config = config
         self.musicbrainz = musicbrainzngs
-        self.musicbrainz.set_useragent("Audiophiles' Music Manager", "0.1", "pegasus.ict@gmail.com")
+        self.musicbrainz.set_useragent(
+            "Audiophiles' Music Manager", "0.1", "pegasus.ict@gmail.com"
+        )
         self.musicbrainz.set_rate_limit(True)
 
     def get_art(self, mbid: str) -> str | None:

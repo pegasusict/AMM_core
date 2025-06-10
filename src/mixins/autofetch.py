@@ -24,7 +24,9 @@ class AutoFetchable(SQLModel):
     """Mixin to support recursive eager loading of SQLModel relationships."""
 
     @classmethod
-    def load_full(cls: Type[SQLModel], session: Session, object_id: int, depth: int = 2) -> Optional[SQLModel]:
+    def load_full(
+        cls: Type[SQLModel], session: Session, object_id: int, depth: int = 2
+    ) -> Optional[SQLModel]:
         """
         Load an instance with all relationships eagerly loaded up to a certain depth.
 
@@ -42,7 +44,9 @@ class AutoFetchable(SQLModel):
         return session.exec(stmt).first()  # type: ignore
 
     @classmethod
-    def _recursive_selectinload(cls, depth: int, visited: Optional[Set[Type[SQLModel]]] = None) -> List[Load]:
+    def _recursive_selectinload(
+        cls, depth: int, visited: Optional[Set[Type[SQLModel]]] = None
+    ) -> List[Load]:
         """
         Recursively builds eager loading options using selectinload.
 
@@ -61,7 +65,9 @@ class AutoFetchable(SQLModel):
         return cls._get_relationship_loads(visited, depth)
 
     @classmethod
-    def _get_relationship_loads(cls, visited: Set[Type[SQLModel]], depth: int) -> List[Load]:
+    def _get_relationship_loads(
+        cls, visited: Set[Type[SQLModel]], depth: int
+    ) -> List[Load]:
         """Return selectinload options for all relationships."""
         options: List[Load] = []
 
@@ -74,7 +80,9 @@ class AutoFetchable(SQLModel):
             options.append(loader)  # type: ignore
 
             related_cls = rel_prop.mapper.class_
-            nested_options = related_cls._recursive_selectinload(depth - 1, visited.copy())  # type: ignore
+            nested_options = related_cls._recursive_selectinload(
+                depth - 1, visited.copy()
+            )  # type: ignore
 
             for nested in nested_options:
                 try:

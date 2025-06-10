@@ -59,7 +59,10 @@ class MockParser:
 def test_importer_config_extension_parsing(ext_val, expected):
     config = Mock()
     config.get_path.return_value = "/tmp/test"
-    config.get.side_effect = lambda section, key=None, default=None: {("extensions", "import"): ext_val, ("import", "clean"): True}.get(
+    config.get.side_effect = lambda section, key=None, default=None: {
+        ("extensions", "import"): ext_val,
+        ("import", "clean"): True,
+    }.get(
         (section, key),  # type: ignore
         default,  # type: ignore
     )
@@ -83,7 +86,9 @@ def test_directory_scanner_finds_files(tmp_path):
     subdir.mkdir()
     (subdir / "another.mp3").write_text("audio")
 
-    config = ImporterConfig(base_path=tmp_path, extensions=[".mp3"], clean=True, dry_run=False)
+    config = ImporterConfig(
+        base_path=tmp_path, extensions=[".mp3"], clean=True, dry_run=False
+    )
     logger = MockLogger()
     stack = MockStack()
 
@@ -99,7 +104,9 @@ def test_directory_scanner_finds_files(tmp_path):
 def test_directory_scanner_dry_run(tmp_path):
     (tmp_path / "unwanted.docx").write_text("irrelevant")
 
-    config = ImporterConfig(base_path=tmp_path, extensions=[".mp3"], clean=True, dry_run=True)
+    config = ImporterConfig(
+        base_path=tmp_path, extensions=[".mp3"], clean=True, dry_run=True
+    )
     logger = MockLogger()
     stack = MockStack()
 
@@ -118,7 +125,10 @@ def test_directory_scanner_dry_run(tmp_path):
 def mock_config_with_exts(path, exts):
     config = Mock()
     config.get_path.return_value = path
-    config.get.side_effect = lambda section, key=None, default=None: {("extensions", "import"): exts, ("import", "clean"): False}.get((section, key), default)  # type: ignore
+    config.get.side_effect = lambda section, key=None, default=None: {
+        ("extensions", "import"): exts,
+        ("import", "clean"): False,
+    }.get((section, key), default)  # type: ignore
     return config
 
 
@@ -130,7 +140,12 @@ def test_importer_run_launches_parser(tmp_path):
     task_manager = MockTaskManager()
     parser = MockParser()
 
-    importer = Importer(config, task_manager_class=lambda: task_manager, parser_class=parser, dry_run=False)  # type: ignore
+    importer = Importer(
+        config,
+        task_manager_class=lambda: task_manager,
+        parser_class=parser,
+        dry_run=False,
+    )  # type: ignore
     importer.logger = MockLogger()  # type: ignore
     importer.stack = MockStack()  # type: ignore
     importer.run()
@@ -145,7 +160,12 @@ def test_importer_dry_run_logs_files(tmp_path):
     file1.write_text("data")
 
     config = mock_config_with_exts(tmp_path, [".flac"])
-    importer = Importer(config, task_manager_class=MockTaskManager, parser_class=MockParser, dry_run=True)
+    importer = Importer(
+        config,
+        task_manager_class=MockTaskManager,
+        parser_class=MockParser,
+        dry_run=True,
+    )
 
     logger = MockLogger()
     importer.logger = logger  # type: ignore

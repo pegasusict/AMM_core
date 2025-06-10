@@ -96,8 +96,12 @@ class AcoustID:
             self.log.debug("Fingerprint already available from tags.")
             return
         try:
-            self.duration, self.fingerprint = await self.acoustid.fingerprint_file(self.path)
-            self.log.debug(f"Generated fingerprint: {self.fingerprint} (duration: {self.duration})")
+            self.duration, self.fingerprint = await self.acoustid.fingerprint_file(
+                self.path
+            )
+            self.log.debug(
+                f"Generated fingerprint: {self.fingerprint} (duration: {self.duration})"
+            )
         except Exception as e:
             self.log.error(f"Fingerprinting failed: {e}")
             raise OperationFailedError("Could not generate fingerprint.") from e
@@ -113,7 +117,9 @@ class AcoustID:
 
     async def _lookup_metadata(self) -> None:
         try:
-            response = await self.acoustid.lookup(self.api_key, self.fingerprint, self.duration)  # type: ignore
+            response = await self.acoustid.lookup(
+                self.api_key, self.fingerprint, self.duration
+            )  # type: ignore
             score, mbid, title, artist = self.acoustid.parse_lookup_result(response)
         except Exception as e:
             raise OperationFailedError("Lookup failed.") from e

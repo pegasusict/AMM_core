@@ -19,8 +19,12 @@ from __future__ import annotations
 import strawberry
 from sqlmodel import select
 
+from ..Tasks.importer import Importer
+
+from ..Enums import TaskType
 from Singletons.database import DB
 from Schemas import Track, Album, User, Person, Label, Stat, File, Genre
+from ..Tasks.taskmanager import TaskManager
 from models import DBAlbum, DBFile, DBGenre, DBLabel, DBPerson, DBTrack, DBUser, DBStat
 from Exceptions import InvalidValueError
 
@@ -39,7 +43,7 @@ def set_fields(info: dict, subject: object) -> object:
 
 
 #################################################################################
-def resolve_user(self, info: dict[str, str | int]) -> User:
+def resolve_user(info: dict[str, str | int]) -> User:
     """Logic to resolve a user via ID, username or email."""
     statement = select(DBUser)
 
@@ -62,9 +66,7 @@ def resolve_user(self, info: dict[str, str | int]) -> User:
     return user_obj
 
 
-def resolve_track(
-    self, info: dict[str, str | int], track_id: int | None = None
-) -> Track:
+def resolve_track(info: dict[str, str | int], track_id: int | None = None) -> Track:
     """Logic to resolve a track by ID, MBid or title and artist."""
     statement = select(DBTrack)
 
@@ -92,7 +94,7 @@ def resolve_track(
     return track_obj
 
 
-def resolve_album(self, info: dict, album_id: int) -> Album:
+def resolve_album(info: dict, album_id: int) -> Album:
     """Logic to resolve an album by ID, MBid, title and artist or release date."""
     statement = select(DBAlbum)
 
@@ -122,7 +124,7 @@ def resolve_album(self, info: dict, album_id: int) -> Album:
     return album_obj
 
 
-def resolve_person(self, info: dict, person_id: int) -> Person:
+def resolve_person(info: dict, person_id: int) -> Person:
     """Logic to resolve a person by ID, MBid, name, nickname or birth date."""
     statement = select(DBPerson)
 
@@ -148,7 +150,7 @@ def resolve_person(self, info: dict, person_id: int) -> Person:
     return person_obj
 
 
-def resolve_label(self, info: dict, label_id: int) -> Label:
+def resolve_label(info: dict, label_id: int) -> Label:
     """Logic to resolve a label by ID or name."""
     statement = select(DBLabel)
 
@@ -169,7 +171,7 @@ def resolve_label(self, info: dict, label_id: int) -> Label:
     return label_obj
 
 
-def resolve_stat(self, info: dict, stat_id: int) -> Stat:
+def resolve_stat(info: dict, stat_id: int) -> Stat:
     """Logic to resolve a stat by ID or name."""
     statement = select(DBStat)
 
@@ -195,7 +197,7 @@ def resolve_stat(self, info: dict, stat_id: int) -> Stat:
     return stat_obj
 
 
-def resolve_file(self, info: dict, file_id: int) -> File:
+def resolve_file(info: dict, file_id: int) -> File:
     """Logic to resolve a file by ID or filename."""
 
     statement = select(DBFile)
@@ -220,7 +222,7 @@ def resolve_file(self, info: dict, file_id: int) -> File:
     return file_obj
 
 
-def resolve_genre(self, info: dict, genre_id: int) -> Genre:
+def resolve_genre(info: dict, genre_id: int) -> Genre:
     """Logic to resolve a genre by ID or name."""
     statement = select(DBGenre)
 
@@ -245,6 +247,16 @@ def resolve_genre(self, info: dict, genre_id: int) -> Genre:
     return genre_obj
 
 
+#################################################################################
+
+
+def start_import() -> dict[str, bool]:
+    """Starts the import process."""
+    tm = TaskManager()
+    tm.start_task(task_class=Importer, task_type=TaskType.IMPORTER, batch=None)
+    return {"status": True}
+
+
 @strawberry.type()
 class Query:
     """Query class for GraphQL schema."""
@@ -257,6 +269,7 @@ class Query:
     stat = strawberry.field(resolve_stat)  # type: ignore
     file = strawberry.field(resolve_file)  # type: ignore
     genre = strawberry.field(resolve_genre)  # type: ignore
+    start_import = strawberry.field(start_import)  # type: ignore
 
 
 @strawberry.type()

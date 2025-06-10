@@ -120,7 +120,9 @@ def test_init(mb_client_fixture):
     assert mb_client.musicbrainz == mock_musicbrainzngs
 
     # Verify that useragent was set
-    mock_musicbrainzngs.set_useragent.assert_called_once_with("Audiophiles' Music Manager", "0.1", "pegasus.ict@gmail.com")
+    mock_musicbrainzngs.set_useragent.assert_called_once_with(
+        "Audiophiles' Music Manager", "0.1", "pegasus.ict@gmail.com"
+    )
 
     # Verify that rate limit was set
     mock_musicbrainzngs.set_rate_limit.assert_called_once_with(True)
@@ -132,7 +134,9 @@ def test_get_art_success(mb_client_fixture):
     test_mbid = test_data["mbid"]
 
     # Set up mock response
-    mock_response = {"images": [{"thumbnails": {"large": "http://example.com/image.jpg"}}]}
+    mock_response = {
+        "images": [{"thumbnails": {"large": "http://example.com/image.jpg"}}]
+    }
     mock_musicbrainzngs.get_image_list.return_value = mock_response
 
     # Make sure the mock response is properly structured
@@ -428,7 +432,9 @@ def test_get_track_by_audio_fingerprint(mb_client_fixture):
     result = mb_client.get_track_by_audio_fingerprint(test_fingerprint)
 
     # Verify that search_recordings was called with the correct parameters
-    mock_musicbrainzngs.search_recordings.assert_called_once_with(fingerprint=test_fingerprint)
+    mock_musicbrainzngs.search_recordings.assert_called_once_with(
+        fingerprint=test_fingerprint
+    )
 
     # Verify that the result is the expected response
     assert result == mock_response
@@ -446,7 +452,9 @@ def test_get_track_by_audio_fingerprint_error(mb_client_fixture):
     result = mb_client.get_track_by_audio_fingerprint(test_fingerprint)
 
     # Verify that search_recordings was called with the correct parameters
-    mock_musicbrainzngs.search_recordings.assert_called_once_with(fingerprint=test_fingerprint)
+    mock_musicbrainzngs.search_recordings.assert_called_once_with(
+        fingerprint=test_fingerprint
+    )
 
     # Verify that the error was logged
     logger_instance.error.assert_called_once()
@@ -480,7 +488,9 @@ def test_get_release_by_id(mb_client_fixture):
     test_mbid = test_data["mbid"]
 
     # Mock the _get_by_id method
-    mb_client._get_by_id = MagicMock(return_value={"release": {"title": "Test Release"}})
+    mb_client._get_by_id = MagicMock(
+        return_value={"release": {"title": "Test Release"}}
+    )
 
     # Call the method
     result = mb_client.get_release_by_id(test_mbid)
@@ -498,7 +508,9 @@ def test_get_artist_by_name(mb_client_fixture):
     test_name = test_data["name"]
 
     # Mock the _get_by_name method
-    mb_client._get_by_name = MagicMock(return_value={"artist-list": [{"name": "Test Artist"}]})
+    mb_client._get_by_name = MagicMock(
+        return_value={"artist-list": [{"name": "Test Artist"}]}
+    )
 
     # Call the method
     result = mb_client.get_artist_by_name(test_name)
