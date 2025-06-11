@@ -19,7 +19,7 @@ from pathlib import Path
 from pydub import AudioSegment
 
 from ..Exceptions import OperationFailedError
-from ..models import Codec
+from ..dbmodels import Codec
 
 
 class SilenceTrimmer:

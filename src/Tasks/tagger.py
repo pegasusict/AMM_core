@@ -24,7 +24,7 @@ from task import Task, TaskType
 from Singletons.config import Config
 from Singletons.database import DB
 from Singletons.logger import Logger
-from models import DBTrack, Track
+from dbmodels import DBTrack, Track
 from AudioUtils.tagger import Tagger as Tag
 from AudioUtils.media_parser import get_file_type
 

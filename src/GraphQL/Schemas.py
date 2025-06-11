@@ -20,7 +20,7 @@ from typing import List
 import strawberry
 from pydantic import EmailStr
 
-from ..models import Stage, UserRole, Codec
+from ..Enums import Stage, UserRole, Codec
 
 
 @strawberry.type()
@@ -41,6 +41,31 @@ class User:
 
 
 @strawberry.type()
+class Task:
+    """Task type for GraphQL schema."""
+
+    id: int | None = None
+    task_id: str | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
+    duration: int | None = None
+    batch_files: list[int] | None = None  # File id
+    batch_tracks: list[int] | None = None  # Track id
+    batch_albums: list[int] | None = None  # Album id
+    batch_persons: list[int] | None = None  # Person id
+    batch_labels: list[int] | None = None  # Label id
+    batch_convert: list[int] | None = None  # File id
+    processed: int | None = None
+    progress: int | None = None
+    function: str | None = None
+    kwargs: str | None = None
+    result: str | None = None
+    error: str | None = None
+    status: str | None = None
+    task_type: str | None = None
+
+
+@strawberry.type()
 class Stat:
     """Stat type for GraphQL schema."""
 
@@ -49,8 +74,7 @@ class Stat:
     value: int | float | None = None
     range_start: int | float | None = None
     range_end: int | float | None = None
-    created_at: datetime | None = None
-    updated_at: datetime | None = None
+    unit: str | None = None
 
 
 @strawberry.type()
@@ -63,6 +87,7 @@ class File:
     file_path: Path | None = None
     file_name: str | None = None
     file_type: str | None = None
+    file_extension: str | None = None
     size: int | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
@@ -72,6 +97,10 @@ class File:
     channels: int | None = None
     duration: int | None = None
     stage: Stage | None = None
+    fingerprint: str | None = None
+    track_id: int | None = None
+    task_id: int | None = None
+    batch_id: int | None = None
 
 
 @strawberry.type()
@@ -82,16 +111,19 @@ class Track:
     title: str | None = None
     title_sort: str | None = None
     subtitle: str | None = None
-    artists: List[int] | None = None  # artist name
-    year: int | None = None
+    artists: List[int] | None = None  # person id
     albums: List[int] | None = None  # album id
-    files: List[int] | None = None  # File id
     key: str | None = None
-    releasedate: date | None = None
     genres: List[int] | None = None  # genre id
     mbid: str | None = None
-    label: str | None = None
+    conductors: List[int] | None = None  # person id
+    composers: List[int] | None = None  # person id
+    lyricists: List[int] | None = None  # person id
+    producers: List[int] | None = None  # person id
+    releasedate: date | None = None
     lyrics: str | None = None
+    files: List[int] | None = None  # File id
+    task_id: int | None = None
 
 
 @strawberry.type()
@@ -99,19 +131,24 @@ class Album:
     """Album type for GraphQL schema."""
 
     id: int | None = None
-    title: str | None = None
-    subtitle: str | None = None
-    artists: List[int] | None = None  # artist id
-    tracks: List[int] | None = None  # track id
-    key: str | None = None
-    releasedate: date | None = None
-    genres: List[int] | None = None  # genre id
     mbid: str | None = None
+    title: str | None = None
+    title_sort: str | None = None
+    subtitle: str | None = None
+    releasedate: date | None = None
+    release_country: str | None = None
     label: str | None = None
+    tracks: list[int] | None = None  # track id
+    genres: List[int] | None = None  # genre id
+    artists: List[int] | None = None  # person id
+    conductors: List[int] | None = None  # person id
+    composers: List[int] | None = None  # person id
+    lyricists: List[int] | None = None  # person id
+    producers: List[int] | None = None  # person id
     picture: Path | None = None
     disc_count: int | None = None
     track_count: int | None = None
-    release_country: str | None = None
+    task_id: int | None = None
 
 
 @strawberry.type()
@@ -121,8 +158,6 @@ class Genre:
     id: int | None = None
     name: str | None = None
     description: str | None = None
-    created_at: datetime | None = None
-    updated_at: datetime | None = None
     albums: List[int] | None = None  # album id
     tracks: List[int] | None = None  # track id
     parents: List[int] | None = None  # Genre id
@@ -134,18 +169,29 @@ class Person:
     """Person type for GraphQL schema."""
 
     id: int | None = None
+    mbid: str | None = None
     first_name: str | None = None
     middle_name: str | None = None
     last_name: str | None = None
+    full_name: str | None = None
     alias: str | None = None
     nick_name: str | None = None
     sort_name: str | None = None
     date_of_birth: date | None = None
     date_of_death: date | None = None
     picture: Path | None = None
-    mbid: str | None = None
     performed_tracks: List[int] | None = None  # Track id
+    conducted_tracks: List[int] | None = None  # Track id
+    composed_tracks: List[int] | None = None  # Track id
+    lyric_tracks: List[int] | None = None  # Track id
+    produced_tracks: List[int] | None = None  # Track id
     performed_albums: List[int] | None = None  # Album id
+    conducted_albums: List[int] | None = None  # Album id
+    composed_albums: List[int] | None = None  # Album id
+    lyric_albums: List[int] | None = None  # Album id
+    produced_albums: List[int] | None = None  # Album id
+    task_id: int | None = None
+    labels: List[int] | None = None  # Label id
 
 
 @strawberry.type()
@@ -154,10 +200,15 @@ class Label:
 
     id: int | None = None
     name: str | None = None
+    mbid: str | None = None
     description: str | None = None
-    created_at: datetime | None = None
-    updated_at: datetime | None = None
+    founded: datetime | None = None
+    defunct: datetime | None = None
     albums: List[int] | None = None  # Album id
+    picture: Path | None = None
+    parent: int | None = None  # Label id
+    children: List[int] | None = None  # Label id
+    owner: int | None = None  # Person id
 
 
 @strawberry.type()
@@ -166,13 +217,4 @@ class Key:
 
     id: int | None = None
     name: str | None = None
-
-
-@strawberry.type()
-class FilePath:
-    """FilePath type for GraphQL schema."""
-
-    id: int | None = None
-    path: Path | None = None
-    definitive: bool | None = None  # TODO: do we need this field?
-    file: int | None = None  # File id
+    tracks: list[int] | None = None  # Track id

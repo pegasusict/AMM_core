@@ -16,7 +16,7 @@
 """This module eliminates duplicate files, taking into account audio quality (bitrate, codec)."""
 
 from pathlib import Path
-from ..models import DBFile, Track
+from ..dbmodels import DBFile, Track
 from ..Singletons.logger import Logger
 from ..Enums import CodecPriority, TaskType
 from ..Singletons.config import Config
@@ -49,9 +49,7 @@ class Deduper(Task):
             track = Track(track_id)
             if len(track.files) > 1:
                 # Sort files by bitrate and codec
-                track.files.sort(
-                    key=lambda f: (CodecPriority[f.codec], f.bitrate), reverse=True
-                )
+                track.files.sort(key=lambda f: (CodecPriority[f.codec], f.bitrate), reverse=True)
                 # Keep the highest quality file
                 # best_file = track.files[0]
                 # Remove lower quality files

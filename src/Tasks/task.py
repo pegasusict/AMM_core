@@ -23,7 +23,7 @@ import multiprocessing as mproc
 from pathlib import Path
 from typing import Callable, Optional
 
-from models import Codec
+from dbmodels import Codec
 
 from ..Singletons.logger import Logger
 from ..Enums import TaskType, TaskStatus, ArtType
@@ -33,26 +33,14 @@ from ..Singletons.config import Config
 class Task:
     """Base class for asynchronous tasks managed by TaskManager."""
 
-    batch: (
-        list[str]
-        | list[int]
-        | list[Path]
-        | dict[str, ArtType]
-        | dict[int, Codec]
-        | None
-    ) = None
+    batch: list[str] | list[int] | list[Path] | dict[str, ArtType] | dict[int, Codec] | None = None
 
     def __init__(
         self,
         *,
         config: Config,
         task_type: TaskType = TaskType.CUSTOM,
-        batch: list[str]
-        | list[int]
-        | list[Path]
-        | dict[str, ArtType]
-        | dict[int, Codec]
-        | None = None,
+        batch: list[str] | list[int] | list[Path] | dict[str, ArtType] | dict[int, Codec] | None = None,
         **kwargs,
     ):
         self.config = config

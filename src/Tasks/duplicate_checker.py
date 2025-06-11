@@ -25,7 +25,7 @@ from ..Enums import TaskType
 from ..Singletons.logger import Logger
 from ..Singletons.config import Config
 from ..Singletons.database import DB
-from ..models import DBTrack, DBFile
+from ..dbmodels import DBTrack, DBFile
 from .task import Task
 
 

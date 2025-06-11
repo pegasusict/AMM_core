@@ -17,7 +17,7 @@
 
 from pathlib import Path
 
-from ..models import Stage
+from ..dbmodels import Stage
 from .task import Task, TaskType
 from ..Singletons.config import Config
 from ..Singletons.database import DB

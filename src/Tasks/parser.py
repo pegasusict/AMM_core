@@ -20,7 +20,7 @@ It uses the mutagen library to read and write metadata to media files.
 from pathlib import Path
 
 from ..Exceptions import DatabaseError
-from ..models import Stage
+from ..dbmodels import Stage
 from .task import Task, TaskType
 from ..Singletons.config import Config
 from ..Singletons.database import DB

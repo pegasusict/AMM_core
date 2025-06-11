@@ -22,7 +22,7 @@ from Singletons.config import Config
 from Singletons.database import DB
 from Singletons.logger import Logger
 from AudioUtils.lyrics_getter import LyricsGetter as Lyrics
-from models import DBTrackLyric, DBTrack, Stage
+from dbmodels import DBTrackLyric, DBTrack, Stage
 
 
 class LyricsGetter(Task):

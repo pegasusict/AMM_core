@@ -38,7 +38,7 @@ from .tagger import Tagger
 from .trimmer import Trimmer
 from .art_getter import ArtGetter
 from .lyrics_getter import LyricsGetter
-from ..models import Task as DBTask  # ORM model, NOT a task
+from ..dbmodels import Task as DBTask  # ORM model, NOT a task
 
 
 class TaskManager:
@@ -86,9 +86,7 @@ class TaskManager:
         self.tasks: dict[str, dict[str, Task]] = {}
         self.task_queue: list[Task] = []
         self.running_tasks = 0
-        self.max_concurrent_tasks = 2 * (
-            os.cpu_count() or 2
-        )  # Default to 2 if cpu_count() is None
+        self.max_concurrent_tasks = 2 * (os.cpu_count() or 2)  # Default to 2 if cpu_count() is None
         self.db = DB()
         self.config = Config()
         self.logger = Logger(self.config)
@@ -203,12 +201,8 @@ class TaskManager:
 
         self.register_task(task)
         # Check if task type is exclusive and already running
-        if task.task_type in self.exclusive_task_types and self.exclusive_task_running(
-            task.task_type
-        ):
-            self.logger.info(
-                f"Task {task.task_id} is exclusive and another of its type is running. Queued."
-            )
+        if task.task_type in self.exclusive_task_types and self.exclusive_task_running(task.task_type):
+            self.logger.info(f"Task {task.task_id} is exclusive and another of its type is running. Queued.")
             # Queue the task if an exclusive type is already running
             self.task_queue.append(task)
             return task.task_id

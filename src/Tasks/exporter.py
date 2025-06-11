@@ -22,7 +22,7 @@ from pydub import AudioSegment
 
 from Singletons.logger import Logger
 from Singletons.config import Config
-from ..models import Track
+from ..dbmodels import Track
 from ..Enums import Codec
 from task import Task, TaskType
 

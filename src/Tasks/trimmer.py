@@ -22,7 +22,7 @@ from task import Task, TaskType
 from Singletons.config import Config
 from Singletons.logger import Logger
 from AudioUtils.trimmer import SilenceTrimmer
-from models import Codec
+from dbmodels import Codec
 from Exceptions import FileError
 
 

@@ -24,7 +24,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
 
 from ..Exceptions import InvalidValueError
-from ..models import DBFile, DBTask, Stage, TaskStatus
+from ..dbmodels import DBFile, DBTask, Stage, TaskStatus
 
 
 ######################################################################
@@ -186,6 +186,6 @@ class DB:
 
     def file_exists(self, file_path: str) -> bool:
         session = self.get_session()
-        result = session.get_one(DBFile, DBFile.path == file_path)
+        result = session.get_one(DBFile, DBFile.file_path == file_path)
         session.close()
         return result is not None

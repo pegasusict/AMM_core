@@ -25,7 +25,7 @@ from ..Enums import TaskType
 from Singletons.database import DB
 from Schemas import Track, Album, User, Person, Label, Stat, File, Genre
 from ..Tasks.taskmanager import TaskManager
-from models import DBAlbum, DBFile, DBGenre, DBLabel, DBPerson, DBTrack, DBUser, DBStat
+from dbmodels import DBAlbum, DBFile, DBGenre, DBLabel, DBPerson, DBTrack, DBUser, DBStat
 from Exceptions import InvalidValueError
 
 #################################################################################
@@ -78,9 +78,7 @@ def resolve_track(info: dict[str, str | int], track_id: int | None = None) -> Tr
     elif mbid := info.get("mbid", None) is not None:
         statement = statement.where(DBTrack.mbid == mbid)
     elif title is not None and artist is not None:
-        statement = statement.where(DBTrack.title == title).where(
-            artist in DBTrack.performers
-        )
+        statement = statement.where(DBTrack.title == title).where(artist in DBTrack.performers)
     else:
         raise ValueError("Invalid arguments for track resolution")
 
@@ -106,9 +104,7 @@ def resolve_album(info: dict, album_id: int) -> Album:
     elif mbid := info.get("mbid", None) is not None:
         statement = statement.where(DBAlbum.mbid == mbid)
     elif title is not None and artist is not None:
-        statement = statement.where(DBAlbum.title == title).where(
-            artist in DBAlbum.performers
-        )
+        statement = statement.where(DBAlbum.title == title).where(artist in DBAlbum.performers)
     elif release_date := info.get("release_date", None) is not None:
         statement = statement.where(DBAlbum.release_date == release_date)
     else:
@@ -343,9 +339,7 @@ class Mutation:
     def _verify_update_args(self, info: dict, track_id: int) -> None:
         """Verifies the arguments for updating a track."""
         if track_id is None:
-            raise InvalidValueError(
-                "Track ID is required for updating track information"
-            )
+            raise InvalidValueError("Track ID is required for updating track information")
         if not isinstance(track_id, int):
             raise InvalidValueError("Track ID must be an integer")
         if not info:
