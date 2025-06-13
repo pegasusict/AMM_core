@@ -15,7 +15,15 @@
 
 """Enum repository for the application."""
 
-from enum import IntFlag, StrEnum, IntEnum, auto
+from enum import Enum, IntFlag, StrEnum, IntEnum, auto
+
+from mutagen.mp4 import MP4
+from mutagen.apev2 import APEv2
+from mutagen.oggvorbis import OggVorbis
+from mutagen.flac import FLAC
+from mutagen.mp3 import MP3
+from mutagen.wavpack import WavPack
+from mutagen.asf import ASF
 
 
 class UserRole(StrEnum):
@@ -121,3 +129,15 @@ class MBQueryType(StrEnum):
     TRACK = auto()
     RECORDING = auto()
     RELEASE_GROUP = auto()
+
+
+class FileType(Enum):
+    """FileType Enums"""
+
+    MP3 = MP3
+    MP4 = MP4
+    FLAC = FLAC
+    WAV = WavPack
+    OGG = OggVorbis
+    APE = APEv2
+    ASF = ASF

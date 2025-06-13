@@ -44,6 +44,17 @@ class AcoustIDHttpClient:
         return data["duration"], data["fingerprint"]
 
     async def lookup(self, api_key: str, fingerprint: str, duration: int) -> dict:
+        """Look up the information associated with the fingerprint
+        in conjunction with the duration of the song.
+
+        Args:
+            api_key (str): API key for AcoustID Service
+            fingerprint (str): The fingerprint of the file
+            duration (int): the duration of the file in seconds
+
+        Returns:
+            dict: the results dictionairy, to be unpacked by self.parse_lookup()
+        """
         async with aiohttp.ClientSession() as session:
             async with session.get(
                 "https://api.acoustid.org/v2/lookup",
@@ -57,9 +68,18 @@ class AcoustIDHttpClient:
                 resp.raise_for_status()
                 return await resp.json()
 
-    def parse_lookup_result(self, response: dict) -> tuple[str, str, str, str]:
+    def parse_lookup_result(self, response: dict) -> tuple[str, str, str, dict] | None:
+        """Parses the lookup result into a tuple containing the following values:
+        accuracy score, MusicBrainz ID, title and artists.
+
+        Args:
+            response (dict): response given by self.lookup()
+
+        Returns:
+            tuple[str, str, str, dict]: score, mbid, title, artists
+        """
         try:
-            result = response["results"][0]
+            result = response["results"][0]  # TODO: handle multiple results, keep the first for now...
             score = str(result["score"])
             recording = result["recordings"][0]  # TODO: handle multiple results, keep the first for now...
             mbid = recording["id"]
@@ -67,4 +87,4 @@ class AcoustIDHttpClient:
             artists = recording["artists"]
             return score, mbid, title, artists
         except (KeyError, IndexError):
-            return "", "", "", ""
+            return None

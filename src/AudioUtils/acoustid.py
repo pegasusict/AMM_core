@@ -23,24 +23,38 @@ from ..exceptions import FileError, OperationFailedError
 
 
 class AcoustIDClient(Protocol):
-    async def fingerprint_file(self, path: Path) -> tuple[int, str]: ...
-    async def lookup(self, api_key: str, fingerprint: str, duration: int) -> Any: ...
-    def parse_lookup_result(self, response: Any) -> tuple[str, str, str, str]: ...
+    async def fingerprint_file(self, path: Path) -> tuple[int, str]:
+        """Generates an AcoustID fingerprint."""
+
+    async def lookup(self, api_key: str, fingerprint: str, duration: int) -> Any:
+        """Looks up metadata using AcoustID API."""
+
+    def parse_lookup_result(self, response: Any) -> tuple[str, str, str, str]:
+        """Parses JSON response into relevant fields."""
 
 
 class TaggerProtocol(Protocol):
-    def get_mbid(self) -> Optional[str]: ...
-    def get_acoustid(self) -> Optional[str]: ...
+    def get_mbid(self) -> Optional[str]:
+        """Gets MBID from tags."""
+
+    def get_acoustid(self) -> Optional[str]:
+        """Gets AcoustID from tags."""
 
 
 class ParserProtocol(Protocol):
-    def get_duration(self, path: Path) -> int: ...
+    def get_duration(self, path: Path) -> int:
+        """Gets duration from file metadata."""
 
 
 class LoggerProtocol(Protocol):
-    def info(self, message: str) -> None: ...
-    def debug(self, message: str) -> None: ...
-    def error(self, message: str) -> None: ...
+    def info(self, message: str) -> None:
+        """General logging method"""
+
+    def debug(self, message: str) -> None:
+        """Debugging logging method."""
+
+    def error(self, message: str) -> None:
+        """Error logging method."""
 
 
 class AcoustID:
@@ -96,12 +110,8 @@ class AcoustID:
             self.log.debug("Fingerprint already available from tags.")
             return
         try:
-            self.duration, self.fingerprint = await self.acoustid.fingerprint_file(
-                self.path
-            )
-            self.log.debug(
-                f"Generated fingerprint: {self.fingerprint} (duration: {self.duration})"
-            )
+            self.duration, self.fingerprint = await self.acoustid.fingerprint_file(self.path)
+            self.log.debug(f"Generated fingerprint: {self.fingerprint} (duration: {self.duration})")
         except Exception as e:
             self.log.error(f"Fingerprinting failed: {e}")
             raise OperationFailedError("Could not generate fingerprint.") from e

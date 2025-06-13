@@ -14,30 +14,10 @@
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
 from pathlib import Path
-from enum import Enum
-
-from mutagen.mp4 import MP4
-from mutagen.apev2 import APEv2
-from mutagen.oggvorbis import OggVorbis
-from mutagen.flac import FLAC
-from mutagen.mp3 import MP3
-from mutagen.wavpack import WavPack
-from mutagen.asf import ASF
 
 from Singletons.config import Config
 from Singletons.logger import Logger
-
-
-class FileTypes(Enum):
-    """FileType Enums"""
-
-    MP3 = MP3
-    MP4 = MP4
-    FLAC = FLAC
-    WAV = WavPack
-    OGG = OggVorbis
-    APE = APEv2
-    ASF = ASF
+from ..enums import FileType
 
 
 def get_file_extension(file_path: Path) -> str:
@@ -66,7 +46,7 @@ def get_file_type(file_path: Path) -> str | None:
     file_extension = get_file_extension(file_path)
     # Remove the dot and convert to uppercase to match enum names
     extension_key = file_extension[1:].upper() if file_extension else ""
-    if extension_key in FileTypes.__members__:
+    if extension_key in FileType.__members__:
         return file_extension
     else:
         Logger(Config()).error(message=f"Unsupported file type: {file_extension}")

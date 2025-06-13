@@ -57,7 +57,7 @@ class Converter(Task):
             self.set_progress()
         session.commit()
         session.close()
-        self.set_end_time
+        self.set_end_time()
 
     def convert_file(self, input_path: Path, codec: str) -> None:
         if not input_path.is_file():
@@ -66,9 +66,7 @@ class Converter(Task):
 
         target_format = self.get_target_format(codec)
         if not target_format:
-            self.logger.warning(
-                f"Skipping {input_path}: no target format for codec {codec}"
-            )
+            self.logger.warning(f"Skipping {input_path}: no target format for codec {codec}")
             return
 
         output_path = input_path.with_suffix(f".{target_format}")
@@ -77,9 +75,7 @@ class Converter(Task):
             return
 
         try:
-            audio = AudioSegment.from_file(
-                input_path, format=input_path.suffix[1:].lower()
-            )
+            audio = AudioSegment.from_file(input_path, format=input_path.suffix[1:].lower())
             audio.export(output_path, format=target_format)
             self.logger.info(f"Converted: {input_path} -> {output_path}")
             input_path.unlink(missing_ok=True)
