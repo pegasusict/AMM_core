@@ -21,12 +21,21 @@ from sqlmodel import select
 
 from ..Tasks.importer import Importer
 
-from ..Enums import TaskType
+from ..enums import TaskType
 from Singletons.database import DB
-from Schemas import Track, Album, User, Person, Label, Stat, File, Genre
+from GraphQL.schemas import Track, Album, User, Person, Label, Stat, File, Genre
 from ..Tasks.taskmanager import TaskManager
-from dbmodels import DBAlbum, DBFile, DBGenre, DBLabel, DBPerson, DBTrack, DBUser, DBStat
-from Exceptions import InvalidValueError
+from dbmodels import (
+    DBAlbum,
+    DBFile,
+    DBGenre,
+    DBLabel,
+    DBPerson,
+    DBTrack,
+    DBUser,
+    DBStat,
+)
+from exceptions import InvalidValueError
 
 #################################################################################
 

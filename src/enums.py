@@ -15,7 +15,7 @@
 
 """Enum repository for the application."""
 
-from enum import StrEnum, IntEnum, auto
+from enum import IntFlag, StrEnum, IntEnum, auto
 
 
 class UserRole(StrEnum):
@@ -88,21 +88,22 @@ class CodecPriority(IntEnum):
     UNKNOWN = 0
 
 
-class Stage(StrEnum):
+class Stage(IntFlag):
     """Stages of processing."""
 
-    NONE = auto()
-    IMPORTED = auto()
-    FINGERPRINTED = auto()
-    TAGS_RETRIEVED = auto()
-    ART_RETRIEVED = (
-        auto()
-    )  # TODO: is Album/artist related, but album is needed for file
-    LYRICS_RETRIEVED = auto()  # TODO: is track related, but needed for file...
-    TRIMMED = auto()
-    NORMALIZED = auto()
-    TAGGED = auto()
-    SORTED = auto()
+    NONE = 0
+    IMPORTED = 1
+    PARSED = 2
+    FINGERPRINTED = 4
+    TAGS_RETRIEVED = 8
+    DEDUPED = 16
+    TRIMMED = 32
+    NORMALIZED = 64
+    CONVERTED = 128
+    ART_RETRIEVED = 256  # Album art is needed for file
+    LYRICS_RETRIEVED = 512  # Track Lyrics are needed for file
+    TAGGED = 1024
+    SORTED = 2048
 
 
 class ArtType(StrEnum):

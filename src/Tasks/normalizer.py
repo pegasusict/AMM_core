@@ -17,7 +17,9 @@
 
 from pathlib import Path
 
-from ..dbmodels import Stage
+from ..dbmodels import DBFile
+
+from ..enums import Stage
 from .task import Task, TaskType
 from ..Singletons.config import Config
 from ..Singletons.database import DB
@@ -48,13 +50,17 @@ class Normalizer(Task):
         """
         Runs the task.
         """
+        session = self.db.get_session()
         for file_id, path in self.batch:  # type: ignore
             try:
                 file_type = get_file_type(Path(path))
                 normalize(file=Path(path), file_type=str(file_type))
-                self.db.set_file_stage(file_id, Stage.NORMALIZED)
+                dbfile = session.get_one(DBFile, DBFile.id == file_id)
+                dbfile.stage = int(Stage(dbfile.stage) | Stage.NORMALIZED)
             except Exception as e:
                 self.logger.error(f"Error processing file {path}: {e}")
                 continue
 
             self.set_progress()
+        session.commit()
+        session.close()

@@ -18,7 +18,7 @@
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
-from GraphQL.GraphQL import GraphQL
+from GraphQL.graphql import GraphQL
 from .Tasks.taskmanager import TaskManager
 
 app = FastAPI()

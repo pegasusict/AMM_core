@@ -19,11 +19,12 @@ It uses the mutagen library to read and write metadata to media files.
 
 from pathlib import Path
 
-from ..Exceptions import DatabaseError
-from ..dbmodels import Stage
+from ..exceptions import DatabaseError
+from ..enums import Stage
+from ..dbmodels import DBFile
 from .task import Task, TaskType
 from ..Singletons.config import Config
-from ..Singletons.database import DB
+from ..Singletons.database import DB, set_fields
 from ..Singletons.logger import Logger
 from ..AudioUtils.media_parser import MediaParser
 
@@ -33,7 +34,7 @@ class Parser(Task):
     Parses media files in a batch, extracts metadata, and registers them in the database.
     """
 
-    def __init__(self, config: Config, batch: list[Path]):
+    def __init__(self, config: Config, batch: dict[int, Path]):
         super().__init__(config=config, task_type=TaskType.PARSER)
         self.config = config
         self.batch = batch
@@ -46,26 +47,24 @@ class Parser(Task):
         Parses all files in the batch, extracts metadata, and registers them in the database.
         Skips files that are already imported.
         """
-        for file_path in self.batch:  # type: ignore
+        session = self.db.get_session()
+        for file_id, file_path in self.batch:  # type: ignore
             try:
-                if self.db.file_exists(str(file_path)):
-                    self.logger.info(f"Skipping already imported file: {file_path}")
-                    continue
+                metadata = self.parser.parse(Path(file_path))
 
-                metadata = self.parser.parse(file_path)  # type: ignore
-                db_file = self.db.register_file(str(file_path), metadata).first()  # type: ignore
-
+                db_file = session.get_one(DBFile, DBFile.id == file_id)
                 if db_file is None:
                     raise DatabaseError("DB did not return a valid file object.")
 
-                file_id = db_file.get("file_id")
-                if file_id is not None:
-                    self.db.set_file_stage(file_id, Stage.IMPORTED)
-                else:
-                    raise DatabaseError("Missing file_id after saving to the database.")
+                set_fields(metadata, db_file)  # type: ignore
+                db_file.stage = int(Stage(db_file.stage) | Stage.PARSED)
+                session.add(db_file)
+                self.logger.debug(f"Parsed file {file_path}")
 
             except Exception as e:
                 self.logger.error(f"Error processing file {file_path}: {e}")
                 continue
 
             self.set_progress()
+        session.commit()
+        session.close()

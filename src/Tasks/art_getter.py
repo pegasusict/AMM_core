@@ -17,9 +17,9 @@
 import urllib.request
 import re
 
-from ..Exceptions import InvalidURLError
+from ..exceptions import InvalidURLError
 from task import Task, TaskStatus
-from Enums import TaskType, ArtType
+from enums import TaskType, ArtType
 from Singletons.config import Config
 from Singletons.logger import Logger
 from Singletons.database import DB

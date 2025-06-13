@@ -18,7 +18,7 @@
 from pathlib import Path
 from ..dbmodels import DBFile, Track
 from ..Singletons.logger import Logger
-from ..Enums import CodecPriority, TaskType
+from ..enums import CodecPriority, Stage, TaskType
 from ..Singletons.config import Config
 from ..Singletons.database import DB
 from .task import Task
@@ -49,12 +49,14 @@ class Deduper(Task):
             track = Track(track_id)
             if len(track.files) > 1:
                 # Sort files by bitrate and codec
-                track.files.sort(key=lambda f: (CodecPriority[f.codec], f.bitrate), reverse=True)
+                track.files.sort(
+                    key=lambda f: (CodecPriority[f.codec], f.bitrate), reverse=True
+                )
                 # Keep the highest quality file
                 # best_file = track.files[0]
                 # Remove lower quality files
                 for file in track.files[1:]:
-                    path = Path(file.path)
+                    path = Path(file.file_path)
                     self.logger.info(f"Removing duplicate file: {path}")
                     path.unlink()
                     session = self.db.get_session()
@@ -65,6 +67,14 @@ class Deduper(Task):
                     session.commit()
                     self.logger.info(f"Removed {file.id} from database")
                     session.close()
+                file = track.files[0]
+                session = self.db.get_session()
+                dbfile = session.get(DBFile, DBFile.id == file.id)
+                dbfile.stage = Stage(dbfile.stage) | Stage.DEDUPED  # type: ignore
+                session.add(dbfile)
+                session.commit()
+                session.close()
+                self.logger.info(f"Set stage DEDUPED for file {file.id}")
             else:
                 self.logger.info(f"Track {track_id} has no duplicates to remove")
             self.set_progress()

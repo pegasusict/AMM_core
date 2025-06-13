@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Optional, Protocol, Any
 from os import getenv
 
-from ..Exceptions import FileError, OperationFailedError
+from ..exceptions import FileError, OperationFailedError
 
 
 class AcoustIDClient(Protocol):
@@ -118,7 +118,9 @@ class AcoustID:
     async def _lookup_metadata(self) -> None:
         try:
             response = await self.acoustid.lookup(
-                self.api_key, self.fingerprint, self.duration
+                self.api_key,
+                self.fingerprint,
+                self.duration,  # type: ignore
             )  # type: ignore
             score, mbid, title, artist = self.acoustid.parse_lookup_result(response)
         except Exception as e:

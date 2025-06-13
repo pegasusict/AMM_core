@@ -17,10 +17,11 @@
 
 from pathlib import Path
 
-from ..dbmodels import DBFile, Stage
-from task import Task, TaskType
+from ..dbmodels import DBFile
+from ..enums import TaskType, Stage
+from task import Task
 from Singletons.config import Config
-from Singletons.database import DB
+from Singletons.database import DB, set_fields
 from Singletons.logger import Logger
 from AudioUtils.acoustid import AcoustID
 
@@ -44,11 +45,11 @@ class FingerPrinter(Task):
 
     async def run(self) -> None:
         """Runs the fingerprinting task asynchronously."""
+        session = self.db.get_session()
         for file_id in self.batch:
             try:
-                session = self.db.get_session()
                 file = session.get_one(DBFile, id == file_id)
-                file_path = Path(file.path)
+                file_path = Path(file.file_path)
                 if not file_path.exists():
                     self.logger.error(f"File {file_path} does not exist.")
                     continue
@@ -57,8 +58,8 @@ class FingerPrinter(Task):
                 self.logger.error(f"Error processing file {file_id}: {e}")
                 continue
 
-            self.db.update_file(str(file_path), metadata)  # type: ignore
-            self.db.set_file_stage(file_id, Stage.FINGERPRINTED)
+            set_fields(metadata, file)
+            file.stage = int(Stage(file.stage) | Stage.FINGERPRINTED)
             self.set_progress()
 
     async def process_file(self, path: Path) -> dict[str, str | None]:

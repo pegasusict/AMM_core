@@ -18,10 +18,11 @@ from pathlib import Path
 
 from pydub import AudioSegment
 
+from ..Singletons.database import DB
 from Singletons.logger import Logger
 from Singletons.config import Config
-from ..dbmodels import Track
-from ..Enums import Codec
+from ..dbmodels import DBFile, Track
+from ..enums import Codec, Stage
 from task import Task, TaskType
 
 
@@ -38,6 +39,9 @@ class Converter(Task):
         self.hq_format = config.get("convert", "hqformat", Codec.FLAC.value).lower()  # type: ignore
 
     def run(self):
+        """Run the conversion process."""
+        db = DB()
+        session = db.get_session()
         for track_id in self.batch:  # type: ignore
             track = Track(track_id)  # type: ignore
             if not track.files:
@@ -45,8 +49,15 @@ class Converter(Task):
                 self.set_progress()
                 continue
 
-            self.convert_file(Path(track.files[0].path), track.files[0].codec)
+            file = track.files[0]
+            self.convert_file(Path(file.file_path), file.codec)
+            dbfile = session.get_one(DBFile, DBFile.id == file.id)
+            dbfile.stage = int(Stage(dbfile.stage) | Stage.CONVERTED)
+            session.add(dbfile)
             self.set_progress()
+        session.commit()
+        session.close()
+        self.set_end_time
 
     def convert_file(self, input_path: Path, codec: str) -> None:
         if not input_path.is_file():
@@ -55,7 +66,9 @@ class Converter(Task):
 
         target_format = self.get_target_format(codec)
         if not target_format:
-            self.logger.warning(f"Skipping {input_path}: no target format for codec {codec}")
+            self.logger.warning(
+                f"Skipping {input_path}: no target format for codec {codec}"
+            )
             return
 
         output_path = input_path.with_suffix(f".{target_format}")
@@ -64,7 +77,9 @@ class Converter(Task):
             return
 
         try:
-            audio = AudioSegment.from_file(input_path, format=input_path.suffix[1:].lower())
+            audio = AudioSegment.from_file(
+                input_path, format=input_path.suffix[1:].lower()
+            )
             audio.export(output_path, format=target_format)
             self.logger.info(f"Converted: {input_path} -> {output_path}")
             input_path.unlink(missing_ok=True)

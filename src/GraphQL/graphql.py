@@ -22,7 +22,7 @@ import uvicorn
 from fastapi import FastAPI
 from strawberry.fastapi import GraphQLRouter
 
-from Mapping import Query, Mutation
+from GraphQL.mapping import Query, Mutation
 
 
 class GraphQL:

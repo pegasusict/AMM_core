@@ -15,14 +15,14 @@
 
 """Lyrics Getter Task."""
 
-from sqlmodel import select
-from ..Exceptions import DatabaseError
+from ..exceptions import DatabaseError
 from task import Task, TaskType
 from Singletons.config import Config
 from Singletons.database import DB
 from Singletons.logger import Logger
 from AudioUtils.lyrics_getter import LyricsGetter as Lyrics
-from dbmodels import DBTrackLyric, DBTrack, Stage
+from dbmodels import DBTrackLyric, DBTrack, DBFile
+from ..enums import Stage
 
 
 class LyricsGetter(Task):
@@ -52,21 +52,25 @@ class LyricsGetter(Task):
         It parses the media files in the import path and extracts metadata from them.
         """
         try:
+            session = self.db.get_session()
             for track_id in self.batch:
                 track = DBTrack(id=int(track_id))
                 track_title = track.title
                 track_artist = track.performers[0].full_name
                 lyrics = Lyrics.get_lyrics(artist=track_artist, title=track_title)  # type: ignore
-                session = self.db.get_session()
-                get_track = select(DBTrack).where(DBTrack.id == int(track_id))
-                if track := session.exec(get_track).first() is None:
+
+                track = session.get_one(DBTrack, DBTrack.id == int(track_id))
+                if track is None:
                     raise DatabaseError(f"Incorrect track id: {track_id}")
                 obj = DBTrackLyric(Lyric=lyrics, track=track)  # type: ignore
                 session.add(obj)
-                session.commit()
+
                 for file_id in track.files:  # type: ignore
-                    self.db.set_file_stage(file_id, Stage.LYRICS_RETRIEVED)
+                    dbfile = session.get_one(DBFile, DBFile.id == file_id)
+                    dbfile.stage = int(Stage(dbfile.stage) | Stage.LYRICS_RETRIEVED)
+                    session.add(dbfile)
+                self.set_progress()
+            session.commit()
+            session.close()
         except Exception as e:
             self.logger.error(f"Error processing track {track_id}: {e}")  # type: ignore
-
-        self.set_progress()

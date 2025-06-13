@@ -23,7 +23,7 @@ from pydub import AudioSegment
 from Singletons.logger import Logger
 from Singletons.config import Config
 from ..dbmodels import Track
-from ..Enums import Codec
+from ..enums import Codec
 from task import Task, TaskType
 
 
@@ -52,7 +52,7 @@ class Exporter(Task):
         Path.mkdir(self.export_dir, exist_ok=True, parents=True)
         for track_id in self.batch:
             track = Track(track_id=track_id)
-            input_path = Path(track.files[0].path)
+            input_path = Path(track.files[0].file_path)
 
             if not input_path.is_file():
                 self.logger.info(f"Skipping {input_path}: File does not exist")

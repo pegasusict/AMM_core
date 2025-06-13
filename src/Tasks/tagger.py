@@ -20,11 +20,12 @@ from pathlib import Path
 
 from sqlmodel import select
 
-from task import Task, TaskType
+from task import Task
+from enums import TaskType, Stage
 from Singletons.config import Config
 from Singletons.database import DB
 from Singletons.logger import Logger
-from dbmodels import DBTrack, Track
+from dbmodels import DBFile, DBTrack, Track
 from AudioUtils.tagger import Tagger as Tag
 from AudioUtils.media_parser import get_file_type
 
@@ -47,9 +48,10 @@ class Tagger(Task):
 
     def run(self) -> None:
         """Runs the Tagger task."""
+        session = self.db.get_session()
         for track_id in self.batch:  # type: ignore
             # Parse the media file
-            file = "Unknown file"
+            file_path = "Unknown file"
             try:
                 # get all tags for said track
                 # Ensure track_id is an int
@@ -63,16 +65,23 @@ class Tagger(Task):
                 track.__dict__.update(db_track.__dict__)
                 tags = track.get_tags()
                 # get file associated with track
-                file = track.files[0].path
-                if not file:
+                file = track.files[0]
+                file_id = file.id
+                file_path = Path(file.file_path)
+                if not file_path:
                     self.logger.error(f"Track {track_id} has no associated file.")
                     continue
-                file_type = get_file_type(Path(file))
+                file_type = get_file_type(Path(file_path))
                 # write all tags to file
-                tagger = Tag(Path(file), str(file_type))
+                tagger = Tag(Path(file_path), str(file_type))
                 tagger.set_tags(tags)
+                dbfile = session.get_one(DBFile, DBFile.id == file_id)
+                dbfile.stage = int(Stage(dbfile.stage) | Stage.TAGGED)
+                session.add(dbfile)
             except Exception as e:
-                self.logger.error(f"Error processing file {file}: {e}")
+                self.logger.error(f"Error processing file {file_path}: {e}")
                 raise
 
             self.set_progress()
+        session.commit()
+        session.close()

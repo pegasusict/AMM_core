@@ -1,3 +1,20 @@
+# -*- coding: utf-8 -*-
+#  Copyleft 2021-2025 Mattijs Snepvangers.
+#  This file is part of Audiophiles' Music Manager, hereafter named AMM.
+#
+#  AMM is free software: you can redistribute it and/or modify  it under the terms of the
+#   GNU General Public License as published by  the Free Software Foundation, either version 3
+#   of the License or any later version.
+#
+#  AMM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+#   PURPOSE.  See the GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
+
+"""This module contains the AcoustID HTTP client."""
+
 import subprocess
 import json
 import aiohttp
@@ -5,7 +22,17 @@ from pathlib import Path
 
 
 class AcoustIDHttpClient:
+    """A class to interact with the AcoustID API."""
+
     async def fingerprint_file(self, path: Path) -> tuple[int, str]:
+        """Generates a fingerprint for given file path.
+
+        Args:
+            path (Path): file to be fingerprinted
+
+        Returns:
+            tuple[int, str]: duration in seconds and fingerprint
+        """
         result = subprocess.run(
             ["fpcalc", "-json", str(path)],
             stdout=subprocess.PIPE,
@@ -34,10 +61,10 @@ class AcoustIDHttpClient:
         try:
             result = response["results"][0]
             score = str(result["score"])
-            recording = result["recordings"][0]
+            recording = result["recordings"][0]  # TODO: handle multiple results, keep the first for now...
             mbid = recording["id"]
             title = recording["title"]
-            artist = recording["artists"][0]["name"]
-            return score, mbid, title, artist
+            artists = recording["artists"]
+            return score, mbid, title, artists
         except (KeyError, IndexError):
             return "", "", "", ""

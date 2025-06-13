@@ -18,7 +18,7 @@
 from pathlib import Path
 from pydub import AudioSegment
 
-from ..Exceptions import OperationFailedError
+from ..exceptions import OperationFailedError
 from ..dbmodels import Codec
 
 

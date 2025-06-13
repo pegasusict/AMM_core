@@ -20,7 +20,7 @@ from typing import List
 import strawberry
 from pydantic import EmailStr
 
-from ..Enums import Stage, UserRole, Codec
+from ..enums import Stage, UserRole, Codec
 
 
 @strawberry.type()

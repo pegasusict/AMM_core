@@ -20,8 +20,8 @@ from sqlmodel import select
 from .taskmanager import TaskManager
 
 from .deduper import Deduper
-from ..Exceptions import DatabaseError
-from ..Enums import TaskType
+from ..exceptions import DatabaseError
+from ..enums import TaskType
 from ..Singletons.logger import Logger
 from ..Singletons.config import Config
 from ..Singletons.database import DB

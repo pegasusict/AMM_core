@@ -13,21 +13,3 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
-from art_getter import ArtGetter
-from fingerprinter import FingerPrinter
-from importer import Importer
-from lyrics_getter import LyricsGetter
-from normalizer import Normalizer
-from parser import Parser
-from tagger import Tagger
-
-
-__All__ = {  # type: ignore
-    "ArtGetter": ArtGetter,
-    "FingerPrinter": FingerPrinter,
-    "Importer": Importer,
-    "LyricsGetter": LyricsGetter,
-    "Normalizer": Normalizer,
-    "Parser": Parser,
-    "Tagger": Tagger,
-}

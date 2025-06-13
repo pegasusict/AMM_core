@@ -25,15 +25,14 @@ from sqlmodel import SQLModel, Field, Relationship, String, select
 from sqlalchemy.orm import selectinload
 
 from mixins.autofetch import AutoFetchable
-from Enums import (
+from enums import (
     UserRole,
     TaskType,
     TaskStatus,
     Codec,
-    Stage,
 )
 from .Tasks.art_getter import ArtType
-from .Exceptions import InvalidValueError
+from .exceptions import InvalidValueError
 from .Tasks.task import Task
 from .Singletons.database import DB
 
@@ -53,7 +52,9 @@ class DBUser(SQLModel, table=True):
     date_of_birth: dt.datetime = Field(default="")
     is_active: bool = Field(default=True)
     role: UserRole = Field(default=UserRole.USER.value)  # Default role is USER
-    created_at: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.timezone.utc))
+    created_at: dt.datetime = Field(
+        default_factory=lambda: dt.datetime.now(dt.timezone.utc)
+    )
     updated_at: dt.datetime = Field(
         default_factory=lambda: dt.datetime.now(dt.timezone.utc),
         sa_column_kwargs={"onupdate": lambda: dt.datetime.now(dt.timezone.utc)},
@@ -137,8 +138,8 @@ class DBTask(AutoFetchable, SQLModel, table=True):
             self._handle_track_task(task)
         elif task.task_type in self._file_id_tasks():
             self._handle_file_id_task(task)
-        elif task.task_type in self._file_path_tasks():
-            self._handle_file_path_task(task)
+        elif task.task_type in self._file_dict_tasks():
+            self._handle_file_dict_task(task)
 
     # ---------------------------
     # Private Helper Methods
@@ -185,10 +186,10 @@ class DBTask(AutoFetchable, SQLModel, table=True):
             for file_id in task.batch  # type: ignore
         ]
 
-    def _handle_file_path_task(self, task: Task) -> None:
+    def _handle_file_dict_task(self, task: Task) -> None:
         self.batch_files = [
-            DBFile(file_path=path)  # type: ignore
-            for path in task.batch  # type: ignore
+            DBFile(id=int(file_id))
+            for file_id, _ in task.batch  # type: ignore
         ]
 
     # ---------------------------
@@ -213,7 +214,7 @@ class DBTask(AutoFetchable, SQLModel, table=True):
         }
 
     @staticmethod
-    def _file_path_tasks() -> set:
+    def _file_dict_tasks() -> set:
         return {
             TaskType.TRIMMER,
             TaskType.PARSER,
@@ -221,7 +222,14 @@ class DBTask(AutoFetchable, SQLModel, table=True):
 
     def get_batch(
         self,
-    ) -> List[str] | List[int] | List[Path] | dict[str, ArtType] | dict[int, Codec] | None:
+    ) -> (
+        List[str]
+        | List[int]
+        | List[Path]
+        | dict[str, ArtType]
+        | dict[int, Codec]
+        | None
+    ):
         """Gets the correctly formatted Batch List/Dict."""
 
         def is_populated_list(subject: List[Any]) -> bool:
@@ -230,31 +238,58 @@ class DBTask(AutoFetchable, SQLModel, table=True):
         def get_ids(items: list[Any]):
             return [item.id for item in items]
 
-        def get_paths(files: list[Any]):
-            return [file.get_path() for file in files]
-
         def get_art_batch():
             result = {}
             if is_populated_list(self.batch_albums):
-                result.update({album.mbid: ArtType.ALBUM for album in self.batch_albums})
+                result.update(
+                    {album.mbid: ArtType.ALBUM for album in self.batch_albums}
+                )
             if is_populated_list(self.batch_persons):
-                result.update({person.mbid: ArtType.ARTIST for person in self.batch_persons})
+                result.update(
+                    {person.mbid: ArtType.ARTIST for person in self.batch_persons}
+                )
+            if is_populated_list(self.batch_labels):
+                result.update(
+                    {label.mbid: ArtType.LABEL for label in self.batch_labels}
+                )
             return result if result else None
 
         def get_codec_batch():
-            return {file.file.id: file.codec for file in self.batch_convert} if is_populated_list(self.batch_convert) else None
+            return (
+                {file.file.id: file.codec for file in self.batch_convert}
+                if is_populated_list(self.batch_convert)
+                else None
+            )
 
         match self.task_type:
             case TaskType.ART_GETTER:
                 return get_art_batch()
             case TaskType.CONVERTER:
                 return get_codec_batch()  # type: ignore
-            case TaskType.TRIMMER | TaskType.PARSER:
-                return get_paths(self.batch_files) if is_populated_list(self.batch_files) else None  # type: ignore
-            case TaskType.FINGERPRINTER | TaskType.NORMALIZER | TaskType.EXPORTER:
-                return get_ids(self.batch_files) if is_populated_list(self.batch_files) else None  # type: ignore
-            case TaskType.TAGGER | TaskType.EXPORTER | TaskType.LYRICS_GETTER | TaskType.DEDUPER | TaskType.SORTER:
-                return get_ids(self.batch_tracks) if is_populated_list(self.batch_tracks) else None  # type: ignore
+            case (
+                TaskType.FINGERPRINTER
+                | TaskType.NORMALIZER
+                | TaskType.EXPORTER
+                | TaskType.TRIMMER
+                | TaskType.PARSER
+            ):
+                return (
+                    get_ids(self.batch_files)
+                    if is_populated_list(self.batch_files)
+                    else None
+                )  # type: ignore
+            case (
+                TaskType.TAGGER
+                | TaskType.EXPORTER
+                | TaskType.LYRICS_GETTER
+                | TaskType.DEDUPER
+                | TaskType.SORTER
+            ):
+                return (
+                    get_ids(self.batch_tracks)
+                    if is_populated_list(self.batch_tracks)
+                    else None
+                )  # type: ignore
             case _:
                 return None
 
@@ -307,12 +342,12 @@ class DBFile(ItemBase, table=True):
     codec: Codec = Field(default=Codec.UNKNOWN)
     duration: int = Field(default=None)
     track: DBTrack = Relationship(back_populates="files")
-    track_id: int = Field(foreign_key="tracks.id")
+    track_id: int = Field(default=None, foreign_key="tracks.id")
     task: DBTask = Relationship(back_populates="batch_files")
-    task_id: int = Field(foreign_key="tasks.id")
-    stage: Stage = Field(default=Stage.NONE)
+    task_id: int = Field(default=None, foreign_key="tasks.id")
+    stage: int = Field(default=0)
     batch_convert: "DBFileToConvert" = Relationship(back_populates="file")
-    batch_id: int = Field(foreign_key="filestoconvert.id")
+    batch_id: int = Field(default=None, foreign_key="filestoconvert.id")
     file_path: str = Field(default=None, sa_column_kwargs={"unique": True})
 
 
@@ -352,7 +387,9 @@ class Track(BaseModel):
             ).first()
             session.close()
             if not trackdata:
-                raise InvalidValueError(f"Track with id {track_id} not found in the database.")
+                raise InvalidValueError(
+                    f"Track with id {track_id} not found in the database."
+                )
             for key, value in trackdata.__dict__.items():
                 setattr(self, key, value or None)
 
@@ -363,8 +400,12 @@ class Track(BaseModel):
 
         result["title"] = self.title
         result["subtitle"] = self.subtitle
-        result["artists"] = ",".join(map(str, [DBPerson(id=artist_id).full_name for artist_id in self.artists]))
-        result["albums"] = ",".join(map(str, [DBAlbum(id=album_id).title for album_id in self.albums]))
+        result["artists"] = ",".join(
+            map(str, [DBPerson(id=artist_id).full_name for artist_id in self.artists])
+        )
+        result["albums"] = ",".join(
+            map(str, [DBAlbum(id=album_id).title for album_id in self.albums])
+        )
         result["key"] = self.key
         result["genres"] = ",".join(map(str, self.genres))
         result["mbid"] = self.mbid
@@ -390,8 +431,14 @@ class Track(BaseModel):
         return {
             "title_sort": self.title_sort,
             "artist_sort": safe(getattr(artist, "sort_name", None), "[Unknown Artist]"),
-            "album_title_sort": safe(getattr(album, "title_sort", None), "[Unknown Album]"),
-            "year": str(safe(getattr(album, "release_date", None), "0000").year if album else "0000"),
+            "album_title_sort": safe(
+                getattr(album, "title_sort", None), "[Unknown Album]"
+            ),
+            "year": str(
+                safe(getattr(album, "release_date", None), "0000").year
+                if album
+                else "0000"
+            ),
             "disc_number": str(safe(getattr(album_track, "disc_number", None), 1)),
             "disc_count": str(safe(getattr(album, "disc_count", None), 1)),
             "track_count": str(safe(getattr(album, "track_count", None), 1)),
@@ -421,8 +468,12 @@ class DBTrack(ItemBase, table=True):
 
     __tablename__ = "tracks"  # type: ignore
 
-    composed: dt.date = Field(default=dt.date(0000, 1, 1), sa_column_kwargs={"nullable": False})
-    release_date: dt.date = Field(default=dt.date(0000, 1, 1), sa_column_kwargs={"nullable": False})
+    composed: dt.date = Field(
+        default=dt.date(0000, 1, 1), sa_column_kwargs={"nullable": False}
+    )
+    release_date: dt.date = Field(
+        default=dt.date(0000, 1, 1), sa_column_kwargs={"nullable": False}
+    )
     title: str = Field(default="")
     title_sort: str = Field(default="")
     subtitle: Optional[str] = Field(default=None)
@@ -449,7 +500,9 @@ class DBAlbum(ItemBase, table=True):
     title: str = Field(default="")
     title_sort: str = Field(default="")
     subtitle: Optional[str] = Field(default=None)
-    release_date: dt.date = Field(default=dt.date(0000, 1, 1), sa_column_kwargs={"nullable": False})
+    release_date: dt.date = Field(
+        default=dt.date(0000, 1, 1), sa_column_kwargs={"nullable": False}
+    )
     release_country: str = Field(default="")
     label: "DBLabel" = Relationship(back_populates="albums")
     album_tracks: List["DBAlbumTrack"] = Relationship(back_populates="album")
@@ -493,7 +546,9 @@ class DBPerson(ItemBase, table=True):
     nick_name: Optional[str] = Field(default=None)
     alias: Optional[str] = Field(default=None)
     date_of_birth: dt.date = Field(default=None, sa_column_kwargs={"nullable": True})
-    date_of_death: Optional[dt.date] = Field(default=None, sa_column_kwargs={"nullable": True})
+    date_of_death: Optional[dt.date] = Field(
+        default=None, sa_column_kwargs={"nullable": True}
+    )
     picture: "DBPicture" = Relationship(back_populates="person")
     performed_tracks: List["DBTrack"] = Relationship(back_populates="performers")
     conducted_tracks: List["DBTrack"] = Relationship(back_populates="conductors")
@@ -517,8 +572,12 @@ class DBLabel(ItemBase, table=True):
     name: str = Field(default="")
     mbid: str = Field(default="", sa_type=String, unique=True)
     founded: dt.date = Field(default=None, sa_column_kwargs={"nullable": True})
-    defunct: Optional[dt.date] = Field(default=None, sa_column_kwargs={"nullable": True})
-    description: Optional[str] = Field(default=None, sa_column_kwargs={"nullable": True})
+    defunct: Optional[dt.date] = Field(
+        default=None, sa_column_kwargs={"nullable": True}
+    )
+    description: Optional[str] = Field(
+        default=None, sa_column_kwargs={"nullable": True}
+    )
     picture: "DBPicture" = Relationship(back_populates="label")
     albums: List["DBAlbum"] = Relationship(back_populates="label")
     owner: "DBPerson" = Relationship(back_populates="labels")

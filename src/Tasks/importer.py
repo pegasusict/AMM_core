@@ -17,14 +17,16 @@
 and importing files based on configured extensions, with optional cleanup."""
 
 from pathlib import Path
-from typing import List, Type
+from typing import List
 from dataclasses import dataclass
 
+from ..Singletons.database import DB
 from Singletons.stack import Stack
 from Singletons.logger import Logger
 from Singletons.config import Config
+from ..dbmodels import DBFile
 from task import Task
-from Enums import TaskType
+from enums import Stage, TaskType
 
 
 @dataclass
@@ -97,8 +99,6 @@ class Importer(Task):
     def __init__(
         self,
         config: Config,
-        task_manager_class: Type = None,  # type: ignore
-        parser_class: Type = None,  # type: ignore
         dry_run: bool = False,
     ):
         super().__init__(config=config, task_type=TaskType.IMPORTER)
@@ -116,13 +116,6 @@ class Importer(Task):
         ):
             self.stack.add_counter(counter)
 
-        # Dependency-injected components for testability
-        from taskmanager import TaskManager
-        from parser import Parser
-
-        self.TaskManager = task_manager_class or TaskManager
-        self.Parser = parser_class or Parser
-
     def run(self):
         if not self.config_data.base_path.exists():
             self.logger.error(f"Base path {self.config_data.base_path} does not exist.")
@@ -134,8 +127,17 @@ class Importer(Task):
         scanner.scan(self.config_data.base_path)
 
         if scanner.files and not self.config_data.dry_run:
-            tm = self.TaskManager()
-            tm.start_task(self.Parser, TaskType.PARSER, scanner.files)
+            # store files in database, ready for parsing
+            db = DB()
+            session = db.get_session()
+            for file_path in scanner.files:
+                self.stack.add_counter("imported_files")
+                db_file = DBFile(file_path=str(file_path), stage=Stage.IMPORTED)
+                session.add(db_file)
+            session.commit()
+            session.close()
+            self.logger.info(f"Imported {scanner.files} files.")
+
         elif self.config_data.dry_run:
             self.logger.info(
                 f"[Dry-run] Found {len(scanner.files)} files for parsing. No changes made."

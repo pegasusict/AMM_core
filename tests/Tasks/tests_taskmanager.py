@@ -3,7 +3,7 @@ import time
 # import pytest
 from Tasks.taskmanager import TaskManager
 from Tasks.task import Task
-from Enums import TaskType, TaskStatus
+from enums import TaskType, TaskStatus
 # from Singletons.config import Config
 
 

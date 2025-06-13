@@ -22,10 +22,10 @@ It is also used to retrieve the cover art for albums and artists.
 import musicbrainzngs
 from musicbrainzngs import NetworkError, WebServiceError, ResponseError
 
-from Exceptions import InvalidValueError
+from exceptions import InvalidValueError
 from Singletons.config import Config
 from Singletons.logger import Logger
-from Enums import MBQueryType
+from enums import MBQueryType
 
 
 class MusicBrainzClient:

@@ -17,10 +17,11 @@
 import unicodedata
 from pathlib import Path
 
-from ..dbmodels import Track
+from ..Singletons.database import DB
+from ..dbmodels import DBFile, Track
 from task import Task
 from ..Singletons.config import Config
-from ..Enums import TaskType
+from ..enums import TaskType, Stage
 from ..Singletons.logger import Logger
 
 
@@ -41,6 +42,7 @@ class Sorter(Task):
         self.config = config
         self.batch = batch  # type: ignore
         self.logger = Logger(config)
+        self.db = DB()
 
     def create_index_symbol(self, artist_sort: str) -> str:
         """
@@ -56,7 +58,9 @@ class Sorter(Task):
         # Normalize to NFD (decomposes characters)
         norm_initial = unicodedata.normalize("NFD", initial)
         # Remove diacritical marks (category Mn = "Mark, Nonspacing")
-        initial = "".join(char for char in norm_initial if unicodedata.category(char) != "Mn")
+        initial = "".join(
+            char for char in norm_initial if unicodedata.category(char) != "Mn"
+        )
         # make sure initial is an ascii letter without accents
         if not initial.isascii() or not initial.isalpha():
             return "0-9"
@@ -108,19 +112,24 @@ class Sorter(Task):
 
     def run(self):
         """Runs The Sorter Task."""
+        session = self.db.get_session()
         for track_id in self.batch:
             track = Track(track_id=track_id)
             if not track.files:
                 self.logger.info(f"Skipping track {track_id}: No files to sort")
                 continue
-            input_path = Path(track.files[0].path)
+            file = track.files[0]
+            file_id = file.id
+            input_path = Path(file.file_path)
             if not input_path.is_file():
                 self.logger.info(f"Skipping {input_path}: File does not exist")
                 continue
             # Get metadata needed for sorting
             metadata = track.get_sortdata()
             if not metadata:
-                self.logger.info(f"Skipping {input_path}: No metadata available for sorting")
+                self.logger.info(
+                    f"Skipping {input_path}: No metadata available for sorting"
+                )
                 continue
             # Determine the target directory based on metadata and configuration
             base_path = Path(self.config.get_path("base"))
@@ -152,12 +161,19 @@ class Sorter(Task):
             # Create the target directory if it doesn't exist
             target_dir.mkdir(parents=True, exist_ok=True)
             # Construct the target file path
-            target_file = (f"{disc_number}{track_number} {artist_sort} - {track_title} [{bitrate}] [{duration}].mp3").strip()
+            target_file = (
+                f"{disc_number}{track_number} {artist_sort} - {track_title} [{bitrate}] [{duration}].mp3"
+            ).strip()
             target_file = target_dir / self.clean_string(target_file)
             # Move the file to the target directory
             try:
                 input_path.rename(target_file)
                 self.logger.info(f"Moved {input_path} to {target_file}")
+                db_file = session.get_one(DBFile, DBFile.id == file_id)
+                db_file.stage = int(Stage(db_file.stage) | Stage.SORTED)
+                session.add(db_file)
             except Exception as e:
                 self.logger.error(f"Failed to move {input_path} to {target_file}: {e}")
             self.set_progress()
+        session.commit()
+        session.close()

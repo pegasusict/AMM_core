@@ -26,21 +26,35 @@ from typing import Callable, Optional
 from dbmodels import Codec
 
 from ..Singletons.logger import Logger
-from ..Enums import TaskType, TaskStatus, ArtType
+from ..enums import Stage, TaskType, TaskStatus, ArtType
 from ..Singletons.config import Config
 
 
 class Task:
     """Base class for asynchronous tasks managed by TaskManager."""
 
-    batch: list[str] | list[int] | list[Path] | dict[str, ArtType] | dict[int, Codec] | None = None
+    batch: (
+        list[str]
+        | list[int]
+        | list[Path]
+        | dict[str, ArtType]
+        | dict[int, Codec]
+        | dict[int, Path]
+        | None
+    ) = None
 
     def __init__(
         self,
         *,
         config: Config,
         task_type: TaskType = TaskType.CUSTOM,
-        batch: list[str] | list[int] | list[Path] | dict[str, ArtType] | dict[int, Codec] | None = None,
+        batch: list[str]
+        | list[int]
+        | list[Path]
+        | dict[str, ArtType]
+        | dict[int, Codec]
+        | dict[int, Path]
+        | None = None,
         **kwargs,
     ):
         self.config = config
@@ -95,30 +109,32 @@ class Task:
         return self._start_time
 
     @start_time.setter
-    def start_time(self, value: float | None):
-        if value is None:
-            value = time.time()
-        elif not isinstance(value, (int, float)):
+    def start_time(self, value: float) -> None:
+        if not isinstance(value, (int, float)):
             raise ValueError("start_time must be a float or None")
         else:
             if value < 0:
                 raise ValueError("start_time cannot be negative")
         self._start_time = float(value)
 
+    def set_start_time(self) -> None:
+        self._start_time = time.time()
+
     @property
     def end_time(self) -> float:
         return self._end_time
 
     @end_time.setter
-    def end_time(self, value: float | None):
-        if value is None:
-            value = time.time()
-        elif not isinstance(value, (int, float)):
+    def end_time(self, value: float) -> None:
+        if not isinstance(value, (int, float)):
             raise ValueError("end_time must be a float or None")
         else:
             if value < 0:
                 raise ValueError("end_time cannot be negative")
         self._end_time = float(value)
+
+    def set_end_time(self) -> None:
+        self._end_time = time.time()
 
     @property
     def duration(self) -> float:
@@ -161,6 +177,11 @@ class Task:
     @property
     def target(self) -> Optional[Callable]:
         return self._target
+
+    @property
+    def stage_flag(self) -> Stage:
+        """Returns the processing Stage this task completes. Override in subclasses."""
+        return Stage.NONE
 
     @target.setter
     def target(self, value: Optional[Callable]):

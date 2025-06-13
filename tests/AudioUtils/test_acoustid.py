@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, Mock
 
 from AudioUtils.acoustid import AcoustID
-from Exceptions import FileError, OperationFailedError
+from exceptions import FileError, OperationFailedError
 
 
 @pytest.fixture
