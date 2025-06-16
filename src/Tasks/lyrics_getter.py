@@ -45,6 +45,7 @@ class LyricsGetter(Task):
         self.db = DB()
         self.logger = Logger(config)
         self.lyrics_getter = Lyrics()
+        self.stage = Stage.LYRICS_RETRIEVED
 
     def run(self) -> None:
         """
@@ -65,10 +66,8 @@ class LyricsGetter(Task):
                 obj = DBTrackLyric(Lyric=lyrics, track=track)  # type: ignore
                 session.add(obj)
 
-                for file_id in track.files:  # type: ignore
-                    dbfile = session.get_one(DBFile, DBFile.id == file_id)
-                    dbfile.stage = int(Stage(dbfile.stage) | Stage.LYRICS_RETRIEVED)
-                    session.add(dbfile)
+                for file in track.files:  # type: ignore
+                    self.update_file_stage(file.id, session)
                 self.set_progress()
             session.commit()
             session.close()

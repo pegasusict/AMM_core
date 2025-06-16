@@ -25,11 +25,12 @@ from ..exceptions import FileError, OperationFailedError
 class AcoustIDClient(Protocol):
     async def fingerprint_file(self, path: Path) -> tuple[int, str]:
         """Generates an AcoustID fingerprint."""
+        ...
 
     async def lookup(self, api_key: str, fingerprint: str, duration: int) -> Any:
         """Looks up metadata using AcoustID API."""
 
-    def parse_lookup_result(self, response: Any) -> tuple[str, str, str, str]:
+    def parse_lookup_result(self, response: Any) -> tuple[str, str, str, dict] | None:
         """Parses JSON response into relevant fields."""
 
 
@@ -44,6 +45,7 @@ class TaggerProtocol(Protocol):
 class ParserProtocol(Protocol):
     def get_duration(self, path: Path) -> int:
         """Gets duration from file metadata."""
+        ...
 
 
 class LoggerProtocol(Protocol):
@@ -97,8 +99,7 @@ class AcoustID:
         self.log.debug(f"Validated extension for {self.path}")
 
     async def _try_get_metadata_from_tags(self) -> bool:
-        mbid = self.tagger.get_mbid()
-        if mbid:
+        if mbid := self.tagger.get_mbid():
             self.fileinfo["mbid"] = mbid
             self.log.info(f"MBID from tags: {mbid}")
             return True
@@ -110,8 +111,12 @@ class AcoustID:
             self.log.debug("Fingerprint already available from tags.")
             return
         try:
-            self.duration, self.fingerprint = await self.acoustid.fingerprint_file(self.path)
-            self.log.debug(f"Generated fingerprint: {self.fingerprint} (duration: {self.duration})")
+            self.duration, self.fingerprint = await self.acoustid.fingerprint_file(
+                self.path
+            )
+            self.log.debug(
+                f"Generated fingerprint: {self.fingerprint} (duration: {self.duration})"
+            )
         except Exception as e:
             self.log.error(f"Fingerprinting failed: {e}")
             raise OperationFailedError("Could not generate fingerprint.") from e
@@ -128,24 +133,13 @@ class AcoustID:
     async def _lookup_metadata(self) -> None:
         try:
             response = await self.acoustid.lookup(
-                self.api_key,
-                self.fingerprint,
+                self.api_key,  # type: ignore
+                self.fingerprint,  # type: ignore
                 self.duration,  # type: ignore
             )  # type: ignore
-            score, mbid, title, artist = self.acoustid.parse_lookup_result(response)
+            score, mbid, title, artists = self.acoustid.parse_lookup_result(response)  # type: ignore
         except Exception as e:
             raise OperationFailedError("Lookup failed.") from e
 
-        if not all([score, mbid, title, artist]):
+        if not all([score, mbid, title, artists]):
             raise OperationFailedError("Incomplete metadata from AcoustID.")
-
-        self.fileinfo.update(
-            {
-                "fingerprint": self.fingerprint,
-                "score": score,
-                "mbid": mbid,
-                "title": title,
-                "artist": artist,
-            }
-        )
-        self.log.info(f"Metadata fetched: {self.fileinfo}")

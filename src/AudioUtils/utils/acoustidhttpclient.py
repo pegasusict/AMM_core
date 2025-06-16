@@ -41,7 +41,7 @@ class AcoustIDHttpClient:
             check=True,
         )
         data = json.loads(result.stdout)
-        return data["duration"], data["fingerprint"]
+        return data["duration"] or 0, data["fingerprint"] or ""
 
     async def lookup(self, api_key: str, fingerprint: str, duration: int) -> dict:
         """Look up the information associated with the fingerprint
@@ -79,9 +79,13 @@ class AcoustIDHttpClient:
             tuple[str, str, str, dict]: score, mbid, title, artists
         """
         try:
-            result = response["results"][0]  # TODO: handle multiple results, keep the first for now...
+            result = response["results"][
+                0
+            ]  # TODO: handle multiple results, keep the first for now...
             score = str(result["score"])
-            recording = result["recordings"][0]  # TODO: handle multiple results, keep the first for now...
+            recording = result["recordings"][
+                0
+            ]  # TODO: handle multiple results, keep the first for now...
             mbid = recording["id"]
             title = recording["title"]
             artists = recording["artists"]

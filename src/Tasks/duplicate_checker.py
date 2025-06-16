@@ -58,7 +58,7 @@ class DuplicateChecker(Task):
             duplicates = session.exec(stmt).all()
         except Exception as e:
             self.logger.error(f"Error while checking for duplicates: {e}")
-            raise DatabaseError(f"Database error: {e}")
+            raise DatabaseError(f"Database error: {e}") from e
         if not duplicates:
             self.logger.info("No duplicate files found.")
             return

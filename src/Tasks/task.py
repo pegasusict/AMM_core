@@ -23,10 +23,10 @@ import multiprocessing as mproc
 from pathlib import Path
 from typing import Callable, Optional
 
-from dbmodels import Codec
+from dbmodels import DBFile
 
 from ..Singletons.logger import Logger
-from ..enums import Stage, TaskType, TaskStatus, ArtType
+from ..enums import Stage, TaskType, TaskStatus, ArtType, Codec
 from ..Singletons.config import Config
 
 
@@ -42,6 +42,7 @@ class Task:
         | dict[int, Path]
         | None
     ) = None
+    is_idle_task: bool = False
 
     def __init__(
         self,
@@ -62,6 +63,7 @@ class Task:
         self._task_type = task_type
         self._status = TaskStatus.PENDING
         self._old_status = TaskStatus.PENDING
+        self.stage = Stage.NONE
 
         self._task_id: str = ""
         self._start_time: float = 0.0
@@ -269,3 +271,9 @@ class Task:
     def join(self):
         if self.process:
             self.process.join()
+
+    def update_file_stage(self, file_id: int, session):
+        """Update the SORTED stage in the database for the file."""
+        db_file = session.get_one(DBFile, DBFile.id == file_id)
+        db_file.stage = int(Stage(db_file.stage) | self.stage)
+        session.add(db_file)

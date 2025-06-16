@@ -45,6 +45,7 @@ class Normalizer(Task):
         self.batch = batch  # type: ignore
         self.db = DB()
         self.logger = Logger(config)
+        self.stage = Stage.NORMALIZED
 
     def run(self) -> None:
         """
@@ -55,8 +56,7 @@ class Normalizer(Task):
             try:
                 file_type = get_file_type(Path(path))
                 normalize(file=Path(path), file_type=str(file_type))
-                dbfile = session.get_one(DBFile, DBFile.id == file_id)
-                dbfile.stage = int(Stage(dbfile.stage) | Stage.NORMALIZED)
+                self.update_file_stage(file_id, session)
             except Exception as e:
                 self.logger.error(f"Error processing file {path}: {e}")
                 continue

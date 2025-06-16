@@ -44,6 +44,7 @@ class Trimmer(Task):
         self.batch = batch  # type: ignore
         self.logger = Logger(config)
         self.db = DB()
+        self.stage = Stage.TRIMMED
 
     def run(self) -> None:
         """Runs the trimmer on all files in the batch."""
@@ -53,8 +54,7 @@ class Trimmer(Task):
             path = Path(dbfile.file_path)
             self._trim_file(path)
             self.set_progress()
-            dbfile.stage = int(Stage(dbfile.stage) | Stage.TRIMMED)
-            session.add(dbfile)
+            self.update_file_stage(file_id, session)
         session.commit()
         session.close()
 

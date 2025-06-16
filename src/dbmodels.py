@@ -49,7 +49,7 @@ class DBUser(SQLModel, table=True):
     first_name: str = Field(default="")
     middle_name: str = Field(default="")
     last_name: str = Field(default="")
-    date_of_birth: dt.datetime = Field(default="")
+    date_of_birth: dt.datetime = Field(default=None)
     is_active: bool = Field(default=True)
     role: UserRole = Field(default=UserRole.USER.value)  # Default role is USER
     created_at: dt.datetime = Field(
@@ -71,8 +71,10 @@ class DBFileToConvert(AutoFetchable, SQLModel, table=True):
     __tablename__ = "files_to_convert"  # type: ignore
 
     file: "DBFile" = Relationship(back_populates="batch_convert")
-    codec: Codec = Field(default=Codec.UNKNOWN)  # type: ignore
+    codec: Codec = Field(default=Codec.UNKNOWN)
     task: "DBTask" = Relationship(back_populates="batch_convert")
+    file_id: int = Field(foreign_key="files.id")
+    task_id: int = Field(foreign_key="tasks.id")
 
     def __repr__(self) -> str:
         return f"<DBFileToConvert(file_id={self.file.id}, codec={self.codec})>"
@@ -223,17 +225,17 @@ class DBTask(AutoFetchable, SQLModel, table=True):
     def get_batch(
         self,
     ) -> (
-        List[str]
-        | List[int]
-        | List[Path]
+        list[str]
+        | list[int]
+        | list[Path]
         | dict[str, ArtType]
         | dict[int, Codec]
         | None
     ):
         """Gets the correctly formatted Batch List/Dict."""
 
-        def is_populated_list(subject: List[Any]) -> bool:
-            return isinstance(subject, List) and len(subject) > 0
+        def is_populated_list(subject: list[Any]) -> bool:
+            return isinstance(subject, list) and len(subject) > 0
 
         def get_ids(items: list[Any]):
             return [item.id for item in items]
@@ -252,7 +254,7 @@ class DBTask(AutoFetchable, SQLModel, table=True):
                 result.update(
                     {label.mbid: ArtType.LABEL for label in self.batch_labels}
                 )
-            return result if result else None
+            return result or None
 
         def get_codec_batch():
             return (
@@ -366,7 +368,7 @@ class Track(BaseModel):
     conductors: List[str] = [""]
     composers: List[str] = [""]
     lyricists: List[str] = [""]
-    releasedate: dt.date = dt.date(0000, 1, 1)
+    releasedate: dt.date = dt.date.min
     producers: List[str] = [""]
     task: str = ""
     files: List["DBFile"] = []  # List of File ids
@@ -396,26 +398,27 @@ class Track(BaseModel):
     def get_tags(self) -> dict[str, str | int | dt.date]:
         """Gets all the tagdata, converts if nessecary and
         returns it as a dictionairy"""
-        result = {}
-
-        result["title"] = self.title
-        result["subtitle"] = self.subtitle
-        result["artists"] = ",".join(
-            map(str, [DBPerson(id=artist_id).full_name for artist_id in self.artists])
-        )
-        result["albums"] = ",".join(
-            map(str, [DBAlbum(id=album_id).title for album_id in self.albums])
-        )
-        result["key"] = self.key
-        result["genres"] = ",".join(map(str, self.genres))
-        result["mbid"] = self.mbid
-        result["conductors"] = ",".join(map(str, self.conductors))
-        result["composers"] = ",".join(map(str, self.composers))
-        result["lyricists"] = ",".join(map(str, self.lyricists))
-        result["releasedate"] = self.releasedate
-        result["producers"] = ",".join(map(str, self.producers))
-
-        return result
+        return {
+            "title": self.title,
+            "subtitle": self.subtitle or "",
+            "artists": ",".join(
+                map(
+                    str,
+                    [DBPerson(id=artist_id).full_name for artist_id in self.artists],
+                )
+            ),
+            "albums": ",".join(
+                map(str, [DBAlbum(id=album_id).title for album_id in self.albums])
+            ),
+            "key": self.key,
+            "genres": ",".join(map(str, self.genres)),
+            "mbid": self.mbid,
+            "conductors": ",".join(map(str, self.conductors)),
+            "composers": ",".join(map(str, self.composers)),
+            "lyricists": ",".join(map(str, self.lyricists)),
+            "releasedate": self.releasedate,
+            "producers": ",".join(map(str, self.producers)),
+        }
 
     def get_sortdata(self) -> dict[str, str | int]:
         """Gets all the sortdata, converts if necessary and returns it as a dictionary."""
@@ -448,19 +451,13 @@ class Track(BaseModel):
         }
 
     def _get_album(self) -> DBAlbum | None:
-        if not self.albums:
-            return None
-        return DBAlbum(id=self.albums[0])
+        return DBAlbum(id=self.albums[0]) if self.albums else None
 
     def _get_album_track(self, album_id: int) -> DBAlbumTrack | None:
-        if not self.id:
-            return None
-        return DBAlbumTrack(album_id=album_id, track_id=self.id)  # type: ignore
+        return DBAlbumTrack(album_id=album_id, track_id=self.id) if self.id else None
 
     def _get_artist(self) -> DBPerson | None:
-        if not self.artists:
-            return None
-        return DBPerson(id=self.artists[0])
+        return DBPerson(id=self.artists[0]) if self.artists else None
 
 
 class DBTrack(ItemBase, table=True):
@@ -468,11 +465,9 @@ class DBTrack(ItemBase, table=True):
 
     __tablename__ = "tracks"  # type: ignore
 
-    composed: dt.date = Field(
-        default=dt.date(0000, 1, 1), sa_column_kwargs={"nullable": False}
-    )
+    composed: dt.date = Field(default=dt.date.min, sa_column_kwargs={"nullable": False})
     release_date: dt.date = Field(
-        default=dt.date(0000, 1, 1), sa_column_kwargs={"nullable": False}
+        default=dt.date.min, sa_column_kwargs={"nullable": False}
     )
     title: str = Field(default="")
     title_sort: str = Field(default="")
@@ -501,7 +496,7 @@ class DBAlbum(ItemBase, table=True):
     title_sort: str = Field(default="")
     subtitle: Optional[str] = Field(default=None)
     release_date: dt.date = Field(
-        default=dt.date(0000, 1, 1), sa_column_kwargs={"nullable": False}
+        default=dt.date.min, sa_column_kwargs={"nullable": False}
     )
     release_country: str = Field(default="")
     label: "DBLabel" = Relationship(back_populates="albums")

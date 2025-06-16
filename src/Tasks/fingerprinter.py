@@ -17,7 +17,7 @@
 
 from pathlib import Path
 
-from ..dbmodels import DBFile
+from ..dbmodels import DBFile, DBPerson, DBTrack
 from ..enums import TaskType, Stage
 from task import Task
 from Singletons.config import Config
@@ -42,6 +42,7 @@ class FingerPrinter(Task):
         self.batch = batch  # type: ignore
         self.db = DB()
         self.logger = Logger(config)
+        self.stage = Stage.FINGERPRINTED
 
     async def run(self) -> None:
         """Runs the fingerprinting task asynchronously."""
@@ -58,9 +59,32 @@ class FingerPrinter(Task):
                 self.logger.error(f"Error processing file {file_id}: {e}")
                 continue
 
-            set_fields(metadata, file)
-            file.stage = int(Stage(file.stage) | Stage.FINGERPRINTED)
+            if file.track is None:
+                track = DBTrack(files=[file])
+                session.add(track)
+                session.commit()
+                track = session.refresh(track)
+            else:
+                track = session.get_one(DBTrack, DBTrack.id == file.track_id)
+                file.track = track
+                file.track_id = track.id
+            for artist in metadata.get["artists", [None]]: # type: ignore
+                if (db_artist := session.get_one(DBPerson, DBPerson.full_name == artist.name)) is None:
+                    db_artist = DBPerson(full_name=artist.name, mbid=artist.mbid)
+                    session.add(db_artist)
+                    session.commit()
+                    db_artist = session.refresh(db_artist)
+                track.artists[] = db_artist if db_artist not in track.artists # type: ignore
+            track.title = metadata.get("title", None) if track.title == "" # type: ignore
+            track.mbid = metadata.get("mbid", None) if track.mbid == "" # type: ignore
+
+            session.add(file)
+            session.add(track)
+
+            self.update_file_stage(file.id, session)
             self.set_progress()
+        session.commit()
+        session.close()
 
     async def process_file(self, path: Path) -> dict[str, str | None]:
         """Fingerprints and looks up metadata for a single file."""

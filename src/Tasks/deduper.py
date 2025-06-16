@@ -42,6 +42,7 @@ class Deduper(Task):
         self.logger = Logger(config)
         self.db = DB()
         self.batch = batch  # type: ignore
+        self.stage = Stage.DEDUPED
 
     def run(self):
         """Runs The Deduper Task."""
@@ -69,12 +70,10 @@ class Deduper(Task):
                     session.close()
                 file = track.files[0]
                 session = self.db.get_session()
-                dbfile = session.get(DBFile, DBFile.id == file.id)
-                dbfile.stage = Stage(dbfile.stage) | Stage.DEDUPED  # type: ignore
-                session.add(dbfile)
+                self.update_file_stage(file.id, session)
                 session.commit()
                 session.close()
-                self.logger.info(f"Set stage DEDUPED for file {file.id}")
+                self.logger.debug(f"Set stage DEDUPED for file {file.id}")
             else:
                 self.logger.info(f"Track {track_id} has no duplicates to remove")
             self.set_progress()

@@ -38,6 +38,7 @@ class TaskType(StrEnum):
     """Enum for different task types."""
 
     ART_GETTER = auto()
+    ART_CHECKER = auto()
     IMPORTER = auto()
     TAGGER = auto()
     FINGERPRINTER = auto()
@@ -49,6 +50,7 @@ class TaskType(StrEnum):
     CONVERTER = auto()
     PARSER = auto()
     SORTER = auto()
+    SCANNER = auto()
     CUSTOM = auto()
     DUPLICATE_CHECKER = auto()
 
@@ -103,15 +105,14 @@ class Stage(IntFlag):
     IMPORTED = 1
     PARSED = 2
     FINGERPRINTED = 4
-    TAGS_RETRIEVED = 8
-    DEDUPED = 16
-    TRIMMED = 32
-    NORMALIZED = 64
-    CONVERTED = 128
-    ART_RETRIEVED = 256  # Album art is needed for file
-    LYRICS_RETRIEVED = 512  # Track Lyrics are needed for file
-    TAGGED = 1024
-    SORTED = 2048
+    DEDUPED = 8
+    TRIMMED = 16
+    NORMALIZED = 32
+    CONVERTED = 64
+    ART_RETRIEVED = 128  # Album art is needed for file
+    LYRICS_RETRIEVED = 256  # Track Lyrics are needed for file
+    TAGGED = 512
+    SORTED = 1024
 
 
 class ArtType(StrEnum):

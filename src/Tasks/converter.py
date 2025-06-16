@@ -51,22 +51,34 @@ class Converter(Task):
 
             file = track.files[0]
             self.convert_file(Path(file.file_path), file.codec)
-            dbfile = session.get_one(DBFile, DBFile.id == file.id)
-            dbfile.stage = int(Stage(dbfile.stage) | Stage.CONVERTED)
-            session.add(dbfile)
+            file_id = file.id
+            self.update_file_stage(file_id, session)
             self.set_progress()
         session.commit()
         session.close()
         self.set_end_time()
 
     def convert_file(self, input_path: Path, codec: str) -> None:
+        """Converts an audio file to the target format based on its codec.
+
+        Checks if the file exists and is not already in the target format, then performs the conversion and deletes the original file.
+
+        Args:
+            input_path: The path to the input audio file.
+            codec: The codec of the input audio file.
+
+        Returns:
+            None
+        """
         if not input_path.is_file():
             self.logger.info(f"Skipping {input_path}: file does not exist")
             return
 
         target_format = self.get_target_format(codec)
         if not target_format:
-            self.logger.warning(f"Skipping {input_path}: no target format for codec {codec}")
+            self.logger.warning(
+                f"Skipping {input_path}: no target format for codec {codec}"
+            )
             return
 
         output_path = input_path.with_suffix(f".{target_format}")
@@ -75,7 +87,9 @@ class Converter(Task):
             return
 
         try:
-            audio = AudioSegment.from_file(input_path, format=input_path.suffix[1:].lower())
+            audio = AudioSegment.from_file(
+                input_path, format=input_path.suffix[1:].lower()
+            )
             audio.export(output_path, format=target_format)
             self.logger.info(f"Converted: {input_path} -> {output_path}")
             input_path.unlink(missing_ok=True)
@@ -84,8 +98,16 @@ class Converter(Task):
             self.logger.error(f"Failed to convert {input_path}: {e}")
 
     def get_target_format(self, codec: str) -> str | None:
+        """Determines the target audio format for a given codec.
+
+        Returns the appropriate target format string if the codec is recognized as low or high quality input, otherwise returns None.
+
+        Args:
+            codec: The codec of the input audio file.
+
+        Returns:
+            The target format as a string, or None if the codec is not recognized.
+        """
         if codec in self.lq_inputs:
             return self.lq_format
-        if codec in self.hq_inputs:
-            return self.hq_format
-        return None
+        return self.hq_format if codec in self.hq_inputs else None

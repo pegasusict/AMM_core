@@ -41,6 +41,7 @@ class Parser(Task):
         self.db = DB()
         self.logger = Logger(config)
         self.parser = MediaParser(config)
+        self.stage = Stage.PARSED
 
     def run(self) -> None:
         """
@@ -57,7 +58,7 @@ class Parser(Task):
                     raise DatabaseError("DB did not return a valid file object.")
 
                 set_fields(metadata, db_file)  # type: ignore
-                db_file.stage = int(Stage(db_file.stage) | Stage.PARSED)
+                db_file.stage = int(Stage(db_file.stage) | self.stage)
                 session.add(db_file)
                 self.logger.debug(f"Parsed file {file_path}")
 

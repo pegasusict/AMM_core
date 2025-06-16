@@ -41,23 +41,23 @@ class Sorter(Task):
         """
         super().__init__(config=config, task_type=TaskType.SORTER)
         self.config = config
-        self.batch = batch
+        self.batch = batch  # type: ignore
         self.logger = Logger(config)
         self.db = DB()
+        self.stage = Stage.SORTED
 
     def create_index_symbol(self, artist_sort: str) -> str:
         """Creates an index symbol from artist_sort, replacing non-ASCII with '0-9'."""
-        initial = str(artist_sort)[0].upper()
+        initial = artist_sort[0].upper()
         norm_initial = unicodedata.normalize("NFD", initial)
-        initial = "".join(char for char in norm_initial if unicodedata.category(char) != "Mn")
+        initial = "".join(
+            char for char in norm_initial if unicodedata.category(char) != "Mn"
+        )
         return initial if initial.isascii() and initial.isalpha() else "0-9"
 
     def format_number(self, number: str, count: str) -> str:
         """Formats disc/track numbers with zero-padding if necessary."""
-        if int(count) == 1:
-            return ""
-        width = len(str(count))
-        return str(number).zfill(width) + "."
+        return "" if int(count) == 1 else f"{number.zfill(len(count))}."
 
     def clean_string(self, string: str) -> str:
         """Sanitizes string for filesystem usage."""
@@ -65,8 +65,7 @@ class Sorter(Task):
 
     def fix_duration(self, duration: int) -> str:
         """Formats duration in seconds to MM:SS."""
-        minutes = duration // 60
-        seconds = duration % 60
+        minutes, seconds = divmod(duration, 60)
         return f"{minutes:02}:{seconds:02}"
 
     def run(self):
@@ -83,14 +82,18 @@ class Sorter(Task):
             target_path = self._build_target_path(metadata)
 
             if target_path.exists():
-                self.logger.warning(f"Target file {target_path} already exists — skipping move.")
+                self.logger.warning(
+                    f"Target file {target_path} already exists — skipping move."
+                )
                 continue
 
             try:
                 self._move_file(input_path, target_path)
-                self._update_file_stage(file_id, session)
+                self.update_file_stage(file_id, session)
             except Exception as e:
-                self.logger.error(f"Failed to process {input_path} to {target_path}: {e}")
+                self.logger.error(
+                    f"Failed to process {input_path} to {target_path}: {e}"
+                )
 
             self.set_progress()
 
@@ -122,20 +125,29 @@ class Sorter(Task):
         base_path = Path(self.config.get_path("base"))
 
         album = self.clean_string(str(metadata.get("album", "[compilations]")))
-        artist_sort = self.clean_string(str(metadata.get("artist_sort", "[Unknown Artist]")))
+        artist_sort = self.clean_string(
+            str(metadata.get("artist_sort", "[Unknown Artist]"))
+        )
         track_title = self.clean_string(str(metadata.get("title", "[Unknown Track]")))
         bitrate = str(metadata.get("bitrate", "000"))
         duration = self.fix_duration(int(metadata.get("duration", 0)))
         year = str(metadata.get("year", "0000"))
 
         initial = self.create_index_symbol(artist_sort)
-        disc_number = self.format_number(str(metadata.get("disc_number", "1")), str(metadata.get("disc_count", "1")))
-        track_number = self.format_number(str(metadata.get("track_number", "1")), str(metadata.get("track_count", "1")))
+        disc_number = self.format_number(
+            str(metadata.get("disc_number", "1")), str(metadata.get("disc_count", "1"))
+        )
+        track_number = self.format_number(
+            str(metadata.get("track_number", "1")),
+            str(metadata.get("track_count", "1")),
+        )
 
         target_dir = base_path / initial / artist_sort / f"({year}) - {album}"
         target_dir.mkdir(parents=True, exist_ok=True)
 
-        target_file_name = (f"{disc_number}{track_number} {artist_sort} - {track_title} [{bitrate}] [{duration}].mp3").strip()
+        target_file_name = (
+            f"{disc_number}{track_number} {artist_sort} - {track_title} [{bitrate}] [{duration}].mp3"
+        ).strip()
 
         return target_dir / self.clean_string(target_file_name)
 
@@ -143,9 +155,3 @@ class Sorter(Task):
         """Move the file to the target location."""
         input_path.rename(target_path)
         self.logger.info(f"Moved {input_path} to {target_path}")
-
-    def _update_file_stage(self, file_id: int, session):
-        """Update the SORTED stage in the database for the file."""
-        db_file = session.get_one(DBFile, DBFile.id == file_id)
-        db_file.stage = int(Stage(db_file.stage) | Stage.SORTED)
-        session.add(db_file)

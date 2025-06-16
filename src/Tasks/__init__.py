@@ -13,3 +13,38 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
+from .task import Task
+from .taskmanager import TaskManager
+from .importer import Importer
+from .parser import Parser
+from .fingerprinter import FingerPrinter
+from .deduper import Deduper
+from .converter import Converter
+from .exporter import Exporter
+from .normalizer import Normalizer
+from .sorter import Sorter
+from .tagger import Tagger
+from .trimmer import Trimmer
+from .art_getter import ArtGetter
+from .lyrics_getter import LyricsGetter
+from .albumart_checker import AlbumArt_Checker
+from .duplicate_checker import DuplicateChecker
+
+__all__ = (
+    "Task",
+    "TaskManager",
+    "Importer",
+    "Parser",
+    "FingerPrinter",
+    "Deduper",
+    "Converter",
+    "Exporter",
+    "Normalizer",
+    "Sorter",
+    "Tagger",
+    "Trimmer",
+    "ArtGetter",
+    "LyricsGetter",
+    "AlbumArt_Checker",
+    "DuplicateChecker",
+)

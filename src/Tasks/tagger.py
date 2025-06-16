@@ -18,8 +18,6 @@ It uses the mutagen library to write metadata to media files."""
 
 from pathlib import Path
 
-from sqlmodel import select
-
 from task import Task
 from enums import TaskType, Stage
 from Singletons.config import Config
@@ -45,6 +43,7 @@ class Tagger(Task):
         self.batch = batch  # type: ignore
         self.db = DB()
         self.logger = Logger(config)
+        self.stage = Stage.TAGGED
 
     def run(self) -> None:
         """Runs the Tagger task."""
@@ -55,12 +54,10 @@ class Tagger(Task):
             try:
                 # get all tags for said track
                 # Ensure track_id is an int
-                if isinstance(track_id, int):
-                    statement = select(DBTrack).where(DBTrack.id == track_id)
-                else:
-                    statement = select(DBTrack).where(DBTrack.id == int(str(track_id)))
+                if not isinstance(track_id, int):
+                    track_id = int(str(track_id))
                 session = self.db.get_session()
-                db_track = session.exec(statement).first()
+                db_track = session.get_one(DBTrack, DBTrack.id == track_id)
                 track = Track()
                 track.__dict__.update(db_track.__dict__)
                 tags = track.get_tags()
@@ -71,13 +68,11 @@ class Tagger(Task):
                 if not file_path:
                     self.logger.error(f"Track {track_id} has no associated file.")
                     continue
-                file_type = get_file_type(Path(file_path))
+                file_type = get_file_type(file_path)
                 # write all tags to file
-                tagger = Tag(Path(file_path), str(file_type))
+                tagger = Tag(file_path, str(file_type))
                 tagger.set_tags(tags)
-                dbfile = session.get_one(DBFile, DBFile.id == file_id)
-                dbfile.stage = int(Stage(dbfile.stage) | Stage.TAGGED)
-                session.add(dbfile)
+                self.update_file_stage(file_id, session)
             except Exception as e:
                 self.logger.error(f"Error processing file {file_path}: {e}")
                 raise

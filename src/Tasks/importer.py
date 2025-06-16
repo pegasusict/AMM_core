@@ -105,6 +105,8 @@ class Importer(Task):
         self.logger = Logger(config)
         self.stack = Stack()
         self.config_data = ImporterConfig.from_config(config, dry_run=dry_run)
+        self.stage = Stage.IMPORTED
+        self.db = DB()
 
         for counter in (
             "all_files",
@@ -128,11 +130,10 @@ class Importer(Task):
 
         if scanner.files and not self.config_data.dry_run:
             # store files in database, ready for parsing
-            db = DB()
-            session = db.get_session()
+            session = self.db.get_session()
             for file_path in scanner.files:
                 self.stack.add_counter("imported_files")
-                db_file = DBFile(file_path=str(file_path), stage=Stage.IMPORTED)
+                db_file = DBFile(file_path=str(file_path), stage=self.stage)
                 session.add(db_file)
             session.commit()
             session.close()
