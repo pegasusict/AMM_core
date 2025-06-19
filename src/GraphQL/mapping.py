@@ -42,12 +42,11 @@ from exceptions import InvalidValueError
 
 def set_fields(info: dict, subject: object) -> object:
     """Sets al non-empty values to the object."""
-    for key, value in info:
+    for key, value in info.items():
         if key == "id":
             continue
-        if value is not None:
-            if hasattr(subject, key):
-                subject.key = value  # type: ignore
+        if value is not None and hasattr(subject, key):
+            setattr(subject, key, value)
     return subject
 
 
@@ -56,11 +55,11 @@ def resolve_user(info: dict[str, str | int]) -> User:
     """Logic to resolve a user via ID, username or email."""
     statement = select(DBUser)
 
-    if user_id := info.get("user_id", None) is not None:
+    if user_id := info.get("user_id") is not None:
         statement = statement.where(DBUser.id == user_id)
-    elif username := info.get("username", None) is not None:
+    elif username := info.get("username") is not None:
         statement = statement.where(DBUser.username == username)
-    elif email := info.get("email", None) is not None:
+    elif email := info.get("email") is not None:
         statement = statement.where(DBUser.email == email)
     else:
         raise InvalidValueError("Invalid arguments for user resolution")
@@ -79,12 +78,12 @@ def resolve_track(info: dict[str, str | int], track_id: int | None = None) -> Tr
     """Logic to resolve a track by ID, MBid or title and artist."""
     statement = select(DBTrack)
 
-    title = info.get("title", None)
-    artist = info.get("artist", None)
+    title = info.get("title")
+    artist = info.get("artist")
 
     if track_id is not None:
         statement = statement.where(DBTrack.id == track_id)
-    elif mbid := info.get("mbid", None) is not None:
+    elif mbid := info.get("mbid") is not None:
         statement = statement.where(DBTrack.mbid == mbid)
     elif title is not None and artist is not None:
         statement = statement.where(DBTrack.title == title).where(
@@ -107,18 +106,18 @@ def resolve_album(info: dict, album_id: int) -> Album:
     """Logic to resolve an album by ID, MBid, title and artist or release date."""
     statement = select(DBAlbum)
 
-    title = info.get("title", None)
-    artist = info.get("artist", None)
+    title = info.get("title")
+    artist = info.get("artist")
 
     if album_id is not None:
         statement = statement.where(DBAlbum.id == album_id)
-    elif mbid := info.get("mbid", None) is not None:
+    elif mbid := info.get("mbid") is not None:
         statement = statement.where(DBAlbum.mbid == mbid)
     elif title is not None and artist is not None:
         statement = statement.where(DBAlbum.title == title).where(
             artist in DBAlbum.performers
         )
-    elif release_date := info.get("release_date", None) is not None:
+    elif release_date := info.get("release_date") is not None:
         statement = statement.where(DBAlbum.release_date == release_date)
     else:
         raise ValueError("Invalid arguments for album resolution")
@@ -139,11 +138,11 @@ def resolve_person(info: dict, person_id: int) -> Person:
 
     if person_id is not None:
         statement = statement.where(DBPerson.id == person_id)
-    elif mbid := info.get("mbid", None) is not None:
+    elif mbid := info.get("mbid") is not None:
         statement = statement.where(DBPerson.mbid == mbid)
-    elif nickname := info.get("nickname", None) is not None:
+    elif nickname := info.get("nickname") is not None:
         statement = statement.where(DBPerson.nickname == nickname)
-    elif birth_date := info.get("birth_date", None) is not None:
+    elif birth_date := info.get("birth_date") is not None:
         statement = statement.where(DBPerson.birth_date == birth_date)
     else:
         raise ValueError("Invalid arguments for person resolution")
@@ -165,7 +164,7 @@ def resolve_label(info: dict, label_id: int) -> Label:
 
     if label_id is not None:
         statement = statement.where(DBLabel.id == label_id)
-    elif name := info.get("name", None) is not None:
+    elif name := info.get("name") is not None:
         statement = statement.where(DBLabel.name == name)
     else:
         raise ValueError("Invalid arguments for label resolution")
@@ -184,11 +183,11 @@ def resolve_stat(info: dict, stat_id: int) -> Stat:
     """Logic to resolve a stat by ID or name."""
     statement = select(DBStat)
 
-    if stat_id := info.get("stat_id", None) is not None:
+    if stat_id := info.get("stat_id") is not None:
         statement = statement.where(DBStat.id == stat_id)
-    elif stat_id := info.get("id", None) is not None:
+    elif stat_id := info.get("id") is not None:
         statement = statement.where(DBStat.id == stat_id)
-    elif name := info.get("name", None) is not None:
+    elif name := info.get("name") is not None:
         statement = statement.where(DBStat.name == name)
     else:
         raise ValueError("Invalid arguments for stat resolution")
@@ -213,11 +212,11 @@ def resolve_file(info: dict, file_id: int) -> File:
 
     if file_id is not None:
         statement = statement.where(DBFile.id == file_id)
-    elif file_id := info.get("id", None) is not None:
+    elif file_id := info.get("id") is not None:
         statement = statement.where(DBFile.id == file_id)
-    elif file_id := info.get("file_id", None) is not None:
+    elif file_id := info.get("file_id") is not None:
         statement = statement.where(DBFile.id == file_id)
-    elif filename := info.get("filename", None) is not None:
+    elif filename := info.get("filename") is not None:
         statement = statement.where(DBFile.filename == filename)
     else:
         raise ValueError("Invalid arguments for file resolution")
@@ -237,11 +236,11 @@ def resolve_genre(info: dict, genre_id: int) -> Genre:
 
     if genre_id is not None:
         statement = statement.where(DBGenre.id == genre_id)
-    elif genre_id := info.get("id", None) is not None:
+    elif genre_id := info.get("id") is not None:
         statement = statement.where(DBGenre.id == genre_id)
-    elif genre_id := info.get("genre_id", None) is not None:
+    elif genre_id := info.get("genre_id") is not None:
         statement = statement.where(DBGenre.id == genre_id)
-    elif name := info.get("name", None) is not None:
+    elif name := info.get("name") is not None:
         statement = statement.where(DBGenre.name == name)
     else:
         raise ValueError("Invalid arguments for stat resolution")
@@ -262,7 +261,7 @@ def resolve_genre(info: dict, genre_id: int) -> Genre:
 def start_import() -> dict[str, bool]:
     """Starts the import process."""
     tm = TaskManager()
-    tm.start_task(task_class=Importer, task_type=TaskType.IMPORTER, batch=None)
+    tm.start_task(task_class=Importer, batch=None)
     return {"status": True}
 
 
@@ -289,9 +288,9 @@ class Mutation:
     def create_user(self, info: dict) -> User:
         """Logic used to create a new user."""
 
-        username = info.get("username", None)
-        email = info.get("email", None)
-        password_hash = info.get("password_hash", None)
+        username = info.get("username")
+        email = info.get("email")
+        password_hash = info.get("password_hash")
 
         if username is None or email is None or password_hash is None:
             raise ValueError("Insufficient data to create a new user")

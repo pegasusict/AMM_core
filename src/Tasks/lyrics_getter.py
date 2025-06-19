@@ -56,12 +56,13 @@ class LyricsGetter(Task):
                 track = DBTrack(id=int(track_id))
                 track_title = track.title
                 track_artist = track.performers[0].full_name
-                lyrics = Lyrics.get_lyrics(artist=track_artist, title=track_title)  # type: ignore
+                lyrics_getter = Lyrics()
+                lyric = lyrics_getter.get_lyrics(artist=track_artist, title=track_title)
 
                 track = session.get_one(DBTrack, DBTrack.id == int(track_id))
                 if track is None:
                     raise DatabaseError(f"Incorrect track id: {track_id}")
-                obj = DBTrackLyric(Lyric=lyrics, track=track)  # type: ignore
+                obj = DBTrackLyric(Lyric=lyric, track=track)  # type: ignore
                 session.add(obj)
 
                 for file in track.files:  # type: ignore
