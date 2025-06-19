@@ -21,7 +21,6 @@ from sqlmodel import select
 
 from ..Tasks.importer import Importer
 
-from ..enums import TaskType
 from Singletons.database import DB
 from GraphQL.schemas import Track, Album, User, Person, Label, Stat, File, Genre
 from ..Tasks.taskmanager import TaskManager
