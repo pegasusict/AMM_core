@@ -17,8 +17,10 @@
 and importing files based on configured extensions, with optional cleanup."""
 
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 from dataclasses import dataclass
+
+from sqlalchemy.orm import Session
 
 from ..Singletons import DB, Stack, Logger, Config
 from ..dbmodels import DBFile
@@ -34,7 +36,7 @@ class ImporterConfig:
     dry_run: bool
 
     @classmethod
-    def from_config(cls, config, dry_run: bool = False) -> "ImporterConfig":
+    def from_config(cls, config: Config, dry_run: bool = False) -> "ImporterConfig":
         base_path = Path(config.get_path("import"))
         raw_ext = config.get("extensions", "import")
         if isinstance(raw_ext, str):
@@ -44,47 +46,34 @@ class ImporterConfig:
         else:
             extensions = []
 
-        clean = config.get("import", "clean", False)
+        clean = bool(config.get("import", "clean", False))
         return cls(
             base_path=base_path, extensions=extensions, clean=clean, dry_run=dry_run
         )
 
 
 class DirectoryScanner:
-    def __init__(self, config: ImporterConfig, logger, stack):
-        self.config = config
-        self.logger = logger
-        self.stack = stack
-        self.files: List[Path] = []
-        self.folders: List[Path] = []
+    def __init__(self, config: ImporterConfig) -> None:
+        self.config: ImporterConfig = config
 
-    def scan(self, path: Path):
-        self.stack.add_counter("scanned_folders")
+    def scan(self, path: Path) -> Tuple[List[Path], List[Path]]:
+        """Recursively scan directories and return files and folders."""
+        files: List[Path] = []
+        folders: List[Path] = []
+
         try:
             for entry in path.iterdir():
                 if entry.is_dir():
-                    self.folders.append(entry)
-                    self.stack.add_counter("all_folders")
-                    self.scan(entry)
+                    folders.append(entry)
+                    sub_files, sub_folders = self.scan(entry)
+                    files.extend(sub_files)
+                    folders.extend(sub_folders)
                 elif entry.is_file():
-                    self._handle_file(entry)
+                    files.append(entry)
         except Exception as e:
-            self.logger.error(f"Error scanning {path}: {e}")
+            raise RuntimeError(f"Error scanning {path}: {e}") from e
 
-    def _handle_file(self, file_path: Path):
-        suffix = file_path.suffix.lower()
-        if not self.config.extensions or suffix in self.config.extensions:
-            self.files.append(file_path)
-            self.stack.add_counter("all_files")
-        elif self.config.clean:
-            if self.config.dry_run:
-                self.logger.info(f"[Dry-run] Would remove: {file_path}")
-            else:
-                try:
-                    file_path.unlink(missing_ok=True)
-                    self.stack.add_counter("removed_files")
-                except Exception as e:
-                    self.logger.warning(f"Failed to delete {file_path}: {e}")
+        return files, folders
 
 
 class Importer(Task):
@@ -93,17 +82,13 @@ class Importer(Task):
     Optionally removes files not matching allowed extensions (unless in dry-run mode).
     """
 
-    def __init__(
-        self,
-        config: Config,
-        dry_run: bool = False,
-    ):
+    def __init__(self, config: Config, dry_run: bool = False) -> None:
         super().__init__(config=config, task_type=TaskType.IMPORTER)
-        self.logger = Logger(config)
-        self.stack = Stack()
-        self.config_data = ImporterConfig.from_config(config, dry_run=dry_run)
-        self.stage = Stage.IMPORTED
-        self.db = DB()
+        self.logger: Logger = Logger(config)
+        self.stack: Stack = Stack()
+        self.config_data: ImporterConfig = ImporterConfig.from_config(config, dry_run=dry_run)
+        self.stage: Stage = Stage.IMPORTED
+        self.db: DB = DB()
 
         for counter in (
             "all_files",
@@ -115,28 +100,54 @@ class Importer(Task):
         ):
             self.stack.add_counter(counter)
 
-    def run(self):
+    def run(self) -> None:
         if not self.config_data.base_path.exists():
             self.logger.error(f"Base path {self.config_data.base_path} does not exist.")
             return
 
-        scanner = DirectoryScanner(
-            config=self.config_data, logger=self.logger, stack=self.stack
-        )
-        scanner.scan(self.config_data.base_path)
+        scanner: DirectoryScanner = DirectoryScanner(config=self.config_data)
+        files, folders = scanner.scan(self.config_data.base_path)
 
-        if scanner.files and not self.config_data.dry_run:
-            # store files in database, ready for parsing
-            session = self.db.get_session()
-            for file_path in scanner.files:
-                self.stack.add_counter("imported_files")
-                db_file = DBFile(file_path=str(file_path), stage=self.stage)
-                session.add(db_file)
-            session.commit()
-            session.close()
-            self.logger.info(f"Imported {scanner.files} files.")
+        self.stack.add_counter("scanned_folders", len(folders))
+        self.stack.add_counter("scanned_files", len(files))
 
+        files_to_import: List[Path] = []
+
+        for file_path in files:
+            if self._should_import(file_path):
+                files_to_import.append(file_path)
+                self.stack.add_counter("all_files")
+            elif self._should_remove(file_path):
+                self._remove_file(file_path)
+
+        if files_to_import and not self.config_data.dry_run:
+            self._import_files(files_to_import)
         elif self.config_data.dry_run:
-            self.logger.info(
-                f"[Dry-run] Found {len(scanner.files)} files for parsing. No changes made."
-            )
+            self.logger.info(f"[Dry-run] Found {len(files_to_import)} files. No changes made.")
+
+    def _should_import(self, file_path: Path) -> bool:
+        suffix: str = file_path.suffix.lower()
+        return not self.config_data.extensions or suffix in self.config_data.extensions
+
+    def _should_remove(self, file_path: Path) -> bool:
+        return not self._should_import(file_path) and self.config_data.clean
+
+    def _remove_file(self, file_path: Path) -> None:
+        if self.config_data.dry_run:
+            self.logger.info(f"[Dry-run] Would remove: {file_path}")
+        else:
+            try:
+                file_path.unlink(missing_ok=True)
+                self.stack.add_counter("removed_files")
+            except Exception as e:
+                self.logger.warning(f"Failed to delete {file_path}: {e}")
+
+    def _import_files(self, files_to_import: List[Path]) -> None:
+        session: Session = self.db.get_session()
+        for file_path in files_to_import:
+            db_file = DBFile(file_path=str(file_path), stage=self.stage)
+            session.add(db_file)
+            self.stack.add_counter("imported_files")
+        session.commit()
+        session.close()
+        self.logger.info(f"Imported {len(files_to_import)} files.")
