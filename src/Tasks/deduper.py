@@ -16,11 +16,10 @@
 """This module eliminates duplicate files, taking into account audio quality (bitrate, codec)."""
 
 from pathlib import Path
+
 from ..dbmodels import DBFile, Track
-from ..Singletons.logger import Logger
+from ..Singletons import Logger, Config, DB
 from ..enums import CodecPriority, Stage, TaskType
-from ..Singletons.config import Config
-from ..Singletons.database import DB
 from .task import Task
 
 

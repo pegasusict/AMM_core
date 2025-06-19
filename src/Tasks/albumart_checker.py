@@ -27,9 +27,7 @@ from sqlmodel import select
 from ..enums import Stage, TaskType
 from ..dbmodels import DBFile, DBTrack, DBAlbum, DBAlbumTrack, DBPicture
 from .task import Task
-from ..Singletons.config import Config
-from ..Singletons.database import DB
-from ..Singletons.logger import Logger
+from ..Singletons import Config, DB, Logger
 
 
 class AlbumArt_Checker(Task):

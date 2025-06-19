@@ -25,9 +25,8 @@ from typing import Callable, Optional
 
 from dbmodels import DBFile
 
-from ..Singletons.logger import Logger
 from ..enums import Stage, TaskType, TaskStatus, ArtType, Codec
-from ..Singletons.config import Config
+from ..Singletons import Config, Logger
 
 
 class Task:

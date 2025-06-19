@@ -18,12 +18,10 @@ import urllib.request
 import re
 
 from ..exceptions import InvalidURLError
-from task import Task, TaskStatus
-from enums import TaskType, ArtType
-from Singletons.config import Config
-from Singletons.logger import Logger
-from Singletons.database import DB
-from AudioUtils.mb_client import MusicBrainzClient as mbclient
+from task import Task
+from ..enums import TaskType, ArtType, TaskStatus
+from ..Singletons import Config, Logger, DB
+from ..AudioUtils.mb_client import MusicBrainzClient as mbclient
 
 
 def is_valid_url(url):
@@ -81,8 +79,7 @@ class ArtGetter(Task):
             art_type:   (ArtType)   The ArtType requested
         """
         self.logger.info(f"Retrieving {art_type} art for MBID {mbid}")
-        url = self.mbc.get_art(mbid)
-        if url:
+        if url := self.mbc.get_art(mbid):
             self.logger.info(f"{art_type} art URL: {url}")
             await self.save_art(url, mbid, art_type)
         else:

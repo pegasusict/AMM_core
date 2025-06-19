@@ -16,13 +16,11 @@
 """Lyrics Getter Task."""
 
 from ..exceptions import DatabaseError
-from task import Task, TaskType
-from Singletons.config import Config
-from Singletons.database import DB
-from Singletons.logger import Logger
-from AudioUtils.lyrics_getter import LyricsGetter as Lyrics
-from dbmodels import DBTrackLyric, DBTrack, DBFile
-from ..enums import Stage
+from .task import Task
+from ..Singletons import Config, DB, Logger
+from ..AudioUtils.lyrics_getter import LyricsGetter as Lyrics
+from ..dbmodels import DBTrackLyric, DBTrack
+from ..enums import Stage, TaskType
 
 
 class LyricsGetter(Task):

@@ -19,14 +19,11 @@ from sqlmodel import select
 
 from .taskmanager import TaskManager
 
-from .deduper import Deduper
+from . import Task, Deduper
 from ..exceptions import DatabaseError
 from ..enums import TaskType
-from ..Singletons.logger import Logger
-from ..Singletons.config import Config
-from ..Singletons.database import DB
+from ..Singletons import Logger, Config, DB
 from ..dbmodels import DBTrack, DBFile
-from .task import Task
 
 
 class DuplicateChecker(Task):

@@ -20,9 +20,7 @@ from pathlib import Path
 from ..dbmodels import DBFile, DBPerson, DBTrack
 from ..enums import TaskType, Stage
 from task import Task
-from Singletons.config import Config
-from Singletons.database import DB, set_fields
-from Singletons.logger import Logger
+from Singletons import Config, DB, Logger
 from AudioUtils.acoustid import AcoustID
 
 # Imports for required protocol implementations
@@ -68,15 +66,22 @@ class FingerPrinter(Task):
                 track = session.get_one(DBTrack, DBTrack.id == file.track_id)
                 file.track = track
                 file.track_id = track.id
-            for artist in metadata.get["artists", [None]]: # type: ignore
-                if (db_artist := session.get_one(DBPerson, DBPerson.full_name == artist.name)) is None:
+            for artist in metadata.get["artists", [None]]:  # type: ignore
+                if (
+                    db_artist := session.get_one(
+                        DBPerson, DBPerson.full_name == artist.name
+                    )
+                ) is None:
                     db_artist = DBPerson(full_name=artist.name, mbid=artist.mbid)
                     session.add(db_artist)
                     session.commit()
                     db_artist = session.refresh(db_artist)
-                track.artists[] = db_artist if db_artist not in track.artists # type: ignore
-            track.title = metadata.get("title", None) if track.title == "" # type: ignore
-            track.mbid = metadata.get("mbid", None) if track.mbid == "" # type: ignore
+                if db_artist not in track.artists:  # type: ignore
+                    track.artists.append(db_artist)  # type: ignore
+            if track.title == "":  # type: ignore
+                track.title = metadata.get("title", None)  # type: ignore
+            if track.mbid == "":  # type: ignore
+                track.mbid = metadata.get("mbid", None)  # type: ignore
 
             session.add(file)
             session.add(track)

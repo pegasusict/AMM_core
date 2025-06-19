@@ -18,14 +18,12 @@ It uses the mutagen library to write metadata to media files."""
 
 from pathlib import Path
 
-from task import Task
-from enums import TaskType, Stage
-from Singletons.config import Config
-from Singletons.database import DB
-from Singletons.logger import Logger
-from dbmodels import DBFile, DBTrack, Track
-from AudioUtils.tagger import Tagger as Tag
-from AudioUtils.media_parser import get_file_type
+from . import Task
+from ..enums import TaskType, Stage
+from ..Singletons import Config, DB, Logger
+from ..dbmodels import DBTrack, Track
+from ..AudioUtils.tagger import Tagger as Tag
+from ..AudioUtils.media_parser import get_file_type
 
 
 class Tagger(Task):

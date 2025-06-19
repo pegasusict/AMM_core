@@ -18,11 +18,9 @@
 from pathlib import Path
 
 from ..dbmodels import DBFile
-from ..Singletons.database import DB
-from task import Task
+from ..Singletons import DB, Config, Logger
+from . import Task
 from ..enums import TaskType, Codec, Stage
-from ..Singletons.config import Config
-from ..Singletons.logger import Logger
 from ..AudioUtils.trimmer import SilenceTrimmer
 from ..exceptions import FileError
 

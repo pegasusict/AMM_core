@@ -18,12 +18,10 @@ from pathlib import Path
 
 from pydub import AudioSegment
 
-from ..Singletons.database import DB
-from Singletons.logger import Logger
-from Singletons.config import Config
-from ..dbmodels import DBFile, Track
-from ..enums import Codec, Stage
-from task import Task, TaskType
+from ..Singletons import DB, Logger, Config
+from ..dbmodels import Track
+from ..enums import Codec, Stage, TaskType
+from task import Task
 
 
 class Converter(Task):
@@ -37,6 +35,7 @@ class Converter(Task):
         self.hq_inputs = config.get("convert", "hqinputs", "wav,mp4").split(",")  # type: ignore
         self.lq_format = config.get("convert", "lqformat", Codec.MP3.value).lower()  # type: ignore
         self.hq_format = config.get("convert", "hqformat", Codec.FLAC.value).lower()  # type: ignore
+        self.stage = Stage.CONVERTED
 
     def run(self):
         """Run the conversion process."""

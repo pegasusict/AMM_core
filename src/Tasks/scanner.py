@@ -16,26 +16,23 @@
 """
 Scans filesystem and database for things to be processed by other tasks.
 """
+
 import contextlib
 from pathlib import Path
 from typing import Optional
 from collections import defaultdict
 
-from sqlmodel import select
-
-from .art_getter import ArtGetter
-from . import TaskManager, Task, Importer
+from . import TaskManager, Task, Importer, ArtGetter
 from ..enums import Stage, TaskType, ArtType
 from ..dbmodels import DBFile, DBAlbum, DBPerson, DBLabel
-from ..Singletons.config import Config
-from ..Singletons.database import DB
-from ..Singletons.logger import Logger
+from ..Singletons import Config, DB, Logger
 
 
 class Scanner(Task):
     """
     Scans filesystem and database for things to be processed by other tasks.
     """
+
     stage_to_tasktype: dict[Stage, TaskType] = {
         Stage.IMPORTED: TaskType.IMPORTER,
         Stage.PARSED: TaskType.PARSER,
@@ -63,7 +60,9 @@ class Scanner(Task):
             if stage != Stage.NONE:
                 self.required_stages |= stage
         self.task_manager = TaskManager()
-        self.batch_size = self.config.get("scanner", "scanner_batch_size", 1000)  # default 1000
+        self.batch_size = self.config.get(
+            "scanner", "scanner_batch_size", 1000
+        )  # default 1000
 
     def run(self) -> None:
         """
@@ -90,7 +89,9 @@ class Scanner(Task):
         self.task_manager._idle_task_running = False
 
     def remove_empty_dirs(self, path: Path):
-        for directory in sorted(path.rglob('*'), key=lambda d: len(d.parts), reverse=True):
+        for directory in sorted(
+            path.rglob("*"), key=lambda d: len(d.parts), reverse=True
+        ):
             if directory.is_dir():
                 with contextlib.suppress(OSError):
                     directory.rmdir()
@@ -111,9 +112,13 @@ class Scanner(Task):
             if next_stage := self.get_next_missing_stage(file.stage):
                 if task_type := self.stage_to_tasktype.get(next_stage):
                     batch_tasks[task_type].append(file.id)
-                    self.logger.debug(f"Scanner: File {file.id} added to {task_type.name} batch.")
+                    self.logger.debug(
+                        f"Scanner: File {file.id} added to {task_type.name} batch."
+                    )
                 else:
-                    self.logger.debug(f"Scanner: No task mapped for Stage {next_stage.name}")
+                    self.logger.debug(
+                        f"Scanner: No task mapped for Stage {next_stage.name}"
+                    )
             else:
                 self.logger.debug(f"Scanner: File {file.id} has all required stages.")
 
@@ -121,8 +126,10 @@ class Scanner(Task):
         for task_type, file_ids in batch_tasks.items():
             task_class = self.task_manager._get_task_class(task_type)
             for i in range(0, len(file_ids), self.batch_size):  # type: ignore
-                batch = file_ids[i:i + self.batch_size]  # type: ignore
-                self.logger.debug(f"Scanner: Launching {task_type.name} task for batch: {batch}")
+                batch = file_ids[i : i + self.batch_size]  # type: ignore
+                self.logger.debug(
+                    f"Scanner: Launching {task_type.name} task for batch: {batch}"
+                )
                 self.task_manager.start_task(
                     task_class=task_class,
                     batch=batch,
@@ -133,21 +140,21 @@ class Scanner(Task):
         result = {}
 
         # Albums missing artwork
-        albums = session.query(DBAlbum).filter(DBAlbum.picture.is_(None)).all() # type: ignore
+        albums = session.query(DBAlbum).filter(DBAlbum.picture.is_(None)).all()  # type: ignore
         for album in albums:
             if album.mbid:
                 result[album.mbid] = ArtType.ALBUM
                 self.logger.debug(f"Scanner: Album {album.id} missing picture.")
 
         # Persons missing artwork
-        persons = session.query(DBPerson).filter(DBPerson.picture.is_(None)).all() # type: ignore
+        persons = session.query(DBPerson).filter(DBPerson.picture.is_(None)).all()  # type: ignore
         for person in persons:
             if person.mbid:
                 result[person.mbid] = ArtType.ARTIST
                 self.logger.debug(f"Scanner: Person {person.id} missing picture.")
 
         # Labels missing artwork
-        labels = session.query(DBLabel).filter(DBLabel.picture.is_(None)).all() # type: ignore
+        labels = session.query(DBLabel).filter(DBLabel.picture.is_(None)).all()  # type: ignore
         for label in labels:
             if label.mbid:
                 result[label.mbid] = ArtType.LABEL
@@ -158,7 +165,8 @@ class Scanner(Task):
     def get_missing_stages(self, file_stage: int) -> list[Stage]:
         file_stage = Stage(file_stage)
         return [
-            stage for stage in Stage
+            stage
+            for stage in Stage
             if stage in self.required_stages and not (file_stage & stage)
         ]
 

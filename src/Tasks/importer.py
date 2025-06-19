@@ -20,13 +20,10 @@ from pathlib import Path
 from typing import List
 from dataclasses import dataclass
 
-from ..Singletons.database import DB
-from Singletons.stack import Stack
-from Singletons.logger import Logger
-from Singletons.config import Config
+from ..Singletons import DB, Stack, Logger, Config
 from ..dbmodels import DBFile
-from task import Task
-from enums import Stage, TaskType
+from .task import Task
+from ..enums import Stage, TaskType
 
 
 @dataclass

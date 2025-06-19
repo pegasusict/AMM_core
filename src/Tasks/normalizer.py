@@ -17,13 +17,9 @@
 
 from pathlib import Path
 
-from ..dbmodels import DBFile
-
-from ..enums import Stage
-from .task import Task, TaskType
-from ..Singletons.config import Config
-from ..Singletons.database import DB
-from ..Singletons.logger import Logger
+from ..enums import Stage, TaskType
+from . import Task
+from ..Singletons import Config, DB, Logger
 from ..AudioUtils.normalizer import normalize
 from ..AudioUtils.media_parser import get_file_type
 

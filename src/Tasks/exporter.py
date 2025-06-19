@@ -20,11 +20,10 @@ from pathlib import Path
 
 from pydub import AudioSegment
 
-from Singletons.logger import Logger
-from Singletons.config import Config
+from Singletons import Logger, Config
 from ..dbmodels import Track
-from ..enums import Codec
-from task import Task, TaskType
+from ..enums import Codec, TaskType
+from task import Task
 
 
 class Exporter(Task):

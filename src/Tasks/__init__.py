@@ -29,6 +29,7 @@ from .art_getter import ArtGetter
 from .lyrics_getter import LyricsGetter
 from .albumart_checker import AlbumArt_Checker
 from .duplicate_checker import DuplicateChecker
+from .scanner import Scanner
 
 __all__ = (
     "Task",
@@ -47,4 +48,5 @@ __all__ = (
     "LyricsGetter",
     "AlbumArt_Checker",
     "DuplicateChecker",
+    "Scanner",
 )

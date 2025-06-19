@@ -20,11 +20,9 @@ import os
 import time
 import json
 from threading import Thread
-from typing import Type, Optional, Callable, Any, Set
+from typing import Type, Optional, Any, Set
 
-from Singletons.database import DB
-from Singletons.logger import Logger
-from Singletons.config import Config
+from Singletons import DB, Logger, Config
 from ..enums import TaskStatus, TaskType
 from ..dbmodels import DBTask  # ORM model, NOT a task
 from . import (
@@ -82,17 +80,16 @@ class TaskManager:
         ]
     )
     mutually_exclusive_tasks: dict[TaskType, set[TaskType]] = {
-    TaskType.DEDUPER: {TaskType.DUPLICATE_CHECKER},
-    TaskType.DUPLICATE_CHECKER: {TaskType.DEDUPER},
-    # Add more as required
+        TaskType.DEDUPER: {TaskType.DUPLICATE_CHECKER},
+        TaskType.DUPLICATE_CHECKER: {TaskType.DEDUPER},
+        # Add more as required
     }
     _instance = None
     idle_task_class: Optional[Type[Task]] = Scanner
     idle_task_interval: int = 300  # e.g., 5 minutes default
     _last_idle_task_time: float = 0
-    _idle_task_event: Event = Event() # type: ignore
+    _idle_task_event: Event = Event()  # type: ignore
     _idle_task_running: bool = False
-
 
     def __new__(cls):
         """Takes care of the singleton instance of TaskManager."""
@@ -156,7 +153,7 @@ class TaskManager:
         # Start new tasks from queue
         while self.task_queue and self.running_tasks < self.max_concurrent_tasks:
             task = self.task_queue.pop(0)
-            self._start_task(task, 'Queued task ')
+            self._start_task(task, "Queued task ")
             self.update_task_status(task)
 
     def pause_all_running_tasks(self):
@@ -207,7 +204,7 @@ class TaskManager:
                     return True
         return False
 
-    def _queue_task_with_message(self, task:Task, message:str) -> str:
+    def _queue_task_with_message(self, task: Task, message: str) -> str:
         self.logger.info(message)
         self.task_queue.append(task)
         return task.task_id
@@ -223,22 +220,26 @@ class TaskManager:
 
         self.register_task(task)
         if self.is_mutually_exclusive(task.task_type):
-            return self._queue_task_with_message(task,
-                f"Task {task.task_id} conflicts with another running task. Queued."
-                )
+            return self._queue_task_with_message(
+                task,
+                f"Task {task.task_id} conflicts with another running task. Queued.",
+            )
 
         # Check if task type is exclusive and already running
         if task.task_type in self.exclusive_task_types and self._exclusive_task_running(
             task.task_type
         ):
-            return self._queue_task_with_message(task,
-                f"Task {task.task_id} is exclusive and another of its type is running. Queued."
+            return self._queue_task_with_message(
+                task,
+                f"Task {task.task_id} is exclusive and another of its type is running. Queued.",
             )
 
         if self.running_tasks >= self.max_concurrent_tasks:
-            return self._queue_task_with_message(task, f"Task {task.task_id} queued (limit reached).")
+            return self._queue_task_with_message(
+                task, f"Task {task.task_id} queued (limit reached)."
+            )
 
-        self._start_task(task, 'Task ')
+        self._start_task(task, "Task ")
         self._save_task_to_db(task)
         return task.task_id
 
@@ -269,16 +270,15 @@ class TaskManager:
     def list_tasks(self) -> list[dict[str, Any]]:
         """Returns list of task summaries."""
         return [
-                {
-                    "task_id": task.task_id,
-                    "status": status,
-                    "alive": task.is_alive(),
-                    "progress": task.progress,
-                }
-                for status, group in self.tasks.items()
-                for task in group.values()
-            ]
-
+            {
+                "task_id": task.task_id,
+                "status": status,
+                "alive": task.is_alive(),
+                "progress": task.progress,
+            }
+            for status, group in self.tasks.items()
+            for task in group.values()
+        ]
 
     def resume_tasks(self):
         """Resume tasks saved in DB."""
@@ -327,7 +327,9 @@ class TaskManager:
                     return True
         return False
 
-    def set_mutual_exclusion(self, task_type: TaskType, conflicting_types: set[TaskType]):
+    def set_mutual_exclusion(
+        self, task_type: TaskType, conflicting_types: set[TaskType]
+    ):
         """Dynamically set mutual exclusion rules for a task type."""
         self.mutually_exclusive_tasks[task_type] = conflicting_types
 

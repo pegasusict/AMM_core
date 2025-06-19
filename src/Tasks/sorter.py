@@ -18,12 +18,10 @@ import re
 import unicodedata
 from pathlib import Path
 
-from ..Singletons.database import DB
-from ..dbmodels import DBFile, Track
-from task import Task
-from ..Singletons.config import Config
+from ..Singletons import DB, Logger, Config
+from ..dbmodels import Track
+from . import Task
 from ..enums import TaskType, Stage
-from ..Singletons.logger import Logger
 
 
 class Sorter(Task):
