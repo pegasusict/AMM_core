@@ -32,7 +32,6 @@ from enums import (
 )
 from .exceptions import InvalidValueError
 from .Tasks import Task
-from .Singletons import DB
 
 
 class DBUser(SQLModel, table=True):
