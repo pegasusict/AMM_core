@@ -17,6 +17,7 @@
 
 import datetime
 from pathlib import Path
+from typing import Optional
 
 from mutagen.apev2 import APEv2
 from mutagen.oggvorbis import OggVorbis
@@ -48,17 +49,19 @@ class Tagger:
         """Retrieve all tags as a dictionary."""
         return dict(self.audio)
 
-    def get(self, tag: str) -> str | None:
+    def get(self, tag: str) -> Optional[str]:
         """Retrieve the requested Tag or None if not available."""
         return self.audio[tag] or None
 
-    def get_mbid(self) -> str | None:
-        """Retrieve the MBid tag if it exists."""
-        return self.get("mbid")
+    def get_mbid(self) -> Optional[str]:
+        """Retrieves the MusicBrainz ID (MBID) from the audio file tags."""
+        # Fallback to 'mbid' if 'musicbrainz_trackid' is not present
+        return self.get("musicbrainz_trackid") or self.get("mbid")
 
-    def get_acoustid(self) -> str | None:
-        """Retrieve the acoustid tag if it exists."""
-        return self.get("acoustid")
+    def get_acoustid(self) -> Optional[str]:
+        """Retrieves the AcoustID from the audio file tags."""
+        # Fallback to 'acoustid' if 'acoustid_id' is not present
+        return self.get("acoustid_id") or self.get("acoustid")
 
     def set_tag(self, tag: str, value: str) -> None:
         """Set the value of a tag and save to file."""
@@ -67,6 +70,6 @@ class Tagger:
 
     def set_tags(self, tags: dict[str, str | int | datetime.date]) -> None:
         """Sets the value of several tags and save to file"""
-        for tag, value in tags:
+        for tag, value in tags.items():
             self.audio[tag] = value
         self.audio.save()

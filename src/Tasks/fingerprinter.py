@@ -22,6 +22,8 @@ from typing import Any, Dict, List, Optional, Union
 from sqlalchemy.orm import Session
 from pydantic import ValidationError
 
+from ..exceptions import FileError
+
 from ..dbmodels import DBFile, DBPerson, DBTrack
 from ..enums import TaskType, Stage
 from task import Task
@@ -30,8 +32,7 @@ from AudioUtils.acoustid import AcoustID
 from ..models import MetadataModel
 
 from AudioUtils.utils.acoustidhttpclient import AcoustIDHttpClient
-from AudioUtils.utils.durationparser import DurationParser
-from AudioUtils.utils.simpletagger import SimpleTagger
+from AudioUtils import Tagger, get_file_type, MediaParser
 
 
 class FingerPrinter(Task):
@@ -96,7 +97,9 @@ class FingerPrinter(Task):
             file.track_id = track.id
         return track
 
-    def _update_artists(self, session: Session, track: DBTrack, metadata: MetadataModel) -> None:
+    def _update_artists(
+        self, session: Session, track: DBTrack, metadata: MetadataModel
+    ) -> None:
         for artist in metadata.artists:
             db_artist: Optional[DBPerson] = session.get_one(
                 DBPerson, DBPerson.full_name == artist.name
@@ -125,11 +128,14 @@ class FingerPrinter(Task):
 
     async def process_file(self, path: Path) -> Dict[str, Union[str, None]]:
         """Fingerprints and looks up metadata for a single file."""
-        acoustid: AcoustID = AcoustID(
-            path=path,
-            acoustid_client=AcoustIDHttpClient(),
-            tagger=SimpleTagger(path),
-            parser=DurationParser(),
-            logger=self.logger,
-        )
-        return await acoustid.process()
+        file_type = get_file_type(path)
+        if file_type is not None:
+            acoustid: AcoustID = AcoustID(
+                path=path,
+                acoustid_client=AcoustIDHttpClient(),
+                tagger=Tagger(path, file_type),
+                parser=MediaParser(),
+                logger=self.logger,
+            )
+            return await acoustid.process()
+        raise FileError(f"FingerPrinter: Illegal filetype: {path}")

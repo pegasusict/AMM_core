@@ -86,7 +86,9 @@ class Importer(Task):
         super().__init__(config=config, task_type=TaskType.IMPORTER)
         self.logger: Logger = Logger(config)
         self.stack: Stack = Stack()
-        self.config_data: ImporterConfig = ImporterConfig.from_config(config, dry_run=dry_run)
+        self.config_data: ImporterConfig = ImporterConfig.from_config(
+            config, dry_run=dry_run
+        )
         self.stage: Stage = Stage.IMPORTED
         self.db: DB = DB()
 
@@ -123,7 +125,9 @@ class Importer(Task):
         if files_to_import and not self.config_data.dry_run:
             self._import_files(files_to_import)
         elif self.config_data.dry_run:
-            self.logger.info(f"[Dry-run] Found {len(files_to_import)} files. No changes made.")
+            self.logger.info(
+                f"[Dry-run] Found {len(files_to_import)} files. No changes made."
+            )
 
     def _should_import(self, file_path: Path) -> bool:
         suffix: str = file_path.suffix.lower()

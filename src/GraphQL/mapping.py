@@ -278,6 +278,10 @@ class Query:
     genre = strawberry.field(resolve_genre)  # type: ignore
     start_import = strawberry.field(start_import)  # type: ignore
 
+    @strawberry.field
+    def get_stream_url(self, file_id: int) -> str:
+        return f"/stream/{file_id}"
+
 
 @strawberry.type()
 class Mutation:

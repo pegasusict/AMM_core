@@ -17,7 +17,7 @@
 from pathlib import Path
 from typing import Any
 
-from mutagen._file import File
+from mutagen import File
 
 from mutagen.id3._util import ID3NoHeaderError
 from mutagen.flac import FLACNoHeaderError
@@ -45,22 +45,24 @@ class MediaParser:
             return None
         metadata: dict[str, str | int | Path | None] = {}
         try:
-            metadata["bitrate"] = self.get_bitrate(file_path)
-            metadata["duration"] = self.get_duration(file_path)
-            metadata["sample_rate"] = self.get_sample_rate(file_path)
-            metadata["channels"] = self.get_channels(file_path)
-            metadata["codec"] = self.get_codec(file_path)
-            metadata["file_type"] = file_type
-            metadata["file_size"] = Path.stat(file_path).st_size
-            metadata["file_path"] = file_path
-            metadata["file_name"] = str(file_path).split("/")[-1].split(".")[0]
-            metadata["file_extension"] = get_file_extension(file_path)
-
+            self._set_metadata(file_path, metadata, file_type)
         except (ID3NoHeaderError, FLACNoHeaderError) as e:
             self.logger.error(f"Error parsing file {file_path}: {e}")
             return None
 
         return metadata
+
+    def _set_metadata(self, file_path, metadata, file_type):
+        metadata["bitrate"] = self.get_bitrate(file_path)
+        metadata["duration"] = self.get_duration(file_path)
+        metadata["sample_rate"] = self.get_sample_rate(file_path)
+        metadata["channels"] = self.get_channels(file_path)
+        metadata["codec"] = self.get_codec(file_path)
+        metadata["file_type"] = file_type
+        metadata["file_size"] = Path.stat(file_path).st_size
+        metadata["file_path"] = file_path
+        metadata["file_name"] = str(file_path).split("/")[-1].split(".")[0]
+        metadata["file_extension"] = get_file_extension(file_path)
 
     def _safe(self, attr: Any, default: Any = "") -> Any:
         """Acts as a safetynet for attributes that may not exist."""
@@ -100,7 +102,7 @@ class MediaParser:
         """
         return self._get_audio_info_from_file(file_path, "bitrate")  # type: ignore
 
-    def get_duration(self, file_path: Path) -> int | None:
+    def get_duration(self, path: Path) -> int:
         """
         Returns the duration in seconds of the media file.
         Args:
@@ -108,7 +110,7 @@ class MediaParser:
         Returns:
                 int: The duration of the media file.
         """
-        return self._get_audio_info_from_file(file_path, "duration")  # type: ignore
+        return self._get_audio_info_from_file(path, "duration")  # type: ignore
 
     def get_sample_rate(self, file_path: Path) -> int | None:
         """

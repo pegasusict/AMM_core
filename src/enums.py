@@ -26,6 +26,14 @@ from mutagen.wavpack import WavPack
 from mutagen.asf import ASF
 
 
+class AppStatus(StrEnum):
+    """Enum to indicate te state of the application"""
+
+    DEVELOPMENT = auto()
+    TESTING = auto()
+    PRODUCTION = auto()
+
+
 class UserRole(StrEnum):
     """Enum for user roles."""
 

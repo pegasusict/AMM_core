@@ -20,9 +20,7 @@ import datetime as dt
 from pathlib import Path
 from typing import Any, List, Optional
 
-from pydantic import BaseModel
-from sqlmodel import SQLModel, Field, Relationship, String, select
-from sqlalchemy.orm import selectinload
+from sqlmodel import SQLModel, Field, Relationship, String
 
 from mixins.autofetch import AutoFetchable
 from enums import (
@@ -30,11 +28,11 @@ from enums import (
     TaskType,
     TaskStatus,
     Codec,
+    ArtType,
 )
-from .Tasks.art_getter import ArtType
 from .exceptions import InvalidValueError
-from .Tasks.task import Task
-from .Singletons.database import DB
+from .Tasks import Task
+from .Singletons import DB
 
 
 class DBUser(SQLModel, table=True):
@@ -351,113 +349,6 @@ class DBFile(ItemBase, table=True):
     batch_convert: "DBFileToConvert" = Relationship(back_populates="file")
     batch_id: int = Field(default=None, foreign_key="filestoconvert.id")
     file_path: str = Field(default=None, sa_column_kwargs={"unique": True})
-
-
-class Track(BaseModel):
-    """Operational Track Data class."""
-
-    id: Optional[int] = None
-    title: str = ""
-    title_sort: str = ""
-    subtitle: Optional[str] = ""
-    artists: List[int] = []  # List of Person ids
-    albums: List[int] = []  # List of Album ids
-    key: str = ""
-    genres: List[str] = [""]
-    mbid: str = ""
-    conductors: List[str] = [""]
-    composers: List[str] = [""]
-    lyricists: List[str] = [""]
-    releasedate: dt.date = dt.date.min
-    producers: List[str] = [""]
-    task: str = ""
-    files: List["DBFile"] = []  # List of File ids
-
-    def __init__(self, track_id: int | None = None) -> None:
-        if track_id is not None:
-            session = DB().get_session()
-            trackdata = session.exec(
-                select(DBTrack)
-                .where(DBTrack.id == track_id)
-                .options(
-                    selectinload(DBTrack.albums),  # type: ignore
-                    selectinload(DBTrack.files),  # type: ignore
-                    selectinload(DBTrack.artists),  # type: ignore
-                    selectinload(DBTrack.album_tracks),  # type: ignore
-                    # Add more as needed
-                )
-            ).first()
-            session.close()
-            if not trackdata:
-                raise InvalidValueError(
-                    f"Track with id {track_id} not found in the database."
-                )
-            for key, value in trackdata.__dict__.items():
-                setattr(self, key, value or None)
-
-    def get_tags(self) -> dict[str, str | int | dt.date]:
-        """Gets all the tagdata, converts if nessecary and
-        returns it as a dictionairy"""
-        return {
-            "title": self.title,
-            "subtitle": self.subtitle or "",
-            "artists": ",".join(
-                map(
-                    str,
-                    [DBPerson(id=artist_id).full_name for artist_id in self.artists],
-                )
-            ),
-            "albums": ",".join(
-                map(str, [DBAlbum(id=album_id).title for album_id in self.albums])
-            ),
-            "key": self.key,
-            "genres": ",".join(map(str, self.genres)),
-            "mbid": self.mbid,
-            "conductors": ",".join(map(str, self.conductors)),
-            "composers": ",".join(map(str, self.composers)),
-            "lyricists": ",".join(map(str, self.lyricists)),
-            "releasedate": self.releasedate,
-            "producers": ",".join(map(str, self.producers)),
-        }
-
-    def get_sortdata(self) -> dict[str, str | int]:
-        """Gets all the sortdata, converts if necessary and returns it as a dictionary."""
-
-        album = self._get_album()
-        artist = self._get_artist()
-        album_track = self._get_album_track(album.id) if album else None
-        file = self.files[0] if self.files else None
-
-        def safe(attr: Any, default: Any = "") -> Any:
-            return attr if attr is not None else default
-
-        return {
-            "title_sort": self.title_sort,
-            "artist_sort": safe(getattr(artist, "sort_name", None), "[Unknown Artist]"),
-            "album_title_sort": safe(
-                getattr(album, "title_sort", None), "[Unknown Album]"
-            ),
-            "year": str(
-                safe(getattr(album, "release_date", None), "0000").year
-                if album
-                else "0000"
-            ),
-            "disc_number": str(safe(getattr(album_track, "disc_number", None), 1)),
-            "disc_count": str(safe(getattr(album, "disc_count", None), 1)),
-            "track_count": str(safe(getattr(album, "track_count", None), 1)),
-            "track_number": str(safe(getattr(album_track, "track_number", None), 1)),
-            "bitrate": safe(getattr(file, "bitrate", None), 0),
-            "duration": safe(getattr(file, "length", None), 0),
-        }
-
-    def _get_album(self) -> DBAlbum | None:
-        return DBAlbum(id=self.albums[0]) if self.albums else None
-
-    def _get_album_track(self, album_id: int) -> DBAlbumTrack | None:
-        return DBAlbumTrack(album_id=album_id, track_id=self.id) if self.id else None
-
-    def _get_artist(self) -> DBPerson | None:
-        return DBPerson(id=self.artists[0]) if self.artists else None
 
 
 class DBTrack(ItemBase, table=True):

@@ -15,13 +15,38 @@
 
 """Base file for AMM core functionality."""
 
+from contextlib import asynccontextmanager
+from pathlib import Path
+
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
 
+from enums import AppStatus
 from GraphQL.graphql import GraphQL
-from .Tasks.taskmanager import TaskManager
+from Tasks.taskmanager import TaskManager
+from Singletons import DB
+from dbmodels import DBFile
 
-app = FastAPI()
+STAGE = AppStatus.DEVELOPMENT
+DEBUG = True
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    task_manager = TaskManager()
+
+    yield  # App runs here.
+
+    # Shutdown
+    task_manager.shutdown()
+
+
+app = FastAPI(lifespan=lifespan)
+
+db = DB()
 
 
 def start_graphql_server(app: FastAPI, path: str = "/"):
@@ -36,27 +61,26 @@ def start_graphql_server(app: FastAPI, path: str = "/"):
     graphql.run()
 
 
-def start_taskmanager():
-    """
-    Placeholder function for starting the task manager.
-    This function can be implemented to handle background tasks.
-    """
-    tm = TaskManager()
-    _ = tm.list_tasks()
+@app.get("/stream/{file_id}")
+def stream_file(file_id: int):
+    session: Session = db.get_session()
+    db_file: DBFile = session.get_one(DBFile, DBFile.id == file_id)
+    file_path = Path(db_file.file_path)
 
+    if not file_path.exists():
+        return {"error": "File not found."}
 
-@app.on_event("shutdown")
-async def on_shutdown():
-    task_manager = TaskManager()
-    task_manager._pause_all_running_tasks()
+    def iterfile():
+        with open(file_path, mode="rb") as file_like:
+            yield from file_like
+
+    return StreamingResponse(iterfile(), media_type="audio/mpeg")
 
 
 def main():
     """Main function to run the AMM core functionality."""
-    load_dotenv(".env")
-
+    load_dotenv()
     start_graphql_server(app, "/")
-    start_taskmanager()
 
 
 if __name__ == "__main__":

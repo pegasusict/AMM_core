@@ -15,9 +15,29 @@
 
 from pathlib import Path
 
-from Singletons.config import Config
-from Singletons.logger import Logger
+from Singletons import Config, Logger
 from ..enums import FileType
+
+from .acoustid import AcoustIDClient
+from .lyrics_getter import LyricsGetter
+from .mb_client import MusicBrainzClient
+from .media_parser import MediaParser
+from .normalizer import normalize
+from .tagger import Tagger
+from .trimmer import SilenceTrimmer
+
+
+__all__ = (
+    "AcoustIDClient",
+    "LyricsGetter",
+    "MusicBrainzClient",
+    "MediaParser",
+    "normalize",
+    "Tagger",
+    "SilenceTrimmer",
+    "get_file_extension",
+    "get_file_type",
+)
 
 
 def get_file_extension(file_path: Path) -> str:
@@ -48,6 +68,5 @@ def get_file_type(file_path: Path) -> str | None:
     extension_key = file_extension[1:].upper() if file_extension else ""
     if extension_key in FileType.__members__:
         return file_extension
-    else:
-        Logger(Config()).error(message=f"Unsupported file type: {file_extension}")
-        return None
+    Logger(Config()).error(message=f"Unsupported file type: {file_extension}")
+    return None
