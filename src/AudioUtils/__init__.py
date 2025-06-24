@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #  Copyleft 2021-2025 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #

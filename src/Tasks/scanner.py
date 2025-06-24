@@ -60,7 +60,7 @@ class Scanner(Task):
             if stage != Stage.NONE:
                 self.required_stages |= stage
         self.task_manager = TaskManager()
-        self.batch_size = self.config.get(
+        self.batch_size = self.config._get(
             "scanner", "scanner_batch_size", 1000
         )  # default 1000
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #  Copyleft 2021-2025 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
@@ -15,73 +14,108 @@
 
 """Base file for AMM core functionality."""
 
-from contextlib import asynccontextmanager
-from pathlib import Path
+# import os
+# import asyncio
+from fastapi import FastAPI, Depends, Request, HTTPException, status
+from fastapi.responses import RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer
+from starlette.middleware.sessions import SessionMiddleware
 
-from dotenv import load_dotenv
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+# import strawberry
+from strawberry.fastapi import GraphQLRouter
+# from strawberry.types import Info
 
-from enums import AppStatus
-from GraphQL.graphql import GraphQL
-from Tasks.taskmanager import TaskManager
-from Singletons import DB
-from dbmodels import DBFile
+from Server.graphql import schema
+from Singletons import Config, EnvConfig, Logger
+from Singletons.database import DBInstance
 
-STAGE = AppStatus.DEVELOPMENT
-DEBUG = True
+# from Server.playerservice import PlayerService
+from dbmodels import DBUser
+from passlib.context import CryptContext
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
-    task_manager = TaskManager()
-
-    yield  # App runs here.
-
-    # Shutdown
-    task_manager.shutdown()
+from .enums import UserRole
 
 
-app = FastAPI(lifespan=lifespan)
+# ------------------ App Setup ------------------
 
-db = DB()
+app = FastAPI()
+config = Config()
+logger = Logger(Config())
+config.use_real_logger(logger)  # type: ignore
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-def start_graphql_server(app: FastAPI, path: str = "/"):
-    """
-    Start the GraphQL server with the given FastAPI application.
-
-    :param app: The FastAPI application instance.
-    :param path: The path to add the GraphQL route to. Default is "/".
-    """
-    graphql = GraphQL(app)
-    graphql.add_graphql_route(path)
-    graphql.run()
-
-
-@app.get("/stream/{file_id}")
-def stream_file(file_id: int):
-    session: Session = db.get_session()
-    db_file: DBFile = session.get_one(DBFile, DBFile.id == file_id)
-    file_path = Path(db_file.file_path)
-
-    if not file_path.exists():
-        return {"error": "File not found."}
-
-    def iterfile():
-        with open(file_path, mode="rb") as file_like:
-            yield from file_like
-
-    return StreamingResponse(iterfile(), media_type="audio/mpeg")
+app.add_middleware(SessionMiddleware, secret_key=EnvConfig.SECRET_KEY)
 
 
-def main():
-    """Main function to run the AMM core functionality."""
-    load_dotenv()
-    start_graphql_server(app, "/")
+# ------------------ OAuth2 Placeholder ------------------
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-if __name__ == "__main__":
-    main()
+# Dummy Auth (replace with real Google OAuth2 and DB validation)
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> DBUser:
+    # Simulate user extraction
+    if token == "admin":
+        return DBUser(
+            id=1,
+            username="admin",
+            email="admin@example.com",
+            is_active=True,
+            role=UserRole.ADMIN,
+        )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
+
+
+# Inject into GraphQL context
+async def get_context(request: Request) -> dict:
+    # Replace this with real Google OAuth2 or token extraction logic
+    user = await get_current_user()  # Dummy user for now
+    return {"request": request, "user": user}
+
+
+# ------------------ GraphQL Setup ------------------
+
+graphql_app = GraphQLRouter(schema, context_getter=get_context)
+app.include_router(graphql_app, prefix="/graphql")
+
+
+# ------------------ Lifespan Events ------------------
+
+
+@app.on_event("startup")
+async def on_startup():
+    logger.info("Starting app... Initializing DB and TaskManager.")
+    await DBInstance.init_db()
+    # Potential: Start TaskManager, PlayerService preload
+
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    logger.info("Shutting down app... Closing services.")
+    # Potential: gracefully stop PlayerServices, TaskManager
+
+
+# ------------------ Basic Routes ------------------
+
+
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/graphql")
+
+
+@app.get("/health")
+async def health():
+    return {"status": "OK"}

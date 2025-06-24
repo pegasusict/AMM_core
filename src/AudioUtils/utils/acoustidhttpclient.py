@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #  Copyleft 2021-2025 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
@@ -13,12 +12,13 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
-"""This module contains the AcoustID HTTP client."""
+"""Contains the AcoustID HTTP client."""
 
-import subprocess
 import json
-import aiohttp
+import subprocess
 from pathlib import Path
+
+import aiohttp
 
 
 class AcoustIDHttpClient:
@@ -32,6 +32,7 @@ class AcoustIDHttpClient:
 
         Returns:
             tuple[int, str]: duration in seconds and fingerprint
+
         """
         result = subprocess.run(
             ["fpcalc", "-json", str(path)],
@@ -44,7 +45,7 @@ class AcoustIDHttpClient:
         return data["duration"] or 0, data["fingerprint"] or ""
 
     async def lookup(self, api_key: str, fingerprint: str, duration: int) -> dict:
-        """Look up the information associated with the fingerprint
+        """Looks up the information associated with the fingerprint
         in conjunction with the duration of the song.
 
         Args:

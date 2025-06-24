@@ -50,7 +50,7 @@ class ArtGetter(Task):
         super().__init__(config=config, task_type=TaskType.ART_GETTER)
         self.batch = batch  # type: ignore
         self.config = config
-        self.art_path = self.config.get("paths", "art")
+        self.art_path = self.config._get("paths", "art")
         self.processed = 0
         self.logger = Logger(config)
         self.mbc = mbclient(config)

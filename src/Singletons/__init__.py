@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #  Copyleft 2021-2025 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
@@ -14,6 +13,7 @@
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
 from .config import Config
+from .env_config import EnvConfig
 from .logger import Logger
 from .database import DB
 from .stack import Stack
@@ -21,6 +21,7 @@ from .stack import Stack
 __all__ = (
     "DB",
     "Config",
+    "EnvConfig",
     "Logger",
     "Stack",
 )

@@ -33,8 +33,8 @@ class Logger:
             config: The configuration object.
         """
         self.config = config
-        self.log_file = self.config.get("logging", "file")
-        self.log_level = self.config.get("logging", "level")
+        self.log_file = self.config._get("logging", "file")
+        self.log_level = self.config._get("logging", "level")
         self.log_format = "%(asctime)s - %(levelname)s - %(message)s"
         self.logger = self._setup_logger()
 
@@ -50,11 +50,7 @@ class Logger:
     def _setup_logger(self):
         """Sets up the logger with the specified log file, log level, and log format."""
         logger = getLogger(__name__)
-        level = self.log_level
-        if isinstance(level, str):
-            level = logging._nameToLevel.get(level.upper(), logging.INFO)
-        if not isinstance(level, int):
-            level = logging.INFO
+        level = self._translate_loglevel()
         file_handler = FileHandler(str(self.log_file))
         file_handler.setLevel(level)
 
@@ -64,14 +60,7 @@ class Logger:
 
         # Create console handler
         console_handler = StreamHandler()
-        # Ensure log level is an int or valid string
-        level_for_console = self.log_level
-        if isinstance(level_for_console, str):
-            level_for_console = logging._nameToLevel.get(
-                level_for_console.upper(), logging.INFO
-            )
-        if not isinstance(level_for_console, int):
-            level_for_console = logging.INFO
+        level_for_console = self._translate_loglevel()
         console_handler.setLevel(level_for_console)
 
         # Create formatter
@@ -86,6 +75,14 @@ class Logger:
         logger.addHandler(console_handler)
 
         return logger
+
+    def _translate_loglevel(self):
+        result = self.log_level
+        if isinstance(result, str):
+            result = logging._nameToLevel.get(result.upper(), logging.INFO)
+        if not isinstance(result, int):
+            result = logging.INFO
+        return result
 
     def debug(self, message: str):
         """Logs a debug message."""

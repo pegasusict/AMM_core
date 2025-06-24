@@ -31,10 +31,10 @@ class Converter(Task):
         super().__init__(config=config, task_type=TaskType.CONVERTER)
         self.batch = batch
         self.logger = Logger(config)
-        self.lq_inputs = config.get("convert", "lqinputs", "ogg,aac").split(",")  # type: ignore
-        self.hq_inputs = config.get("convert", "hqinputs", "wav,mp4").split(",")  # type: ignore
-        self.lq_format = config.get("convert", "lqformat", Codec.MP3.value).lower()  # type: ignore
-        self.hq_format = config.get("convert", "hqformat", Codec.FLAC.value).lower()  # type: ignore
+        self.lq_inputs = config._get("convert", "lqinputs", "ogg,aac").split(",")  # type: ignore
+        self.hq_inputs = config._get("convert", "hqinputs", "wav,mp4").split(",")  # type: ignore
+        self.lq_format = config._get("convert", "lqformat", Codec.MP3.value).lower()  # type: ignore
+        self.hq_format = config._get("convert", "hqformat", Codec.FLAC.value).lower()  # type: ignore
         self.stage = Stage.CONVERTED
 
     def run(self):

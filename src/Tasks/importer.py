@@ -38,7 +38,7 @@ class ImporterConfig:
     @classmethod
     def from_config(cls, config: Config, dry_run: bool = False) -> "ImporterConfig":
         base_path = Path(config.get_path("import"))
-        raw_ext = config.get("extensions", "import")
+        raw_ext = config._get("extensions", "import")
         if isinstance(raw_ext, str):
             extensions = [raw_ext.lower()]
         elif isinstance(raw_ext, list):
@@ -46,7 +46,7 @@ class ImporterConfig:
         else:
             extensions = []
 
-        clean = bool(config.get("import", "clean", False))
+        clean = bool(config._get("import", "clean", False))
         return cls(
             base_path=base_path, extensions=extensions, clean=clean, dry_run=dry_run
         )
