@@ -18,15 +18,18 @@ It uses the SQLModel library to connect to the database and perform operations o
 """
 
 from typing import Any, AsyncGenerator, Callable, Awaitable, Optional
+from pathlib import Path
+
 from sqlmodel import SQLModel, select
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy import text
-from ..enums import Stage
 
-# from ..exceptions import InvalidValueError
-from ..dbmodels import DBFile, DBTask, TaskStatus
+from ..exceptions import InvalidValueError
+
+from ..enums import ArtType, Stage, TaskStatus
+from ..dbmodels import DBAlbum, DBFile, DBPerson, DBPicture, DBTask, DBLabel
 from .env_config import env_config
 
 
@@ -37,8 +40,10 @@ class DB:
             env_config.DATABASE_URL, echo=env_config.DEBUG, future=True
         )
         self.async_session_factory = sessionmaker(
-            bind=self.engine, class_=AsyncSession, expire_on_commit=False
-        )  # type: ignore
+            bind=self.engine,  # type: ignore
+            class_=AsyncSession,
+            expire_on_commit=False,  # type: ignore
+        )
 
     async def get_session(self) -> AsyncGenerator[AsyncSession, None]:
         """Async session generator for FastAPI/GraphQL Dependency Injection."""
@@ -50,9 +55,7 @@ class DB:
         async with self.engine.begin() as conn:
             await conn.run_sync(SQLModel.metadata.create_all)
 
-    # ------------------------------------
     # DRY Core Methods
-    # ------------------------------------
 
     async def run_in_session(
         self, func: Callable[[AsyncSession], Awaitable[Any]]
@@ -83,9 +86,7 @@ class DB:
         """Execute SQLAlchemy statement (Insert/Update/Delete)."""
         return await self.run_in_session(lambda session: session.execute(stmt))
 
-    # ------------------------------------
     # App Logic Methods
-    # ------------------------------------
 
     async def set_file_stage(self, file_id: int, stage: Stage):
         """Set processing Stage for a file."""
@@ -112,6 +113,31 @@ class DB:
         """Retrieve all tasks that are paused."""
         stmt = select(DBTask).where(DBTask.status == TaskStatus.PAUSED)
         return await self.fetch_all(stmt)
+
+    async def register_picture(self, mbid: str, art_type: ArtType, save_path: Path):
+        # determine which object needs to be retrieved
+        match art_type:
+            case ArtType.ALBUM:
+                stmt = select(DBAlbum).where(DBAlbum.mbid == mbid)
+            case ArtType.ARTIST:
+                stmt = select(DBPerson).where(DBPerson.mbid == mbid)
+            case _:
+                stmt = select(DBLabel).where(DBLabel.mbid == mbid)
+        obj = self.fetch_one(stmt)
+        if obj is None:
+            raise InvalidValueError(
+                f"DataBase: Invalid mbid {mbid} for {art_type.value}"
+            )
+        match art_type:
+            case ArtType.ALBUM:
+                pic_obj = DBPicture(picture_path=str(save_path), album=obj)  # type: ignore
+            case ArtType.ARTIST:
+                pic_obj = DBPicture(picture_path=str(save_path), person=obj)  # type: ignore
+            case _:
+                pic_obj = DBPicture(picture_path=str(save_path), label=obj)  # type: ignore
+        async for session in self.get_session():
+            session.add(pic_obj)
+            await session.commit()
 
 
 # Instantiate globally

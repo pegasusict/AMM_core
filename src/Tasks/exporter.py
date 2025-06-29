@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-#  Copyleft 2021-2024 Mattijs Snepvangers.
+#  Copyleft 2021-2025 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
 #  AMM is free software: you can redistribute it and/or modify  it under the terms of the
@@ -21,7 +20,7 @@ from pathlib import Path
 from pydub import AudioSegment
 
 from Singletons import Logger, Config
-from ..dbmodels import Track
+from ..models import Track
 from ..enums import Codec, TaskType
 from task import Task
 
@@ -42,7 +41,7 @@ class Exporter(Task):
         super().__init__(config=config, task_type=TaskType.EXPORTER)
         self.config = config
         self.export_dir = Path(self.config.get_path("export"))
-        self.export_format = self.config._get("export", "format", Codec.MP3.value)
+        self.export_format = self.config.get_string("export", "format", Codec.MP3.value)
         self.batch = batch  # type: ignore
         self.logger = Logger(config)
 

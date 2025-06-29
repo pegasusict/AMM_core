@@ -17,8 +17,9 @@
 
 from pathlib import Path
 
-from ..dbmodels import DBFile, Track
-from ..Singletons import Logger, Config, DB
+from ..dbmodels import DBFile
+from ..models import Track
+from ..Singletons import Logger, Config, DBInstance
 from ..enums import CodecPriority, Stage, TaskType
 from .task import Task
 
@@ -39,41 +40,36 @@ class Deduper(Task):
         super().__init__(config=config, task_type=TaskType.DEDUPER)
         self.config = config
         self.logger = Logger(config)
-        self.db = DB()
+        self.db = DBInstance
         self.batch = batch  # type: ignore
         self.stage = Stage.DEDUPED
 
-    def run(self):
+    async def run(self):
         """Runs The Deduper Task."""
-        for track_id in self.batch:
-            track = Track(track_id)
-            if len(track.files) > 1:
-                # Sort files by bitrate and codec
-                track.files.sort(
-                    key=lambda f: (CodecPriority[f.codec], f.bitrate), reverse=True
-                )
-                # Keep the highest quality file
-                # best_file = track.files[0]
-                # Remove lower quality files
-                for file in track.files[1:]:
-                    path = Path(file.file_path)
-                    self.logger.info(f"Removing duplicate file: {path}")
-                    path.unlink()
-                    session = self.db.get_session()
-
-                    # Remove the file from the database
-                    dbfile = session.get(DBFile, DBFile.id == file.id)
-                    session.delete(dbfile)
-                    session.commit()
-                    self.logger.info(f"Removed {file.id} from database")
-                    session.close()
-                file = track.files[0]
-                session = self.db.get_session()
-                self.update_file_stage(file.id, session)
-                session.commit()
-                session.close()
-                self.logger.debug(f"Set stage DEDUPED for file {file.id}")
-            else:
-                self.logger.info(f"Track {track_id} has no duplicates to remove")
-            self.set_progress()
+        async for session in self.db.get_session():
+            for track_id in self.batch:
+                track = Track(track_id)
+                if len(track.files) > 1:
+                    # Sort files by bitrate and codec
+                    track.files.sort(
+                        key=lambda f: (CodecPriority[f.codec], f.bitrate), reverse=True
+                    )
+                    # Remove lower quality files
+                    for file in track.files[1:]:
+                        path = Path(file.file_path)
+                        self.logger.info(f"Removing duplicate file: {path}")
+                        path.unlink()
+                        # Remove the file from the database
+                        dbfile = session.get(DBFile, DBFile.id == file.id)
+                        await session.delete(dbfile)
+                        await session.commit()
+                        self.logger.info(f"Removed {file.id} from database")
+                    file = track.files[0]
+                    async for session in self.db.get_session():
+                        self.update_file_stage(file.id, session)
+                        await session.commit()
+                        self.logger.debug(f"Set stage DEDUPED for file {file.id}")
+                else:
+                    self.logger.info(f"Track {track_id} has no duplicates to remove")
+                self.set_progress()
         self.logger.info("Deduplication complete")

@@ -18,7 +18,7 @@
 from pathlib import Path
 
 from ..dbmodels import DBFile
-from ..Singletons import DB, Config, Logger
+from ..Singletons import DBInstance, Config, Logger
 from . import Task
 from ..enums import TaskType, Codec, Stage
 from ..AudioUtils.trimmer import SilenceTrimmer
@@ -41,20 +41,20 @@ class Trimmer(Task):
         super().__init__(config=config, task_type=TaskType.TRIMMER)
         self.batch = batch  # type: ignore
         self.logger = Logger(config)
-        self.db = DB()
+        self.db = DBInstance
         self.stage = Stage.TRIMMED
 
-    def run(self) -> None:
+    async def run(self) -> None:
         """Runs the trimmer on all files in the batch."""
-        session = self.db.get_session()
-        for file_id in self.batch:
-            dbfile = session.get_one(DBFile, DBFile.id == file_id)
-            path = Path(dbfile.file_path)
-            self._trim_file(path)
-            self.set_progress()
-            self.update_file_stage(file_id, session)
-        session.commit()
-        session.close()
+        async for session in self.db.get_session():
+            for file_id in self.batch:
+                dbfile = session.get_one(DBFile, DBFile.id == file_id)
+                path = Path(dbfile.file_path)  # type: ignore
+                self._trim_file(path)
+                self.set_progress()
+                self.update_file_stage(file_id, session)
+            await session.commit()
+            await session.close()
 
     def _trim_file(self, path: Path) -> None:
         """Trims silence from a single file."""

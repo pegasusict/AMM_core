@@ -27,7 +27,7 @@ from sqlmodel import select
 from ..enums import Stage, TaskType
 from ..dbmodels import DBFile, DBTrack, DBAlbum, DBAlbumTrack, DBPicture
 from .task import Task
-from ..Singletons import Config, DB, Logger
+from ..Singletons import Config, DBInstance, Logger
 
 
 class AlbumArt_Checker(Task):
@@ -40,29 +40,29 @@ class AlbumArt_Checker(Task):
     def __init__(self, config: Config, batch: dict[int, Path]):
         super().__init__(config=config, task_type=TaskType.ART_CHECKER)
         self.config = config
-        self.db = DB()
+        self.db = DBInstance
         self.logger = Logger(config)
         self.stage = Stage.ART_RETRIEVED
         self.batch: list[dict[str, Any]]
 
-    def run(self) -> None:
+    async def run(self) -> None:
         """
         Runs the ArtChacker Task.
         """
-        session = self.db.get_session()
-        self.batch = session.exec(  # type: ignore
-            select(DBFile)
-            .join(DBTrack, DBFile.track_id == DBTrack.id)  # type: ignore
-            .join(DBAlbumTrack, DBAlbumTrack.track_id == DBTrack.id)  # type: ignore
-            .join(DBAlbum, DBAlbumTrack.album_id == DBAlbum.id)  # type: ignore
-            .join(DBPicture, DBAlbum.id == DBPicture.album_id)  # type: ignore
-            .options(
-                selectinload(DBFile.track),  # type: ignore
-                selectinload(DBFile.track).selectinload(DBTrack.album_tracks),  # type: ignore
-            )
-        ).all()
-        for file in self.batch:  # type: ignore
-            self.update_file_stage(file.id, session)  # type: ignore
-            self.set_progress()
-        session.commit()
-        session.close()
+        async for session in DBInstance.get_session():
+            self.batch = session.exec(  # type: ignore
+                select(DBFile)
+                .join(DBTrack, DBFile.track_id == DBTrack.id)  # type: ignore
+                .join(DBAlbumTrack, DBAlbumTrack.track_id == DBTrack.id)  # type: ignore
+                .join(DBAlbum, DBAlbumTrack.album_id == DBAlbum.id)  # type: ignore
+                .join(DBPicture, DBAlbum.id == DBPicture.album_id)  # type: ignore
+                .options(
+                    selectinload(DBFile.track),  # type: ignore
+                    selectinload(DBFile.track).selectinload(DBTrack.album_tracks),  # type: ignore
+                )
+            ).all()  # type: ignore
+            for file in self.batch:  # type: ignore
+                self.update_file_stage(file.id, session)  # type: ignore
+                self.set_progress()
+            await session.commit()
+            await session.close()

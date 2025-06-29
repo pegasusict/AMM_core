@@ -20,9 +20,7 @@ from pathlib import Path
 from typing import List, Tuple
 from dataclasses import dataclass
 
-from sqlalchemy.orm import Session
-
-from ..Singletons import DB, Stack, Logger, Config
+from ..Singletons import DB, DBInstance, Stack, Logger, Config
 from ..dbmodels import DBFile
 from .task import Task
 from ..enums import Stage, TaskType
@@ -38,7 +36,7 @@ class ImporterConfig:
     @classmethod
     def from_config(cls, config: Config, dry_run: bool = False) -> "ImporterConfig":
         base_path = Path(config.get_path("import"))
-        raw_ext = config._get("extensions", "import")
+        raw_ext = config.get_list("extensions", "import")
         if isinstance(raw_ext, str):
             extensions = [raw_ext.lower()]
         elif isinstance(raw_ext, list):
@@ -46,7 +44,7 @@ class ImporterConfig:
         else:
             extensions = []
 
-        clean = bool(config._get("import", "clean", False))
+        clean = bool(config.get_bool("import", "clean", False))
         return cls(
             base_path=base_path, extensions=extensions, clean=clean, dry_run=dry_run
         )
@@ -90,7 +88,7 @@ class Importer(Task):
             config, dry_run=dry_run
         )
         self.stage: Stage = Stage.IMPORTED
-        self.db: DB = DB()
+        self.db: DB = DBInstance
 
         for counter in (
             "all_files",
@@ -102,7 +100,7 @@ class Importer(Task):
         ):
             self.stack.add_counter(counter)
 
-    def run(self) -> None:
+    async def run(self) -> None:
         if not self.config_data.base_path.exists():
             self.logger.error(f"Base path {self.config_data.base_path} does not exist.")
             return
@@ -123,7 +121,7 @@ class Importer(Task):
                 self._remove_file(file_path)
 
         if files_to_import and not self.config_data.dry_run:
-            self._import_files(files_to_import)
+            await self._import_files(files_to_import)
         elif self.config_data.dry_run:
             self.logger.info(
                 f"[Dry-run] Found {len(files_to_import)} files. No changes made."
@@ -146,12 +144,52 @@ class Importer(Task):
             except Exception as e:
                 self.logger.warning(f"Failed to delete {file_path}: {e}")
 
-    def _import_files(self, files_to_import: List[Path]) -> None:
-        session: Session = self.db.get_session()
-        for file_path in files_to_import:
-            db_file = DBFile(file_path=str(file_path), stage=self.stage)
-            session.add(db_file)
-            self.stack.add_counter("imported_files")
-        session.commit()
-        session.close()
-        self.logger.info(f"Imported {len(files_to_import)} files.")
+    async def _import_files(self, files_to_import: List[Path]) -> None:
+        process_path = Path(self.config.get_path("process"))
+        process_path.mkdir(parents=True, exist_ok=True)
+
+        async for session in self.db.get_session():
+            for original_path in files_to_import:
+                destination_path = self._resolve_destination_path(
+                    process_path, original_path.name
+                )
+
+                try:
+                    if self.config_data.dry_run:
+                        self.logger.info(
+                            f"[Dry-run] Would move {original_path} → {destination_path}"
+                        )
+                    else:
+                        original_path.rename(destination_path)
+                except Exception as e:
+                    self.logger.error(
+                        f"Failed to move {original_path} to {destination_path}: {e}"
+                    )
+                    continue
+
+                db_file = DBFile(file_path=str(destination_path), stage=self.stage)
+                session.add(db_file)
+                self.stack.add_counter("imported_files")
+
+            await session.commit()
+            await session.close()
+
+        self.logger.info(f"Imported {len(files_to_import)} files to {process_path}")
+
+    def _resolve_destination_path(self, target_dir: Path, file_name: str) -> Path:
+        """
+        Resolve a unique destination path in case of name conflicts.
+        """
+        base = target_dir / file_name
+        if not base.exists():
+            return base
+
+        stem = base.stem
+        suffix = base.suffix
+        counter = 1
+
+        while True:
+            candidate = target_dir / f"{stem} ({counter}){suffix}"
+            if not candidate.exists():
+                return candidate
+            counter += 1

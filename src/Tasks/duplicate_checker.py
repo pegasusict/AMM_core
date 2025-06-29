@@ -22,7 +22,7 @@ from .taskmanager import TaskManager
 from . import Task, Deduper
 from ..exceptions import DatabaseError
 from ..enums import TaskType
-from ..Singletons import Logger, Config, DB
+from ..Singletons import Logger, Config, DBInstance
 from ..dbmodels import DBTrack, DBFile
 
 
@@ -39,28 +39,28 @@ class DuplicateChecker(Task):
         super().__init__(config=config, task_type=TaskType.DUPLICATE_CHECKER)
         self.config = config
         self.logger = Logger(config)
-        self.db = DB()
+        self.db = DBInstance
 
-    def run(self):
+    async def run(self):
         """Runs The DuplicateChecker Task."""
-        session = self.db.get_session()
-        try:
-            stmt = (
-                select(DBTrack)
-                .join(DBFile)
-                .group_by(DBTrack.id)  # type: ignore
-                .having(func.count(DBFile.id) > 1)  # type: ignore  # noqa: F821
-            )
+        async for session in self.db.get_session():
+            try:
+                stmt = (
+                    select(DBTrack)
+                    .join(DBFile)
+                    .group_by(DBTrack.id)  # type: ignore
+                    .having(func.count(DBFile.id) > 1)  # type: ignore  # noqa: F821
+                )
 
-            duplicates = session.exec(stmt).all()
-        except Exception as e:
-            self.logger.error(f"Error while checking for duplicates: {e}")
-            raise DatabaseError(f"Database error: {e}") from e
-        if not duplicates:
-            self.logger.info("No duplicate files found.")
-            return
-        self.logger.info(f"Found {len(duplicates)} duplicate files.")
-        # Create a task to eliminate all duplicates
-        task = Deduper(config=self.config, batch=[track.id for track in duplicates])
-        tm = TaskManager()
-        tm.register_task(task)
+                duplicates = session.exec(stmt)
+            except Exception as e:
+                self.logger.error(f"Error while checking for duplicates: {e}")
+                raise DatabaseError(f"Database error: {e}") from e
+            if not duplicates:
+                self.logger.info("No duplicate files found.")
+                return
+            self.logger.info(f"Found {len(duplicates)} duplicate files.")  # type: ignore
+            # Create a task to eliminate all duplicates
+            task = Deduper(config=self.config, batch=[track.id for track in duplicates])  # type: ignore
+            tm = TaskManager()
+            tm.register_task(task)

@@ -17,7 +17,7 @@ from pathlib import Path
 from Singletons import Config, Logger
 from ..enums import FileType
 
-from .acoustid import AcoustIDClient
+from .acoustid import AcoustID
 from .lyrics_getter import LyricsGetter
 from .mb_client import MusicBrainzClient
 from .media_parser import MediaParser
@@ -27,7 +27,7 @@ from .trimmer import SilenceTrimmer
 
 
 __all__ = (
-    "AcoustIDClient",
+    "AcoustID",
     "LyricsGetter",
     "MusicBrainzClient",
     "MediaParser",

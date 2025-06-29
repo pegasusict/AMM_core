@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #  Copyleft 2021-2025 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
@@ -23,16 +22,13 @@ from sqlalchemy.orm import Session
 from pydantic import ValidationError
 
 from ..exceptions import FileError
-
 from ..dbmodels import DBFile, DBPerson, DBTrack
 from ..enums import TaskType, Stage
-from task import Task
-from Singletons import Config, DB, Logger
-from AudioUtils.acoustid import AcoustID
+from . import Task
+from ..Singletons import Config, DB, DBInstance, Logger
 from ..models import MetadataModel
-
-from AudioUtils.utils.acoustidhttpclient import AcoustIDHttpClient
-from AudioUtils import Tagger, get_file_type, MediaParser
+from ..AudioUtils.utils.acoustidhttpclient import AcoustIDHttpClient
+from ..AudioUtils import Tagger, get_file_type, MediaParser, AcoustID
 
 
 class FingerPrinter(Task):
@@ -44,21 +40,21 @@ class FingerPrinter(Task):
         super().__init__(config=config, task_type=TaskType.FINGERPRINTER)
         self.config: Config = config
         self.batch: List[int] = batch  # type: ignore
-        self.db: DB = DB()
+        self.db: DB = DBInstance
         self.logger: Logger = Logger(config)
         self.stage: Stage = Stage.FINGERPRINTED
 
     async def run(self) -> None:
         """Runs the fingerprinting task asynchronously."""
-        session: Session = self.db.get_session()
-        for file_id in self.batch:
-            await self._process_file_and_update(session, file_id)
-        session.commit()
-        session.close()
+        async for session in self.db.get_session():
+            for file_id in self.batch:
+                await self._process_file_and_update(session, file_id)
+            await session.commit()
+            await session.close()
 
-    async def _process_file_and_update(self, session: Session, file_id: int) -> None:
+    async def _process_file_and_update(self, session, file_id: int) -> None:
         try:
-            file: DBFile = self._get_file(session, file_id)
+            file: DBFile = self._get_file(session, file_id)  # type: ignore
             if not self._file_exists(file.file_path):
                 return
             raw_metadata: Dict[str, Any] = await self.process_file(Path(file.file_path))
@@ -75,8 +71,8 @@ class FingerPrinter(Task):
         except Exception as e:
             self.logger.error(f"Error processing file {file_id}: {e}")
 
-    def _get_file(self, session: Session, file_id: int) -> DBFile:
-        return session.get_one(DBFile, id == file_id)
+    async def _get_file(self, session, file_id: int) -> DBFile:
+        return await session.get_one(DBFile, id == file_id)
 
     def _file_exists(self, file_path: str) -> bool:
         path: Path = Path(file_path)

@@ -12,20 +12,20 @@
 #
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
-"""This module converts files from one codec to another."""
+"""Converts files from one codec to another."""
 
 from pathlib import Path
 
 from pydub import AudioSegment
 
-from ..Singletons import DB, Logger, Config
-from ..dbmodels import Track
+from ..Singletons import DBInstance, Logger, Config
+from ..models import Track
 from ..enums import Codec, Stage, TaskType
 from task import Task
 
 
 class Converter(Task):
-    """This class converts audio files to target formats based on input codec."""
+    """Converts audio files to target formats based on input codec."""
 
     def __init__(self, batch: list[int], config: Config):
         super().__init__(config=config, task_type=TaskType.CONVERTER)
@@ -37,25 +37,24 @@ class Converter(Task):
         self.hq_format = config._get("convert", "hqformat", Codec.FLAC.value).lower()  # type: ignore
         self.stage = Stage.CONVERTED
 
-    def run(self):
+    async def run(self):
         """Run the conversion process."""
-        db = DB()
-        session = db.get_session()
-        for track_id in self.batch:  # type: ignore
-            track = Track(track_id)  # type: ignore
-            if not track.files:
-                self.logger.warning(f"No files found for track {track_id}")
-                self.set_progress()
-                continue
+        async for session in DBInstance.get_session():
+            for track_id in self.batch:  # type: ignore
+                track = Track(track_id)  # type: ignore
+                if not track.files:
+                    self.logger.warning(f"No files found for track {track_id}")
+                    self.set_progress()
+                    continue
 
-            file = track.files[0]
-            self.convert_file(Path(file.file_path), file.codec)
-            file_id = file.id
-            self.update_file_stage(file_id, session)
-            self.set_progress()
-        session.commit()
-        session.close()
-        self.set_end_time()
+                file = track.files[0]
+                self.convert_file(Path(file.file_path), file.codec)
+                file_id = file.id
+                self.update_file_stage(file_id, session)
+                self.set_progress()
+            await session.commit()
+            await session.close()
+            self.set_end_time()
 
     def convert_file(self, input_path: Path, codec: str) -> None:
         """Converts an audio file to the target format based on its codec.

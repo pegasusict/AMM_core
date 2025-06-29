@@ -15,11 +15,12 @@
 from .config import Config
 from .env_config import EnvConfig
 from .logger import Logger
-from .database import DB
+from .database import DB, DBInstance
 from .stack import Stack
 
 __all__ = (
     "DB",
+    "DBInstance",
     "Config",
     "EnvConfig",
     "Logger",

@@ -25,7 +25,7 @@ from collections import defaultdict
 from . import TaskManager, Task, Importer, ArtGetter
 from ..enums import Stage, TaskType, ArtType
 from ..dbmodels import DBFile, DBAlbum, DBPerson, DBLabel
-from ..Singletons import Config, DB, Logger
+from ..Singletons import Config, DBInstance, Logger
 
 
 class Scanner(Task):
@@ -50,7 +50,7 @@ class Scanner(Task):
     def __init__(self, config: Config, batch=None, kwargs=None):
         super().__init__(config=config, task_type=TaskType.SCANNER)
         self.config = config
-        self.db = DB()
+        self.db = DBInstance
         self.logger = Logger(config)
         self.is_idle_task = True
         self.import_path = Path(self.config.get_path("import"))
@@ -60,51 +60,46 @@ class Scanner(Task):
             if stage != Stage.NONE:
                 self.required_stages |= stage
         self.task_manager = TaskManager()
-        self.batch_size = self.config._get(
-            "scanner", "scanner_batch_size", 1000
-        )  # default 1000
+        self.batch_size = self.config.get_int("scanner", "scanner_batch_size", 1000)  # default 1000
 
-    def run(self) -> None:
+    async def run(self) -> None:
         """
         Runs the Scanner Task.
         """
-        session = self.db.get_session()
+        async for session in self.db.get_session():
+            # Remove empty directories from the import folder
+            self.remove_empty_dirs(self.import_path)
 
-        # Remove empty directories from the import folder
-        self.remove_empty_dirs(self.import_path)
+            # Check for new files to import
+            await self.check_new_import_files()
 
-        # Check for new files to import
-        self.check_new_import_files()
+            # Assess stages and reschedule processing tasks
+            await self.scan_and_reschedule(session)
 
-        # Assess stages and reschedule processing tasks
-        self.scan_and_reschedule(session)
+            if art_batch := self.collect_missing_artwork(session):
+                self.logger.debug(f"Scanner: Launching ART_GETTER with batch: {art_batch}")
+                await self.task_manager.start_task(ArtGetter, art_batch)
+            else:
+                self.logger.debug("Scanner: No missing artwork detected.")
 
-        if art_batch := self.collect_missing_artwork(session):
-            self.logger.debug(f"Scanner: Launching ART_GETTER with batch: {art_batch}")
-            self.task_manager.start_task(ArtGetter, art_batch)
-        else:
-            self.logger.debug("Scanner: No missing artwork detected.")
-
-        session.close()
+            await session.close()
         self.task_manager._idle_task_running = False
 
     def remove_empty_dirs(self, path: Path):
-        for directory in sorted(
-            path.rglob("*"), key=lambda d: len(d.parts), reverse=True
-        ):
+        for directory in sorted(path.rglob("*"), key=lambda d: len(d.parts), reverse=True):
             if directory.is_dir():
                 with contextlib.suppress(OSError):
                     directory.rmdir()
                     self.logger.debug(f"Removed empty directory: {directory}")
 
-    def check_new_import_files(self):
+    async def check_new_import_files(self):
         new_files = [file for file in self.import_path.rglob("*") if file.is_file()]
         self.logger.info(f"Scanner: Found {len(new_files)} files in import folder.")
         if new_files:
             tm = TaskManager()
-            tm.start_task(Importer, None)
+            await tm.start_task(Importer, None)
 
-    def scan_and_reschedule(self, session):
+    async def scan_and_reschedule(self, session):
         files = session.query(DBFile).all()
         batch_tasks: dict[TaskType, list[int]] = defaultdict(list)
 
@@ -112,13 +107,9 @@ class Scanner(Task):
             if next_stage := self.get_next_missing_stage(file.stage):
                 if task_type := self.stage_to_tasktype.get(next_stage):
                     batch_tasks[task_type].append(file.id)
-                    self.logger.debug(
-                        f"Scanner: File {file.id} added to {task_type.name} batch."
-                    )
+                    self.logger.debug(f"Scanner: File {file.id} added to {task_type.name} batch.")
                 else:
-                    self.logger.debug(
-                        f"Scanner: No task mapped for Stage {next_stage.name}"
-                    )
+                    self.logger.debug(f"Scanner: No task mapped for Stage {next_stage.name}")
             else:
                 self.logger.debug(f"Scanner: File {file.id} has all required stages.")
 
@@ -127,10 +118,8 @@ class Scanner(Task):
             task_class = self.task_manager._get_task_class(task_type)
             for i in range(0, len(file_ids), self.batch_size):  # type: ignore
                 batch = file_ids[i : i + self.batch_size]  # type: ignore
-                self.logger.debug(
-                    f"Scanner: Launching {task_type.name} task for batch: {batch}"
-                )
-                self.task_manager.start_task(
+                self.logger.debug(f"Scanner: Launching {task_type.name} task for batch: {batch}")
+                await self.task_manager.start_task(
                     task_class=task_class,
                     batch=batch,
                 )
@@ -164,11 +153,7 @@ class Scanner(Task):
 
     def get_missing_stages(self, file_stage: int) -> list[Stage]:
         file_stage = Stage(file_stage)
-        return [
-            stage
-            for stage in Stage
-            if stage in self.required_stages and not (file_stage & stage)
-        ]
+        return [stage for stage in Stage if stage in self.required_stages and not (file_stage & stage)]
 
     def get_next_missing_stage(self, file_stage: int) -> Optional[Stage]:
         missing = self.get_missing_stages(file_stage)

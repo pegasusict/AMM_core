@@ -23,7 +23,7 @@ from sqlmodel import select
 from sqlalchemy.orm import selectinload
 
 from exceptions import InvalidValueError
-from Singletons import DB
+from Singletons import DBInstance
 from dbmodels import DBFile, DBTrack, DBPerson, DBAlbum, DBAlbumTrack
 
 
@@ -60,7 +60,7 @@ class Track(BaseModel):
 
     def __init__(self, track_id: int | None = None) -> None:
         if track_id is not None:
-            session = DB().get_session()
+            session = DBInstance().get_session()
             trackdata = session.exec(
                 select(DBTrack)
                 .where(DBTrack.id == track_id)

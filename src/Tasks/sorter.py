@@ -18,8 +18,8 @@ import re
 import unicodedata
 from pathlib import Path
 
-from ..Singletons import DB, Logger, Config
-from ..dbmodels import Track
+from ..Singletons import DBInstance, Logger, Config
+from ..models import Track
 from . import Task
 from ..enums import TaskType, Stage
 
@@ -41,16 +41,14 @@ class Sorter(Task):
         self.config = config
         self.batch = batch  # type: ignore
         self.logger = Logger(config)
-        self.db = DB()
+        self.db = DBInstance
         self.stage = Stage.SORTED
 
     def create_index_symbol(self, artist_sort: str) -> str:
         """Creates an index symbol from artist_sort, replacing non-ASCII with '0-9'."""
         initial = artist_sort[0].upper()
         norm_initial = unicodedata.normalize("NFD", initial)
-        initial = "".join(
-            char for char in norm_initial if unicodedata.category(char) != "Mn"
-        )
+        initial = "".join(char for char in norm_initial if unicodedata.category(char) != "Mn")
         return initial if initial.isascii() and initial.isalpha() else "0-9"
 
     def format_number(self, number: str, count: str) -> str:
@@ -66,37 +64,32 @@ class Sorter(Task):
         minutes, seconds = divmod(duration, 60)
         return f"{minutes:02}:{seconds:02}"
 
-    def run(self):
+    async def run(self):
         """Executes the Sorter Task."""
-        session = self.db.get_session()
+        async for session in self.db.get_session():
+            for track_id in self.batch:
+                track = Track(track_id=track_id)  # Track assumed loaded correctly elsewhere
+                result = self._prepare_track_file(track)
+                if result is None:
+                    continue
 
-        for track_id in self.batch:
-            track = Track(track_id=track_id)  # Track assumed loaded correctly elsewhere
-            result = self._prepare_track_file(track)
-            if result is None:
-                continue
+                input_path, metadata, file_id = result
+                target_path = self._build_target_path(metadata)
 
-            input_path, metadata, file_id = result
-            target_path = self._build_target_path(metadata)
+                if target_path.exists():
+                    self.logger.warning(f"Target file {target_path} already exists — skipping move.")
+                    continue
 
-            if target_path.exists():
-                self.logger.warning(
-                    f"Target file {target_path} already exists — skipping move."
-                )
-                continue
+                try:
+                    self._move_file(input_path, target_path)
+                    self.update_file_stage(file_id, session)
+                except Exception as e:
+                    self.logger.error(f"Failed to process {input_path} to {target_path}: {e}")
 
-            try:
-                self._move_file(input_path, target_path)
-                self.update_file_stage(file_id, session)
-            except Exception as e:
-                self.logger.error(
-                    f"Failed to process {input_path} to {target_path}: {e}"
-                )
+                self.set_progress()
 
-            self.set_progress()
-
-        session.commit()
-        session.close()
+            await session.commit()
+            await session.close()
 
     def _prepare_track_file(self, track):
         """Validate track and return (input_path, metadata, file_id) or None if invalid."""
@@ -123,18 +116,14 @@ class Sorter(Task):
         base_path = Path(self.config.get_path("base"))
 
         album = self.clean_string(str(metadata.get("album", "[compilations]")))
-        artist_sort = self.clean_string(
-            str(metadata.get("artist_sort", "[Unknown Artist]"))
-        )
+        artist_sort = self.clean_string(str(metadata.get("artist_sort", "[Unknown Artist]")))
         track_title = self.clean_string(str(metadata.get("title", "[Unknown Track]")))
         bitrate = str(metadata.get("bitrate", "000"))
         duration = self.fix_duration(int(metadata.get("duration", 0)))
         year = str(metadata.get("year", "0000"))
 
         initial = self.create_index_symbol(artist_sort)
-        disc_number = self.format_number(
-            str(metadata.get("disc_number", "1")), str(metadata.get("disc_count", "1"))
-        )
+        disc_number = self.format_number(str(metadata.get("disc_number", "1")), str(metadata.get("disc_count", "1")))
         track_number = self.format_number(
             str(metadata.get("track_number", "1")),
             str(metadata.get("track_count", "1")),
@@ -143,9 +132,7 @@ class Sorter(Task):
         target_dir = base_path / initial / artist_sort / f"({year}) - {album}"
         target_dir.mkdir(parents=True, exist_ok=True)
 
-        target_file_name = (
-            f"{disc_number}{track_number} {artist_sort} - {track_title} [{bitrate}] [{duration}].mp3"
-        ).strip()
+        target_file_name = (f"{disc_number}{track_number} {artist_sort} - {track_title} [{bitrate}] [{duration}].mp3").strip()
 
         return target_dir / self.clean_string(target_file_name)
 

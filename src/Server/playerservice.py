@@ -124,6 +124,15 @@ class PlayerService:
         Here, we stop the stream."""
         await self.stop()
 
+    @classmethod
+    async def shutdown_all(cls):
+        """Stop all VLC streams across all user sessions."""
+        for user_id, instance in cls._instances.items():
+            if instance.is_playing:
+                print(f"Stopping stream for user {user_id}")
+                await instance.stop()
+        cls._instances.clear()
+
 
 # Helper for GraphQL or FastAPI route
 async def get_player_service(user_id: int) -> PlayerService:

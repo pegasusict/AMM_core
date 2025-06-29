@@ -14,13 +14,14 @@
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 """Retrieves art from online archives."""
 
+from pathlib import Path
 import urllib.request
 import re
 
 from ..exceptions import InvalidURLError
 from task import Task
 from ..enums import TaskType, ArtType, TaskStatus
-from ..Singletons import Config, Logger, DB
+from ..Singletons import Config, Logger, DBInstance
 from ..AudioUtils.mb_client import MusicBrainzClient as mbclient
 
 
@@ -50,11 +51,11 @@ class ArtGetter(Task):
         super().__init__(config=config, task_type=TaskType.ART_GETTER)
         self.batch = batch  # type: ignore
         self.config = config
-        self.art_path = self.config._get("paths", "art")
+        self.art_path = self.config.get_path("art")
         self.processed = 0
         self.logger = Logger(config)
         self.mbc = mbclient(config)
-        self.database = DB()
+        self.database = DBInstance
 
     def run(self) -> None:
         """
@@ -110,10 +111,10 @@ class ArtGetter(Task):
         else:
             self.logger.warning(f"Unknown art type: {art_type}")
             return
-        save_path = f"{self.art_path}{mbid}.jpg"
+        save_path = Path(f"{self.art_path}{mbid}.jpg")
 
         if not is_valid_url(url):
             raise InvalidURLError("Invalid url found.")
         urllib.request.urlretrieve(url, save_path)
-        self.database.register_picture(mbid, art_type.value, save_path)
+        await self.database.register_picture(mbid, art_type, save_path)
         self.logger.info(f"Art saved to {save_path}")

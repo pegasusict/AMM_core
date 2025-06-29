@@ -20,8 +20,9 @@ from pathlib import Path
 
 from . import Task
 from ..enums import TaskType, Stage
-from ..Singletons import Config, DB, Logger
-from ..dbmodels import DBTrack, Track
+from ..Singletons import Config, DBInstance, Logger
+from ..dbmodels import DBTrack
+from ..models import Track
 from ..AudioUtils.tagger import Tagger as Tag
 from ..AudioUtils.media_parser import get_file_type
 
@@ -39,42 +40,41 @@ class Tagger(Task):
         super().__init__(config=config, task_type=TaskType.TAGGER)
         self.config = config
         self.batch = batch  # type: ignore
-        self.db = DB()
+        self.db = DBInstance
         self.logger = Logger(config)
         self.stage = Stage.TAGGED
 
-    def run(self) -> None:
+    async def run(self) -> None:
         """Runs the Tagger task."""
-        session = self.db.get_session()
-        for track_id in self.batch:  # type: ignore
-            # Parse the media file
-            file_path = "Unknown file"
-            try:
-                # get all tags for said track
-                # Ensure track_id is an int
-                if not isinstance(track_id, int):
-                    track_id = int(str(track_id))
-                session = self.db.get_session()
-                db_track = session.get_one(DBTrack, DBTrack.id == track_id)
-                track = Track()
-                track.__dict__.update(db_track.__dict__)
-                tags = track.get_tags()
-                # get file associated with track
-                file = track.files[0]
-                file_id = file.id
-                file_path = Path(file.file_path)
-                if not file_path:
-                    self.logger.error(f"Track {track_id} has no associated file.")
-                    continue
-                file_type = get_file_type(file_path)
-                # write all tags to file
-                tagger = Tag(file_path, str(file_type))
-                tagger.set_tags(tags)
-                self.update_file_stage(file_id, session)
-            except Exception as e:
-                self.logger.error(f"Error processing file {file_path}: {e}")
-                raise
+        async for session in self.db.get_session():
+            for track_id in self.batch:  # type: ignore
+                # Parse the media file
+                file_path = "Unknown file"
+                try:
+                    # get all tags for said track
+                    # Ensure track_id is an int
+                    if not isinstance(track_id, int):
+                        track_id = int(str(track_id))
+                    db_track = session.get_one(DBTrack, DBTrack.id == track_id)
+                    track = Track()
+                    track.__dict__.update(db_track.__dict__)
+                    tags = track.get_tags()
+                    # get file associated with track
+                    file = track.files[0]
+                    file_id = file.id
+                    file_path = Path(file.file_path)
+                    if not file_path:
+                        self.logger.error(f"Track {track_id} has no associated file.")
+                        continue
+                    file_type = get_file_type(file_path)
+                    # write all tags to file
+                    tagger = Tag(file_path, str(file_type))
+                    tagger.set_tags(tags)
+                    self.update_file_stage(file_id, session)
+                except Exception as e:
+                    self.logger.error(f"Error processing file {file_path}: {e}")
+                    raise
 
-            self.set_progress()
-        session.commit()
-        session.close()
+                self.set_progress()
+            await session.commit()
+            await session.close()

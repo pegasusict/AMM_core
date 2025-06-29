@@ -22,7 +22,7 @@ import json
 from threading import Thread
 from typing import Type, Optional, Any, Set
 
-from Singletons import DB, Logger, Config
+from Singletons import DBInstance, Logger, Config
 from ..enums import TaskStatus, TaskType
 from ..dbmodels import DBTask  # ORM model, NOT a task
 from . import (
@@ -103,10 +103,8 @@ class TaskManager:
         self.tasks: dict[str, dict[str, Task]] = {}
         self.task_queue: list[Task] = []
         self.running_tasks = 0
-        self.max_concurrent_tasks = 2 * (
-            os.cpu_count() or 2
-        )  # Default to 2 if cpu_count() is None
-        self.db = DB()
+        self.max_concurrent_tasks = 2 * (os.cpu_count() or 2)  # Default to 2 if cpu_count() is None
+        self.db = DBInstance
         self.config = Config()
         self.logger = Logger(self.config)
 
@@ -123,7 +121,7 @@ class TaskManager:
             self.monitor_thread = Thread(target=self._monitor_loop, daemon=True)
             self.monitor_thread.start()
 
-    def shutdown(self):
+    async def shutdown(self):
         """Stops the monitor and pauses running tasks."""
         self.logger.info("Shutting down TaskManager...")
         self._shutdown = True
@@ -131,7 +129,7 @@ class TaskManager:
             self.logger.debug("Waiting for monitor thread to stop...")
             self.monitor_thread.join(timeout=3)
             self.logger.info("Monitor thread stopped.")
-        self.pause_all_running_tasks()
+        await self.pause_all_running_tasks()
 
     def _monitor_loop(self):
         """Daemon loop to monitor and manage tasks."""
@@ -156,7 +154,7 @@ class TaskManager:
             self._start_task(task, "Queued task ")
             self.update_task_status(task)
 
-    def pause_all_running_tasks(self):
+    async def pause_all_running_tasks(self):
         """Pause all running tasks and persist their state."""
         self.logger.info("Pausing all running tasks...")
         for task_id, task in self.tasks[TaskStatus.RUNNING.value].items():
@@ -164,7 +162,7 @@ class TaskManager:
                 task.pause()
                 task.status = TaskStatus.PAUSED
                 self.logger.info(f"Paused task {task_id}")
-                self._save_task_to_db(task)
+                await self._save_task_to_db(task)
             except Exception as e:
                 self.logger.error(f"Failed to pause task {task_id}: {e}")
 
@@ -188,11 +186,7 @@ class TaskManager:
 
     def get_task(self, task_id: str) -> Optional[Task]:
         return next(
-            (
-                task_group[task_id]
-                for task_group in self.tasks.values()
-                if task_id in task_group
-            ),
+            (task_group[task_id] for task_group in self.tasks.values() if task_id in task_group),
             None,
         )
 
@@ -209,7 +203,7 @@ class TaskManager:
         self.task_queue.append(task)
         return task.task_id
 
-    def start_task(
+    async def start_task(
         self,
         task_class: Type[Task],
         batch: Any,
@@ -226,21 +220,17 @@ class TaskManager:
             )
 
         # Check if task type is exclusive and already running
-        if task.task_type in self.exclusive_task_types and self._exclusive_task_running(
-            task.task_type
-        ):
+        if task.task_type in self.exclusive_task_types and self._exclusive_task_running(task.task_type):
             return self._queue_task_with_message(
                 task,
                 f"Task {task.task_id} is exclusive and another of its type is running. Queued.",
             )
 
         if self.running_tasks >= self.max_concurrent_tasks:
-            return self._queue_task_with_message(
-                task, f"Task {task.task_id} queued (limit reached)."
-            )
+            return self._queue_task_with_message(task, f"Task {task.task_id} queued (limit reached).")
 
         self._start_task(task, "Task ")
-        self._save_task_to_db(task)
+        await self._save_task_to_db(task)
         return task.task_id
 
     def _start_task(self, task: Task, task_desc: str):
@@ -249,7 +239,7 @@ class TaskManager:
         self.running_tasks += 1
         self.logger.info(f"{task_desc}{task.task_id} started.")
 
-    def _save_task_to_db(self, task: Task):
+    async def _save_task_to_db(self, task: Task):
         """Persist task to DB."""
         if getattr(task, "is_idle_task", False):
             return  # Skip saving idle tasks to DB
@@ -262,10 +252,10 @@ class TaskManager:
         db_task = DBTask()  # type: ignore
         db_task.import_task(task)  # type: ignore
 
-        session = self.db.get_session()
-        session.add(db_task)
-        session.commit()
-        session.close()
+        async for session in self.db.get_session():
+            session.add(db_task)
+            await session.commit()
+            await session.close()
 
     def list_tasks(self) -> list[dict[str, Any]]:
         """Returns list of task summaries."""
@@ -284,7 +274,7 @@ class TaskManager:
         """Resume tasks saved in DB."""
         self.logger.info("Resuming paused tasks from DB...")
         paused_tasks = self.db.get_paused_tasks()
-        for record in paused_tasks:
+        for record in paused_tasks:  # type: ignore
             try:
                 task_type = TaskType(record.task_type)
                 batch = record.get_batch()
@@ -300,10 +290,7 @@ class TaskManager:
                 self.logger.info(f"Resuming task {record.id}")
                 self.register_task(task)
 
-                if (
-                    task_type in self.exclusive_task_types
-                    or self.running_tasks >= self.max_concurrent_tasks
-                ):
+                if task_type in self.exclusive_task_types or self.running_tasks >= self.max_concurrent_tasks:
                     self.task_queue.append(task)
                 else:
                     task.start()
@@ -327,9 +314,7 @@ class TaskManager:
                     return True
         return False
 
-    def set_mutual_exclusion(
-        self, task_type: TaskType, conflicting_types: set[TaskType]
-    ):
+    def set_mutual_exclusion(self, task_type: TaskType, conflicting_types: set[TaskType]):
         """Dynamically set mutual exclusion rules for a task type."""
         self.mutually_exclusive_tasks[task_type] = conflicting_types
 

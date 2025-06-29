@@ -14,108 +14,83 @@
 
 """Base file for AMM core functionality."""
 
-# import os
-# import asyncio
-from fastapi import FastAPI, Depends, Request, HTTPException, status
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordBearer
-from starlette.middleware.sessions import SessionMiddleware
-
-# import strawberry
+from contextlib import asynccontextmanager
 from strawberry.fastapi import GraphQLRouter
-# from strawberry.types import Info
 
+from Singletons import Config, Logger
 from Server.graphql import schema
-from Singletons import Config, EnvConfig, Logger
-from Singletons.database import DBInstance
+from Server.playerservice import PlayerService
+from Tasks.taskmanager import TaskManager
 
-# from Server.playerservice import PlayerService
-from dbmodels import DBUser
-from passlib.context import CryptContext
-
-from .enums import UserRole
-
-
-# ------------------ App Setup ------------------
-
-app = FastAPI()
+# Initialize Config & Logger
 config = Config()
-logger = Logger(Config())
-config.use_real_logger(logger)  # type: ignore
+logger = Logger(config)
+config.use_real_logger(logger)
 
+# GraphQL Router
+graphql_app = GraphQLRouter(schema)
+
+# CORS Settings — Allow CLI, GUI, Web, Mobile clients
+origins = [
+    "http://localhost",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "*",  # TODO: tighten this for production
+]
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan handler to manage startup and shutdown of critical services."""
+    logger.info("App startup: initializing services...")
+
+    try:
+        task_manager = TaskManager()
+        logger.info("TaskManager started successfully.")
+    except Exception as e:
+        logger.exception(f"TaskManager failed to start: {e}")
+
+    yield
+
+    logger.info("App shutdown: cleaning up services...")
+
+    try:
+        await PlayerService.shutdown_all()
+        logger.info("PlayerServiceManager shutdown complete.")
+    except Exception as e:
+        logger.exception(f"Error shutting down PlayerServiceManager: {e}")
+
+    try:
+        task_manager.shutdown()  # type: ignore
+        logger.info("TaskManager shutdown complete.")
+    except Exception as e:
+        logger.exception(f"Error shutting down TaskManager: {e}")
+
+    try:
+        config.stop_watching()
+        logger.info("Config file watcher stopped.")
+    except Exception as e:
+        logger.exception(f"Error stopping Config watcher: {e}")
+
+
+# FastAPI App with lifespan management
+app = FastAPI(lifespan=lifespan)
+
+# Apply CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.add_middleware(SessionMiddleware, secret_key=EnvConfig.SECRET_KEY)
-
-
-# ------------------ OAuth2 Placeholder ------------------
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-# Dummy Auth (replace with real Google OAuth2 and DB validation)
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> DBUser:
-    # Simulate user extraction
-    if token == "admin":
-        return DBUser(
-            id=1,
-            username="admin",
-            email="admin@example.com",
-            is_active=True,
-            role=UserRole.ADMIN,
-        )
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-        )
-
-
-# Inject into GraphQL context
-async def get_context(request: Request) -> dict:
-    # Replace this with real Google OAuth2 or token extraction logic
-    user = await get_current_user()  # Dummy user for now
-    return {"request": request, "user": user}
-
-
-# ------------------ GraphQL Setup ------------------
-
-graphql_app = GraphQLRouter(schema, context_getter=get_context)
+# Mount GraphQL API
 app.include_router(graphql_app, prefix="/graphql")
-
-
-# ------------------ Lifespan Events ------------------
-
-
-@app.on_event("startup")
-async def on_startup():
-    logger.info("Starting app... Initializing DB and TaskManager.")
-    await DBInstance.init_db()
-    # Potential: Start TaskManager, PlayerService preload
-
-
-@app.on_event("shutdown")
-async def on_shutdown():
-    logger.info("Shutting down app... Closing services.")
-    # Potential: gracefully stop PlayerServices, TaskManager
-
-
-# ------------------ Basic Routes ------------------
 
 
 @app.get("/")
 async def root():
-    return RedirectResponse(url="/graphql")
-
-
-@app.get("/health")
-async def health():
-    return {"status": "OK"}
+    """Root endpoint for health checking."""
+    return {"status": "Music Manager API running", "graphql": "/graphql"}
