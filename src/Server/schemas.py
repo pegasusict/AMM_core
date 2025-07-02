@@ -67,6 +67,15 @@ class Task:
 
 
 @strawberry.type()
+class DisplayTask:
+    task_id: Optional[str]
+    task_type: Optional[str]
+    progress: Optional[int]
+    start_time: Optional[datetime]
+    status: Optional[str]
+
+
+@strawberry.type()
 class Stat:
     id: Optional[int] = None
     name: Optional[str] = None

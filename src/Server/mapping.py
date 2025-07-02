@@ -18,6 +18,7 @@ from typing import List, Optional, Any
 from sqlmodel import SQLModel
 
 from ..dbmodels import (
+    DBTask,
     DBTrack,
     DBPlaylist,
     DBQueue,
@@ -27,6 +28,7 @@ from ..dbmodels import (
     DBPerson,
 )
 from .schemas import (
+    DisplayTask,
     PlayerTrack,
     Playlist,
     User,
@@ -111,6 +113,16 @@ def map_dbperson_to_person(person: DBPerson) -> Person:
         alias=person.alias,
         nick_name=person.nick_name,
         sort_name=person.sort_name,
+    )
+
+
+def map_dbtask_to_displaytask(task: DBTask) -> Any:
+    return DisplayTask(
+        task_id=task.task_id,
+        task_type=task.task_type,
+        status=task.status,
+        start_time=task.start_time,
+        progress=int(task.progress) if task.progress is not None else 0,
     )
 
 

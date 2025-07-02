@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #  Copyleft 2021-2025 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
@@ -17,29 +16,30 @@ GraphQL Server class for handling GraphQL queries and mutations.
 This class is used to add a GraphQL route to the FastAPI application.
 """
 
+from typing import Optional
+
 import asyncio
 import strawberry
 from strawberry.types import Info
-from typing import Optional
+from strawberry.fastapi import BaseContext
+from fastapi import Request
 
+from auth.dependencies import get_current_user
 from ..dbmodels import (
+    DBTask,
     DBTrack,
     DBAlbum,
     DBPerson,
     DBGenre,
-    # DBUser,
-    # DBPlaylist,
-    # DBPlaylistTrack,
-    # DBQueue,
+    DBUser,
 )
 from ..Singletons.database import DBInstance
 from .schemas import (
+    DisplayTask,
     Track,
     Album,
     Person,
     Genre,
-    # Playlist,
-    # PlayerStatus,
     PlayerTrack,
     TrackInput,
     AlbumInput,
@@ -48,11 +48,11 @@ from .schemas import (
 )
 from .playerservice import get_player_service
 from .mapping import (
+    map_dbtask_to_displaytask,
     map_dbtrack_to_track,
     map_dbalbum_to_album,
     map_dbperson_to_person,
     map_dbgenre_to_genre,
-    # map_dbplaylist_to_playlist,
     map_dbtrack_to_playertrack,
     update_model_from_input,
 )
@@ -93,6 +93,13 @@ class Query:
             genre = await session.get(DBGenre, genre_id)
             return map_dbgenre_to_genre(genre) if genre else None
 
+    @strawberry.field()
+    async def get_task_display(self, info: Info) -> Optional[list[DisplayTask]]:
+        """Fetches a list of tasks."""
+        async for session in DBInstance.get_session():
+            tasks = await session.get(DBTask, None)
+            return [map_dbtask_to_displaytask(task) for task in tasks] if tasks else None  # type: ignore
+
 
 # ------------------ GraphQL Mutations ------------------
 
@@ -126,9 +133,7 @@ class Mutation:
         return False
 
     @strawberry.mutation
-    async def update_person(
-        self, info: Info, person_id: int, data: PersonInput
-    ) -> bool:
+    async def update_person(self, info: Info, person_id: int, data: PersonInput) -> bool:
         """Update an existing person (artist, performer, etc)."""
         async for session in DBInstance.get_session():
             person = await session.get(DBPerson, person_id)
@@ -211,3 +216,16 @@ class Subscription:
 # ------------------ GraphQL Schema ------------------
 
 schema = strawberry.Schema(query=Query, mutation=Mutation, subscription=Subscription)
+
+
+class RequestContext(BaseContext):
+    request: Request  # type: ignore
+    user: DBUser | None = None
+
+
+async def get_context(request: Request) -> RequestContext:
+    try:
+        user = await get_current_user(request=request)  # type: ignore
+    except Exception:
+        user = None
+    return RequestContext(request=request, user=user)  # type: ignore

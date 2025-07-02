@@ -23,6 +23,7 @@ from Singletons import Config, Logger
 from Server.graphql import schema
 from Server.playerservice import PlayerService
 from Tasks.taskmanager import TaskManager
+from Server.graphql import get_context
 
 # Initialize Config & Logger
 config = Config()
@@ -30,14 +31,15 @@ logger = Logger(config)
 config.use_real_logger(logger)
 
 # GraphQL Router
-graphql_app = GraphQLRouter(schema)
+graphql_app = GraphQLRouter(schema, context_getter=get_context)
 
 # CORS Settings — Allow CLI, GUI, Web, Mobile clients
 origins = [
     "http://localhost",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    "*",  # TODO: tighten this for production
+    "*",  # has to be wide open because of mobile clients
+    "http://localhost:3000",  # GUI
 ]
 
 

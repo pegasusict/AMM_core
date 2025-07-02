@@ -1,4 +1,5 @@
 {
     "postman.settings.dotenv-detection-notification-visibility": false,
-    "zencoder.enableRepoIndexing": true
+    "zencoder.enableRepoIndexing": true,
+    "python.REPL.enableREPLSmartSend": false
 }
