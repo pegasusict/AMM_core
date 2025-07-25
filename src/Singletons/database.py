@@ -234,7 +234,13 @@ class DB:
 
     async def get_task_stat_snapshots(self, task_type: TaskType) -> Optional[list[DBTaskStatSnapshot]]:
         async for session in self.get_session():
-            result = await session.exec(select(DBTaskStatSnapshot).where(DBTaskStatSnapshot.task_type == task_type).order_by(DBTaskStatSnapshot.snapshot_time))  # type: ignore
+            result = await session.exec(
+                select(DBTaskStatSnapshot)
+                .where(DBTaskStatSnapshot.task_type == task_type)
+                .order_by(
+                    DBTaskStatSnapshot.snapshot_time  # type: ignore
+                )
+            )
             return result.all() if result else None  # type: ignore
 
 
