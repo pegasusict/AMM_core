@@ -108,9 +108,7 @@ class PlayerService:
 
         print(f"Starting VLC stream for user {self.user_id}: {file_path}")
 
-        self.current_process = subprocess.Popen(
-            ["cvlc", "-I", "dummy", file_path, "--sout", sout, "--sout-keep"]
-        )
+        self.current_process = subprocess.Popen(["cvlc", "-I", "dummy", file_path, "--sout", sout, "--sout-keep"])
 
     async def stop(self):
         """Stop VLC process."""
@@ -132,6 +130,16 @@ class PlayerService:
                 print(f"Stopping stream for user {user_id}")
                 await instance.stop()
         cls._instances.clear()
+
+    async def set_volume(self, level: int):
+        if self.current_process:
+            self.current_process.stdin.write(f"volume {level}\n".encode())  # type: ignore # example
+
+    async def seek(self, seconds: int):
+        # For VLC via `rc` or other IPC, this may look like:
+        if self.current_process:
+            # This is pseudo: actual implementation may require IPC setup
+            self.current_process.stdin.write(f"seek {seconds}\n".encode())
 
 
 # Helper for GraphQL or FastAPI route

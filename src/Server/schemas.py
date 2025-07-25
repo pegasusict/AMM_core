@@ -15,14 +15,14 @@
 """Contains the GraphQL schemas."""
 
 from __future__ import annotations
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from pathlib import Path
 from typing import List, Optional
 
 import strawberry
 from pydantic import EmailStr
 
-from ..enums import Stage, UserRole, Codec
+from ..enums import Stage, TaskType, UserRole, Codec
 
 
 # ----------------- User & Task -----------------
@@ -224,7 +224,11 @@ class Key:
 class PlayerTrack:
     id: int
     title: str
-    mbid: str
+    subtitle: Optional[str]
+    artists: List[str]
+    album_picture: Optional[str]  # URL or static path
+    duration_seconds: Optional[int]
+    lyrics: Optional[str]
 
 
 @strawberry.type
@@ -262,3 +266,65 @@ class PersonInput:
 @strawberry.input
 class GenreInput:
     name: Optional[str] = None
+
+
+@strawberry.type
+class TaskStats:
+    task_type: TaskType
+    last_run: datetime = datetime.min
+    imported: int = 0
+    parsed: int = 0
+    trimmed: int = 0
+    deduped: int = 0
+    total_playtime: int = 0
+    average_playtime: int = 0
+    total_filesize: int = 0
+    average_filesize: int = 0
+    updated_at: datetime = datetime.now(timezone.utc)
+
+
+@strawberry.type
+class TaskStatSnapshot:
+    snapshot_time: datetime = datetime.now(timezone.utc)
+    task_type: TaskType
+    total_playtime: int = 0
+    total_filesize: int = 0
+    imported: int = 0
+    parsed: int = 0
+    trimmed: int = 0
+    deduped: int = 0
+
+
+@strawberry.type
+class StatPoint:
+    timestamp: datetime
+    value: int
+
+
+@strawberry.type
+class TaskStatSummary:
+    task_type: TaskType
+    imported: StatDelta
+    parsed: StatDelta
+    trimmed: StatDelta
+    deduped: StatDelta
+    total_playtime: StatDelta
+    total_filesize: StatDelta
+
+
+@strawberry.type
+class StatDelta:
+    value: int
+    change: int
+    percentage: float
+
+
+@strawberry.type
+class TaskStatTrend:
+    task_type: TaskType
+    imported: List[StatPoint]
+    parsed: List[StatPoint]
+    trimmed: List[StatPoint]
+    deduped: List[StatPoint]
+    total_playtime: List[StatPoint]
+    total_filesize: List[StatPoint]

@@ -1,12 +1,15 @@
 import os
 
-from urllib.request import Request
-from fastapi import APIRouter
+from auth.jwt_utils import create_access_token, create_refresh_token, REFRESH_TOKEN_EXPIRE_DAYS
 from authlib.integrations.starlette_client import OAuth
-from sqlmodel import select
+from fastapi import APIRouter, Request, HTTPException
+from fastapi.responses import JSONResponse
 from starlette.responses import RedirectResponse
-from auth.jwt_utils import create_access_token
+from sqlmodel import select
+from jose import jwt
+from jose.exceptions import JWTError
 
+from ..auth.jwt_utils import SECRET_KEY, ALGORITHM
 from ..dbmodels import DBUser
 from ..enums import UserRole
 from ..Singletons import DBInstance
@@ -62,8 +65,42 @@ async def auth_callback(request: Request):
             session.add(user)
             await session.commit()
 
-        # ✅ Generate JWT
-        jwt_token = create_access_token({"sub": str(user.id), "email": user.email, "role": user.role})
+        # Create tokens
 
-        # ✅ Redirect to frontend with token as query param
-        return RedirectResponse(f"{FRONTEND_URL}/callback?token={jwt_token}")
+        access_token = create_access_token({"sub": str(user.id), "email": user.email})
+        refresh_token = create_refresh_token({"sub": str(user.id)})
+
+        # Return access token in query param + refresh in HttpOnly cookie
+        response = RedirectResponse(f"{FRONTEND_URL}/callback?token={access_token}")
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="lax",
+            max_age=REFRESH_TOKEN_EXPIRE_DAYS * 86400,
+        )
+        return response
+
+
+@router.post("/auth/refresh")
+async def refresh_token(request: Request):
+    token = request.cookies.get("refresh_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="No refresh token")
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = int(payload.get("sub"))  # type: ignore
+    except JWTError as e:
+        raise HTTPException(status_code=401, detail="Invalid refresh token") from e
+
+    new_token = create_access_token({"sub": str(user_id)})
+    return JSONResponse({"access_token": new_token})
+
+
+@router.post("/auth/logout")
+async def logout():
+    response = JSONResponse({"message": "Logged out"})
+    response.delete_cookie("refresh_token")
+    return response

@@ -39,14 +39,16 @@ from .schemas import (
 )
 
 
-# ------------------ DB → GraphQL Mapping ------------------
-
-
 def map_dbtrack_to_playertrack(track: DBTrack) -> PlayerTrack:
+    album_picture = track.album_tracks[0].album.picture.picture_path if track.album_tracks[0].album and track.album_tracks[0].album.picture else None
+
     return PlayerTrack(
         id=track.id,
         title=track.title,
-        mbid=track.mbid,
+        subtitle=track.subtitle,
+        artists=[artist.full_name for artist in track.performers] if track.performers else ["Unknown Artist"],
+        album_picture=album_picture,
+        duration_seconds=track.files[0].duration,
     )
 
 

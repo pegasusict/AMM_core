@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #  Copyleft 2021-2025 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
@@ -49,9 +48,7 @@ class DBUser(AutoFetchable, SQLModel, table=True):
     date_of_birth: dt.datetime = Field(default=None)
     is_active: bool = Field(default=True)
     role: UserRole = Field(default=UserRole.USER.value)  # Default role is USER
-    created_at: dt.datetime = Field(
-        default_factory=lambda: dt.datetime.now(dt.timezone.utc)
-    )
+    created_at: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.timezone.utc))
     updated_at: dt.datetime = Field(
         default_factory=lambda: dt.datetime.now(dt.timezone.utc),
         sa_column_kwargs={"onupdate": lambda: dt.datetime.now(dt.timezone.utc)},
@@ -259,14 +256,7 @@ class DBTask(AutoFetchable, SQLModel, table=True):
 
     def get_batch(
         self,
-    ) -> (
-        list[str]
-        | list[int]
-        | list[Path]
-        | dict[str, ArtType]
-        | dict[int, Codec]
-        | None
-    ):
+    ) -> list[str] | list[int] | list[Path] | dict[str, ArtType] | dict[int, Codec] | None:
         """Gets the correctly formatted Batch List/Dict."""
 
         def is_populated_list(subject: list[Any]) -> bool:
@@ -278,57 +268,63 @@ class DBTask(AutoFetchable, SQLModel, table=True):
         def get_art_batch():
             result = {}
             if is_populated_list(self.batch_albums):
-                result.update(
-                    {album.mbid: ArtType.ALBUM for album in self.batch_albums}
-                )
+                result.update({album.mbid: ArtType.ALBUM for album in self.batch_albums})
             if is_populated_list(self.batch_persons):
-                result.update(
-                    {person.mbid: ArtType.ARTIST for person in self.batch_persons}
-                )
+                result.update({person.mbid: ArtType.ARTIST for person in self.batch_persons})
             if is_populated_list(self.batch_labels):
-                result.update(
-                    {label.mbid: ArtType.LABEL for label in self.batch_labels}
-                )
+                result.update({label.mbid: ArtType.LABEL for label in self.batch_labels})
             return result or None
 
         def get_codec_batch():
-            return (
-                {file.file.id: file.codec for file in self.batch_convert}
-                if is_populated_list(self.batch_convert)
-                else None
-            )
+            return {file.file.id: file.codec for file in self.batch_convert} if is_populated_list(self.batch_convert) else None
 
         match self.task_type:
             case TaskType.ART_GETTER:
                 return get_art_batch()
             case TaskType.CONVERTER:
                 return get_codec_batch()  # type: ignore
-            case (
-                TaskType.FINGERPRINTER
-                | TaskType.NORMALIZER
-                | TaskType.EXPORTER
-                | TaskType.TRIMMER
-                | TaskType.PARSER
-            ):
-                return (
-                    get_ids(self.batch_files)
-                    if is_populated_list(self.batch_files)
-                    else None
-                )  # type: ignore
-            case (
-                TaskType.TAGGER
-                | TaskType.EXPORTER
-                | TaskType.LYRICS_GETTER
-                | TaskType.DEDUPER
-                | TaskType.SORTER
-            ):
-                return (
-                    get_ids(self.batch_tracks)
-                    if is_populated_list(self.batch_tracks)
-                    else None
-                )  # type: ignore
+            case TaskType.FINGERPRINTER | TaskType.NORMALIZER | TaskType.EXPORTER | TaskType.TRIMMER | TaskType.PARSER:
+                return get_ids(self.batch_files) if is_populated_list(self.batch_files) else None  # type: ignore
+            case TaskType.TAGGER | TaskType.EXPORTER | TaskType.LYRICS_GETTER | TaskType.DEDUPER | TaskType.SORTER:
+                return get_ids(self.batch_tracks) if is_populated_list(self.batch_tracks) else None  # type: ignore
             case _:
                 return None
+
+
+class DBTaskStat(SQLModel, table=True):
+    __tablename__ = "task_stats"  # type: ignore
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    task_type: TaskType = Field(index=True)
+
+    last_run: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.timezone.utc))
+
+    imported: int = Field(default=0)
+    parsed: int = Field(default=0)
+    trimmed: int = Field(default=0)
+    deduped: int = Field(default=0)
+
+    total_playtime: int = Field(default=0)  # in seconds
+    average_playtime: int = Field(default=0)
+    total_filesize: int = Field(default=0)  # in bytes
+    average_filesize: int = Field(default=0)
+
+    updated_at: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.timezone.utc))
+
+
+class DBTaskStatSnapshot(SQLModel, table=True):
+    __tablename__ = "task_stat_snapshots"  # type: ignore
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    task_type: TaskType = Field(index=True)
+    snapshot_time: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.timezone.utc))
+
+    total_playtime: int = 0
+    total_filesize: int = 0
+    imported: int = 0
+    parsed: int = 0
+    trimmed: int = 0
+    deduped: int = 0
 
 
 ########################################################################
@@ -382,9 +378,7 @@ class DBFile(ItemBase, table=True):
     task_id: int = Field(default=None, foreign_key="tasks.id")
     stage: int = Field(default=0)
     batch_id: int = Field(default=None, foreign_key="filestoconvert.id")
-    file_path: str = Field(
-        default=None, sa_column_kwargs={"unique": True}, sa_type=String, max_length=1024
-    )
+    file_path: str = Field(default=None, sa_column_kwargs={"unique": True}, sa_type=String, max_length=1024)
 
     track: DBTrack = Relationship(back_populates="files")
     task: DBTask = Relationship(back_populates="batch_files")
@@ -397,9 +391,7 @@ class DBTrack(ItemBase, table=True):
     __tablename__ = "tracks"  # type: ignore
 
     composed: dt.date = Field(default=dt.date.min, sa_column_kwargs={"nullable": False})
-    release_date: dt.date = Field(
-        default=dt.date.min, sa_column_kwargs={"nullable": False}
-    )
+    release_date: dt.date = Field(default=dt.date.min, sa_column_kwargs={"nullable": False})
     title: str = Field(default="", sa_type=String, max_length=255)
     title_sort: str = Field(default="", sa_type=String, max_length=255)
     subtitle: Optional[str] = Field(default=None)
@@ -427,9 +419,7 @@ class DBAlbum(ItemBase, table=True):
     title: str = Field(default="")
     title_sort: str = Field(default="")
     subtitle: Optional[str] = Field(default=None)
-    release_date: dt.date = Field(
-        default=dt.date.min, sa_column_kwargs={"nullable": False}
-    )
+    release_date: dt.date = Field(default=dt.date.min, sa_column_kwargs={"nullable": False})
     release_country: str = Field(default="")
     disc_count: int = Field(default=0)
     track_count: int = Field(default=0)
@@ -475,9 +465,7 @@ class DBPerson(ItemBase, table=True):
     nick_name: Optional[str] = Field(default=None, sa_type=String, max_length=255)
     alias: Optional[str] = Field(default=None, sa_type=String, max_length=255)
     date_of_birth: dt.date = Field(default=None, sa_column_kwargs={"nullable": True})
-    date_of_death: Optional[dt.date] = Field(
-        default=None, sa_column_kwargs={"nullable": True}
-    )
+    date_of_death: Optional[dt.date] = Field(default=None, sa_column_kwargs={"nullable": True})
 
     picture: "DBPicture" = Relationship(back_populates="person")
     performed_tracks: List["DBTrack"] = Relationship(back_populates="performers")
@@ -502,9 +490,7 @@ class DBLabel(ItemBase, table=True):
     name: str = Field(default="", sa_type=String, max_length=255)
     mbid: str = Field(default="", sa_type=String, unique=True, max_length=40)
     founded: dt.date = Field(default=None, sa_column_kwargs={"nullable": True})
-    defunct: Optional[dt.date] = Field(
-        default=None, sa_column_kwargs={"nullable": True}
-    )
+    defunct: Optional[dt.date] = Field(default=None, sa_column_kwargs={"nullable": True})
     description: Optional[str] = Field(
         default=None,
         sa_column_kwargs={"nullable": True},

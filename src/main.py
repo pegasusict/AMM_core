@@ -16,10 +16,12 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_utils.tasks import repeat_every
 from contextlib import asynccontextmanager
 from strawberry.fastapi import GraphQLRouter
+from strawberry.subscriptions import GRAPHQL_WS_PROTOCOL
 
-from Singletons import Config, Logger
+from Singletons import Config, DBInstance, Logger
 from Server.graphql import schema
 from Server.playerservice import PlayerService
 from Tasks.taskmanager import TaskManager
@@ -31,7 +33,7 @@ logger = Logger(config)
 config.use_real_logger(logger)
 
 # GraphQL Router
-graphql_app = GraphQLRouter(schema, context_getter=get_context)
+graphql_app = GraphQLRouter(schema, subscription_protocols=[GRAPHQL_WS_PROTOCOL], graphiql=True, context_getter=get_context)
 
 # CORS Settings — Allow CLI, GUI, Web, Mobile clients
 origins = [
@@ -79,6 +81,13 @@ async def lifespan(app: FastAPI):
 
 # FastAPI App with lifespan management
 app = FastAPI(lifespan=lifespan)
+
+
+@app.on_event("startup")
+@repeat_every(seconds=86400)  # every 24 hours
+async def daily_stat_snapshot():
+    await DBInstance.snapshot_task_stats()
+
 
 # Apply CORS
 app.add_middleware(
