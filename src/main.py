@@ -26,11 +26,20 @@ from Server.graphql import schema
 from Server.playerservice import PlayerService
 from Tasks.taskmanager import TaskManager
 from Server.graphql import get_context
+from core.registry import audio_util_registry, task_registry, processor_registry
 
 # Initialize Config & Logger
 config = Config()
 logger = Logger(config)
 config.use_real_logger(logger)
+
+async def initialize_system():
+    # Step 1: load audio utils first
+    await audio_util_registry.init_all()
+
+    # Step 2: initialize tasks and processors
+    await task_registry.init_all(audio_util_registry)
+    await processor_registry.init_all(audio_util_registry, task_registry)
 
 # GraphQL Router
 graphql_app = GraphQLRouter(schema, subscription_protocols=[GRAPHQL_WS_PROTOCOL], graphiql=True, context_getter=get_context)

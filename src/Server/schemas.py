@@ -17,7 +17,7 @@
 from __future__ import annotations
 from datetime import datetime, date, timezone
 from pathlib import Path
-from typing import List, Optional
+from typing import Generic, List, Optional, TypeVar
 
 import strawberry
 from pydantic import EmailStr
@@ -201,8 +201,8 @@ class Label:
     name: Optional[str] = None
     mbid: Optional[str] = None
     description: Optional[str] = None
-    founded: Optional[datetime] = None
-    defunct: Optional[datetime] = None
+    founded: Optional[date] = None
+    defunct: Optional[date] = None
     albums: Optional[List[int]] = None
     picture: Optional[Path] = None
     parent: Optional[int] = None
@@ -228,7 +228,7 @@ class PlayerTrack:
     artists: List[str]
     album_picture: Optional[str]  # URL or static path
     duration_seconds: Optional[int]
-    lyrics: Optional[str]
+    lyrics: Optional[str] = None
 
 
 @strawberry.type
@@ -328,3 +328,29 @@ class TaskStatTrend:
     deduped: List[StatPoint]
     total_playtime: List[StatPoint]
     total_filesize: List[StatPoint]
+
+
+T = TypeVar("T")
+
+
+@strawberry.type
+class Paginated(Generic[T]):
+    items: list[T]
+    total: int
+
+
+@strawberry.input
+class FileInput:
+    path: str | None = None
+    size: int | None = None
+    extension: str | None = None
+    codec: str | None = None
+
+
+@strawberry.type
+class FileType:
+    id: int
+    path: str
+    size: int
+    extension: str
+    codec: str

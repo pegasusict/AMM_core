@@ -18,6 +18,7 @@ from typing import List, Optional, Any
 from sqlmodel import SQLModel
 
 from ..dbmodels import (
+    DBLabel,
     DBTask,
     DBTrack,
     DBPlaylist,
@@ -36,6 +37,7 @@ from .schemas import (
     Album,
     Genre,
     Person,
+    Label,
 )
 
 
@@ -47,8 +49,9 @@ def map_dbtrack_to_playertrack(track: DBTrack) -> PlayerTrack:
         title=track.title,
         subtitle=track.subtitle,
         artists=[artist.full_name for artist in track.performers] if track.performers else ["Unknown Artist"],
-        album_picture=album_picture,
+        album_picture=album_picture,  # type: ignore
         duration_seconds=track.files[0].duration,
+        lyrics=track.lyrics,  # type: ignore
     )
 
 
@@ -78,12 +81,15 @@ def map_dbtrack_to_track(track: DBTrack) -> Track:
 def map_dbuser_to_user(user: DBUser) -> User:
     return User(
         id=user.id,
-        email=user.email,
         username=user.username,
-        is_active=user.is_active,
+        email=user.email,
+        first_name=user.first_name,
+        middle_name=user.middle_name,
+        last_name=user.last_name,
         role=user.role,
         created_at=user.created_at,
         updated_at=user.updated_at,
+        is_active=user.is_active,
     )
 
 
@@ -115,6 +121,21 @@ def map_dbperson_to_person(person: DBPerson) -> Person:
         alias=person.alias,
         nick_name=person.nick_name,
         sort_name=person.sort_name,
+    )
+
+
+def map_dblabel_to_label(label: DBLabel) -> Label:
+    return Label(
+        id=label.id,
+        name=label.name,
+        mbid=label.mbid,
+        description=label.description,
+        founded=label.founded,
+        defunct=label.defunct,
+        albums=[a.id for a in label.albums] if label.albums else [],
+        picture=label.picture.picture_path if label.picture else None,
+        parent=label.parent.id if label.parent else None,
+        children=[c.id for c in label.children] if label.children else [],
     )
 
 

@@ -7,6 +7,7 @@ from dbmodels import (
     DBAlbum,
     DBPerson,
     DBGenre,
+    DBFile,
 )
 from playerservice import get_player_service
 from mapping import update_model_from_input
@@ -15,6 +16,7 @@ from schemas import (
     AlbumInput,
     PersonInput,
     GenreInput,
+    FileInput,
 )
 
 
@@ -124,3 +126,26 @@ class Mutation:
         player = await get_player_service(user.id)
         await player.seek(seconds)
         return True
+
+    @strawberry.mutation
+    async def update_file(self, info: Info, file_id: int, data: FileInput) -> bool:
+        """Update file metadata (path, size, format, etc)."""
+        async for session in DBInstance.get_session():
+            file = await session.get(DBFile, file_id)
+            if file:
+                update_model_from_input(file, data)
+                session.add(file)
+                await session.commit()
+                return True
+        return False
+
+    @strawberry.mutation
+    async def delete_file(self, info: Info, file_id: int) -> bool:
+        """Delete a file entry completely."""
+        async for session in DBInstance.get_session():
+            file = await session.get(DBFile, file_id)
+            if file:
+                await session.delete(file)
+                await session.commit()
+                return True
+        return False

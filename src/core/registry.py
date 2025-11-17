@@ -1,0 +1,164 @@
+# src/core/registry.py
+from __future__ import annotations
+import asyncio
+import inspect
+from typing import Any, Dict, List, Optional, Sequence, Type
+
+from ..singletons import Logger, Config
+
+logger = Logger()
+
+class PluginRegistry:
+    """Unified registry for AudioUtils, Tasks, Processors and Stages."""
+
+    def __init__(self):
+        # classes (populated by decorators at import time)
+        self._audioutil_classes: Dict[str, Type[Any]] = {}
+        self._task_classes: Dict[str, Type[Any]] = {}
+        self._processor_classes: Dict[str, Type[Any]] = {}
+        self._stage_records: Dict[str, dict] = {}  # key: stage_name -> meta
+
+        # runtime instances (created on init_all or on demand)
+        self._audioutil_instances: Dict[str, Any] = {}
+        self._task_instances: Dict[str, Any] = {}
+        self._processor_instances: Dict[str, Any] = {}
+
+        # locks for async init
+        self._init_lock = asyncio.Lock()
+        self._util_locks: Dict[str, asyncio.Lock] = {}
+
+    # ---------------- registration (called by decorators) ----------------
+    def register_audioutil(self, cls: Type[Any]) -> None:
+        name = getattr(cls, "name", cls.__name__).lower()
+        self._audioutil_classes[name] = cls
+        logger.debug(f"Registered AudioUtil class: {name}")
+
+    def register_task(self, cls: Type[Any]) -> None:
+        name = getattr(cls, "name", cls.__name__).lower()
+        self._task_classes[name] = cls
+        logger.debug(f"Registered Task class: {name}")
+        # auto-register a stage mapping if task defines stage_type/name
+        stage_type = getattr(cls, "stage_type", None)
+        if stage_type is not None:
+            self._stage_records.setdefault(stage_type, []).append(name)
+
+    def register_processor(self, cls: Type[Any]) -> None:
+        name = getattr(cls, "name", cls.__name__).lower()
+        self._processor_classes[name] = cls
+        logger.debug(f"Registered Processor class: {name}")
+
+    def register_stage(self, stage_name: str, stage_meta: dict) -> None:
+        # stage_name can be same as task name or custom
+        self._stage_records.setdefault(stage_meta["stage_type"], []).append(stage_name)
+        logger.debug(f"Registered Stage: {stage_name} under {stage_meta['stage_type']}")
+
+    # ---------------- audio util instantiation ----------------
+    async def _instantiate_audioutil(self, name: str) -> Optional[Any]:
+        name = name.lower()
+        if name in self._audioutil_instances:
+            return self._audioutil_instances[name]
+
+        lock = self._util_locks.setdefault(name, asyncio.Lock())
+        async with lock:
+            if name in self._audioutil_instances:
+                return self._audioutil_instances[name]
+            cls = self._audioutil_classes.get(name)
+            if not cls:
+                logger.error(f"AudioUtil class not found: {name}")
+                return None
+            try:
+                # prefer class.create_async() if present
+                create_async = getattr(cls, "create_async", None)
+                if create_async and inspect.iscoroutinefunction(create_async):
+                    inst = await create_async()
+                else:
+                    inst = cls()  # normal ctor
+                    init_fn = getattr(inst, "init", None)
+                    if init_fn and inspect.iscoroutinefunction(init_fn):
+                        await init_fn()
+                self._audioutil_instances[name] = inst
+                logger.info(f"Initialized AudioUtil instance: {name}")
+                return inst
+            except Exception as e:
+                logger.error(f"Failed to initialize audioutil {name}: {e}")
+                return None
+
+    async def init_all_audioutils(self) -> None:
+        """Instantiate all declared audio utils in parallel (async)."""
+        async with self._init_lock:
+            coro = [self._instantiate_audioutil(n) for n in list(self._audioutil_classes.keys())]
+            await asyncio.gather(*coro)
+
+    # ---------------- factories (DI) ----------------
+    async def create_task(self, name: str, *, batch: Any = None, config: Optional[Config] = None, **kwargs) -> Any:
+        """
+        Instantiate a task with positional audio util injections followed by keyword args.
+        Returns an instance ready to start.
+        """
+        cls = self._task_classes.get(name.lower())
+        if not cls:
+            raise ValueError(f"Task '{name}' not registered")
+
+        # ensure audio utils ready
+        requires: Sequence[str] = getattr(cls, "depends", [])
+        audio_args: List[Any] = []
+        for dep in requires:
+            inst = self._audioutil_instances.get(dep.lower())
+            if inst is None:
+                inst = await self._instantiate_audioutil(dep.lower())
+            if inst is None:
+                logger.warning(f"Task '{name}': missing audioutil dependency '{dep}'")
+            audio_args.append(inst)
+
+        # Build kwargs for ctor
+        ctor_kwargs = dict(batch=batch, config=(config or Config()), **kwargs)
+        # Instantiate: alphapositional injection of audio utils then kwargs
+        try:
+            instance = cls(*audio_args, **ctor_kwargs)
+        except TypeError:
+            # fallback: try to instantiate without args (for tasks expecting later injection)
+            instance = cls(**ctor_kwargs)
+            # allow post-injection
+            for i, dep_name in enumerate(requires):
+                setter = getattr(instance, f"set_{dep_name}", None)
+                if callable(setter):
+                    setter(audio_args[i])
+        # attach registry reference for potential later use
+        setattr(instance, "_registry", self)
+        return instance
+
+    async def create_processor(self, name: str, *, config: Optional[Config] = None, **kwargs) -> Any:
+        cls = self._processor_classes.get(name.lower())
+        if not cls:
+            raise ValueError(f"Processor '{name}' not registered")
+
+        requires: Sequence[str] = getattr(cls, "depends", [])
+        util_args: List[Any] = []
+        for dep in requires:
+            inst = self._audioutil_instances.get(dep.lower())
+            if inst is None:
+                inst = await self._instantiate_audioutil(dep.lower())
+            util_args.append(inst)
+
+        ctor_kwargs = dict(config=(config or Config()), **kwargs)
+        instance = cls(*util_args, **ctor_kwargs)
+        setattr(instance, "_registry", self)
+        return instance
+
+    # ---------------- getters ----------------
+    def get_audioutil(self, name: str) -> Optional[Any]:
+        return self._audioutil_instances.get(name.lower())
+
+    def get_task_class(self, name: str) -> Optional[Type[Any]]:
+        return self._task_classes.get(name.lower())
+
+    def list_registered(self) -> dict:
+        return {
+            "audioutils": list(self._audioutil_classes.keys()),
+            "tasks": list(self._task_classes.keys()),
+            "processors": list(self._processor_classes.keys()),
+            "stages": {k: v for k, v in self._stage_records.items()},
+        }
+
+# single global registry instance
+registry = PluginRegistry()

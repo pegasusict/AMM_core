@@ -1,4 +1,4 @@
-# Audiophiles' Music Manager - AMM
+# Audiophiles' Music Manager - AMM_core
 
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/1c70bea27f3e440ea6ed1c2737cf926e)](https://app.codacy.com/gh/pegasusict/AMM_core/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
@@ -22,6 +22,7 @@ It has the following processing capabilities:
 |Module |Description            |Progress |
 |-------|-----------------------|--------:|
 |Core   |Server                 |     90% |
+|API client|API client          |    100% |
 |Web    |Web Interface          |     10% |
 |TUI    |CLI/Terminal Client    | planned |
 |GUI    |Graphical Client       | planned |
