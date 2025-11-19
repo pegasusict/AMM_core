@@ -1,62 +1,51 @@
-# src/core/audioutil_base.py
 from __future__ import annotations
+from abc import ABCMeta
 from typing import Optional, ClassVar
-import re
+import asyncio
 
 from ..Singletons import Logger, Config
-from ..core.enums import PluginType
+from .enums import PluginType
+from .plugin_base import PluginBase
+from .registry import registry
 
-class AudioUtilBase:
+
+
+class AudioUtilBase(PluginBase, metaclass=ABCMeta):
     """Minimal base class for audio utility plugins."""
 
     # --- Static metadata ---
     plugin_type: ClassVar[PluginType] = PluginType.AUDIOUTIL
     name: ClassVar[str]
     description: ClassVar[str]
-    depends: ClassVar[list[str]]
-    version: ClassVar[str]      # "0.0.0"
-
+    version: ClassVar[str]
+    author: ClassVar[str]
 
     def __init__(self, config: Optional[Config] = None):
         self.config = config or Config()
         self.logger = Logger(self.config)
 
+    # lifecycle hooks
     @classmethod
-    async def create_async(cls, *args, **kwargs):
-        """Optional async factory hook. Override if needed."""
-        return cls(*args, **kwargs)
+    async def create_async(cls, *args, **kwargs) -> "AudioUtilBase":
+        """
+        Optional factory create_async returning an initialized instance.
+        Default falls back to __init__ + init().
+        """
+        inst = cls(*args, **kwargs)
+        init_fn = getattr(inst, "init", None)
+        if init_fn and asyncio.iscoroutinefunction(init_fn):
+            await init_fn()
+        return inst
 
-    async def init(self):
-        """Optional async initializer on instances."""
+    async def init(self) -> None:
+        """Optional instance-level async init; default no-op."""
         return None
 
-    @classmethod
-    def _validate_classvars(cls):
-        """Validates all ClassVar fields."""
-        name_filter = re.compile("^[a-zA-Z][a-zA-Z0-9_]*$")
-        description_filter = re.compile("^[a-zA-Z ][a-zA-Z0-9_ .,!?]*$")
-        version_filter = re.compile("^[0-9]+\.[0-9]+\.[0-9]+$")
-
-
-        if cls.plugin_type != PluginType.AUDIOUTIL:
-            raise ValueError("plugin_type must be PluginType.AUDIOUTIL")
-
-        if not cls.name:
-            raise ValueError("name must be set")
-        if not name_filter.match(cls.name):
-            raise ValueError("name must be a valid Python identifier")
-
-        if not cls.description:
-            raise ValueError("description must be set")
-        if not description_filter.match(cls.description):
-            raise ValueError("description must be a valid string")
-
-        if isinstance(cls.depends, list):
-            raise ValueError("depends must be set")
-        if cls.depends.len() > 0:
-            raise ValueError("depends must be an empty list")
-
-        if not cls.version:
-            raise ValueError("version must be set")
-        if not version_filter.match(cls.version):
-            raise ValueError("version must be a valid semver string")
+def register_audioutil(cls):
+    # validate class vars early
+    cls._validate_classvars()
+    # also ensure plugin_type is AUDIOUTIL
+    if getattr(cls, "plugin_type", None) != PluginType.AUDIOUTIL:
+        raise TypeError("AudioUtil class must set plugin_type == PluginType.AUDIOUTIL")
+    registry.register_audioutil(cls)
+    return cls

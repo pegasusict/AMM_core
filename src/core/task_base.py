@@ -8,14 +8,15 @@ from __future__ import annotations
 
 import time
 import datetime as dt
-import re
 from typing import Any, Optional, Callable, ClassVar
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 
-from ..core.enums import PluginType, TaskStatus, StageType, TaskType
+from .enums import PluginType, TaskStatus, StageType, TaskType
+from .plugin_base import PluginBase
+from .registry import registry
 
 
-class TaskBase(ABC):
+class TaskBase(PluginBase, metaclass=ABCMeta):
     """
     Unified async-compatible base class for all AMM tasks.
 
@@ -28,12 +29,16 @@ class TaskBase(ABC):
 
     # --- Static metadata ---
     plugin_type: ClassVar[PluginType] = PluginType.TASK
-    name: ClassVar[str]
-    description: ClassVar[str]
-    depends: ClassVar[list[str]]
-    stage_type: ClassVar[StageType]
-    task_type: ClassVar[TaskType]
-    version: ClassVar[str]      # "0.0.0"
+    name: ClassVar[str] = None
+    description: ClassVar[str] = None
+    depends: ClassVar[list[str]] = ()
+    stage_type: ClassVar[StageType] = None
+    stage_name: ClassVar[str] = None
+    task_type: ClassVar[TaskType] = None
+    version: ClassVar[str] = None
+    author: ClassVar[str] = None
+    exclusive: ClassVar[bool] = None
+    heavy_io: ClassVar[bool] = None
 
     # --- Instance attributes ---
     _status: TaskStatus
@@ -58,9 +63,8 @@ class TaskBase(ABC):
         logger: Optional[Any] = None,
         **kwargs,
     ):
-        self._validate_classvars()
         self.config = config
-        self.logger = logger or getattr(config, "logger", None)
+        self.logger = logger
         self.batch = batch
         self.kwargs = kwargs
 
@@ -76,50 +80,6 @@ class TaskBase(ABC):
 
         self.processed = 0
         self._target: Optional[Callable] = None
-
-    @classmethod
-    def _validate_classvars(cls):
-        """Validates all ClassVar fields."""
-        name_filter = re.compile("^[a-zA-Z][a-zA-Z0-9_]*$")
-        description_filter = re.compile("^[a-zA-Z ][a-zA-Z0-9_ .,!?]*$")
-        version_filter = re.compile("^[0-9]+\.[0-9]+\.[0-9]+$")
-
-
-        if cls.plugin_type != PluginType.TASK:
-            raise ValueError("plugin_type must be PluginType.TASK")
-
-        if not cls.name:
-            raise ValueError("name must be set")
-        if not name_filter.match(cls.name):
-            raise ValueError("name must be a valid Python identifier")
-
-        if not cls.description:
-            raise ValueError("description must be set")
-        if not description_filter.match(cls.description):
-            raise ValueError("description must be a valid string")
-
-        if isinstance(cls.depends, list):
-            raise ValueError("depends must be set")
-        for item in cls.depends:
-            if not isinstance(item, str):
-                raise ValueError("depends must be a list of strings")
-            if not name_filter.match(item):
-                raise ValueError("depends items must be valid Python identifiers")
-
-        if not cls.stage_type:
-            raise ValueError("stage_type must be set")
-        if type(cls.stage_type) is not StageType:
-            raise ValueError("stage_type must be a StageType enum")
-
-        if not cls.version:
-            raise ValueError("version must be set")
-        if not version_filter.match(cls.version):
-            raise ValueError("version must be a valid semver string")
-
-        if not cls.task_type:
-            raise ValueError("task_type must be set")
-        if type(cls.task_type) is not TaskType:
-            raise ValueError("task_type must be a TaskType enum")
 
     # --- Core API ---
 
@@ -216,3 +176,13 @@ class TaskBase(ABC):
     @property
     def error(self) -> str:
         return self._error
+
+def register_task(cls):
+    cls._validate_classvars()
+    if getattr(cls, "plugin_type", None) != PluginType.TASK:
+        raise TypeError("Task class must set plugin_type == PluginType.TASK")
+    # Ensure stage_type is set (PluginBase already checks)
+    if getattr(cls, "stage_type", None) is None:
+        raise TypeError("Task class must define stage_type")
+    registry.register_task(cls)
+    return cls

@@ -90,7 +90,7 @@ class PluginRegistry:
             await asyncio.gather(*coro)
 
     # ---------------- factories (DI) ----------------
-    async def create_task(self, name: str, *, batch: Any = None, config: Optional[Config] = None, **kwargs) -> Any:
+    async def create_task(self, name: str, *, batch: Any = None, **kwargs) -> Any:
         """
         Instantiate a task with positional audio util injections followed by keyword args.
         Returns an instance ready to start.
@@ -111,7 +111,7 @@ class PluginRegistry:
             audio_args.append(inst)
 
         # Build kwargs for ctor
-        ctor_kwargs = dict(batch=batch, config=(config or Config()), **kwargs)
+        ctor_kwargs = dict(batch=batch, **kwargs)
         # Instantiate: alphapositional injection of audio utils then kwargs
         try:
             instance = cls(*audio_args, **ctor_kwargs)
@@ -159,6 +159,16 @@ class PluginRegistry:
             "processors": list(self._processor_classes.keys()),
             "stages": {k: v for k, v in self._stage_records.items()},
         }
+
+    def tasks_for_stage(self, stage_type) -> List[str]:
+        return list(self._stage_records.get(stage_type, []))
+
+    def get_processor_class(self, name: str):
+        return self._processor_classes.get(name.lower())
+
+    def processor_names(self) -> List[str]:
+        return list(self._processor_classes.keys())
+
 
 # single global registry instance
 registry = PluginRegistry()

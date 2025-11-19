@@ -1,321 +1,320 @@
-# -*- coding: utf-8 -*-
-#  Copyleft 2021-2024 Mattijs Snepvangers.
-#  This file is part of Audiophiles' Music Manager, hereafter named AMM.
-#
-#  AMM is free software: you can redistribute it and/or modify  it under the terms of the
-#   GNU General Public License as published by  the Free Software Foundation, either version 3
-#   of the License or any later version.
-#
-#  AMM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-#   PURPOSE.  See the GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
-
-"""This module manages tasks, including starting, stopping, monitoring, and resuming tasks."""
-
-from multiprocessing import Event
+# src/core/task_manager.py
+from __future__ import annotations
+import asyncio
 import os
 import time
-import json
-import asyncio
-from threading import Thread
-from typing import Type, Optional, Any, Set
+from typing import Any, Dict, List, Optional
 
-from ..core.registry import task_registry, discover_plugins
-from ..Singletons import DBInstance, Logger, Config
-from ..enums import TaskStatus, TaskType
-from ..dbmodels import DBTask  # ORM model, NOT a task
-from . import Task
-from .scanner import Scanner
+from ..Singletons import Logger
+from .registry import registry
+from .enums import StageType
+
+logger = Logger  # global singleton
+
+# configurable defaults
+DEFAULT_SYSTEM_LOAD_LIMIT = 15.0
+DEFAULT_HEAVY_IO_CONCURRENCY = max(1, (os.cpu_count() or 2) // 2)  # conservative
+DEFAULT_NORMAL_CONCURRENCY = max(2, 2 * (os.cpu_count() or 2))
+NORMAL_TASK_BACKOFF_SEC = 1.0
+NORMAL_TASK_MAX_WAIT_SEC = 30.0
 
 
 class TaskManager:
-    """Manages tasks with concurrency and exclusive task handling."""
+    """
+    Registry-driven TaskManager:
+      - Uses registry.create_task/create_processor (DI handled by registry)
+      - Schedules by stage_type using registry._stage_records
+      - Enforces exclusive and heavy_io semantics
+      - Observes OS load average to throttle heavy work
+      - Runs processors (including idle_runner) separately
+    """
 
-    exclusive_task_types: Set[TaskType] = set(
-        [
-            TaskType.IMPORTER,
-            TaskType.TAGGER,
-            TaskType.FINGERPRINTER,
-            TaskType.EXPORTER,
-            TaskType.NORMALIZER,
-            TaskType.DEDUPER,
-            TaskType.TRIMMER,
-            TaskType.CONVERTER,
-            TaskType.PARSER,
-            TaskType.SORTER,
-        ]
-    )
-    mutually_exclusive_tasks: dict[TaskType, set[TaskType]] = {
-        TaskType.DEDUPER: {TaskType.DUPLICATE_CHECKER},
-        TaskType.DUPLICATE_CHECKER: {TaskType.DEDUPER},
-        # Add more as required
-    }
-    _instance = None
-    idle_task_class: Optional[Type[Task]] = Scanner
-    idle_task_interval: int = 300  # e.g., 5 minutes default
-    _last_idle_task_time: float = 0
-    _idle_task_event: Event = Event()  # type: ignore
-    _idle_task_running: bool = False
+    def __init__(
+        self,
+        *,
+        system_load_limit: float = DEFAULT_SYSTEM_LOAD_LIMIT,
+        max_normal_tasks: int = DEFAULT_NORMAL_CONCURRENCY,
+        max_heavy_io: int = DEFAULT_HEAVY_IO_CONCURRENCY,
+        idle_interval: float = 300.0,
+    ):
+        self.system_load_limit = float(system_load_limit)
+        self.max_normal_tasks = int(max_normal_tasks)
+        self.max_heavy_io = int(max_heavy_io)
+        self.idle_interval = float(idle_interval)
 
-    def __new__(cls):
-        """Takes care of the singleton instance of TaskManager."""
-        if cls._instance is None:
-            cls._instance = super(TaskManager, cls).__new__(cls)
-            cls._instance._initialize()
-        return cls._instance
+        # concurrency primitives
+        self._normal_sem = asyncio.Semaphore(self.max_normal_tasks)
+        self._heavy_sem = asyncio.Semaphore(self.max_heavy_io)
 
-    def _initialize(self):
-        """Initializes the TaskManager instance."""
-        self.tasks: dict[str, dict[str, Task]] = {}
-        self.task_queue: list[Task] = []
-        self.running_tasks = 0
-        self.max_concurrent_tasks = 2 * (os.cpu_count() or 2)  # Default to 2 if cpu_count() is None
-        self.db = DBInstance
-        self.config = Config()
-        self.logger = Logger(self.config)
+        # exclusive semantics: one running instance per TaskType
+        self._exclusive_locks: Dict[str, asyncio.Lock] = {}
 
+        # currently running task instances keyed by task_id
+        self._running: Dict[str, Any] = {}
+
+        # background idle runner task
+        self._idle_task: Optional[asyncio.Task] = None
+        self._last_activity_ts = time.time()
+
+        # control flags
         self._shutdown = False
-        self.monitor_thread: Optional[Thread] = None
 
-        # === Auto-discover plugins ===
-        self.logger.info("Discovering AMM plugins...")
-        asyncio.run(self._discover_and_register_plugins())
+    # --------------------------
+    # System load helpers
+    # --------------------------
+    def _get_load(self) -> float:
+        try:
+            return float(os.getloadavg()[0])
+        except Exception:
+            return 0.0
 
-        self.resume_tasks()
+    def _is_load_high(self) -> bool:
+        return self._get_load() > self.system_load_limit
 
-    async def _discover_and_register_plugins(self):
-        """Run async plugin discovery and populate task_map."""
-        results = await discover_plugins("amm.plugins")
+    # --------------------------
+    # Exclusive lock helpers
+    # --------------------------
+    def _get_exclusive_lock_for(self, task_type_name: str) -> asyncio.Lock:
+        if task_type_name not in self._exclusive_locks:
+            self._exclusive_locks[task_type_name] = asyncio.Lock()
+        return self._exclusive_locks[task_type_name]
 
-        # Dynamically map discovered TaskPlugins
-        self.task_map: dict[str, Type[Task]] = task_registry.all()
-
-        self.logger.info(
-            f"✅ Plugin discovery complete: "
-            f"{results['audio_utils']} audio utils, "
-            f"{results['processors']} processors, "
-            f"{results['tasks']} tasks registered."
-        )
-
-    def start_monitor(self):
-        """Start the monitor thread explicitly."""
-        if self.monitor_thread is None or not self.monitor_thread.is_alive():
-            self.logger.info("Starting task monitor thread...")
-            self._shutdown = False
-            self.monitor_thread = Thread(target=self._monitor_loop, daemon=True)
-            self.monitor_thread.start()
+    # --------------------------
+    # Public lifecycle
+    # --------------------------
+    def start_idle_loop(self):
+        """Start the idle_runner background coroutine if present."""
+        if self._idle_task is not None and not self._idle_task.done():
+            return
+        self._idle_task = asyncio.create_task(self._idle_loop())
+        logger.info("TaskManager: idle loop started")
 
     async def shutdown(self):
-        """Stops the monitor and pauses running tasks."""
-        self.logger.info("Shutting down TaskManager...")
+        """Stop accepting new work and wait for running tasks to finish."""
         self._shutdown = True
-        if self.monitor_thread and self.monitor_thread.is_alive():
-            self.logger.debug("Waiting for monitor thread to stop...")
-            self.monitor_thread.join(timeout=3)
-            self.logger.info("Monitor thread stopped.")
-        await self.pause_all_running_tasks()
-
-    def _monitor_loop(self):
-        """Daemon loop to monitor and manage tasks."""
-        while not self._shutdown:
-            self._check_running_tasks()
-            self._maybe_start_idle_task()
-            time.sleep(1)
-        self.logger.info("Monitor thread exiting cleanly.")
-
-    def _check_running_tasks(self):
-        """Check and manage running tasks, start queued ones if possible."""
-        for _, group in list(self.tasks.items()):
-            for _, task in list(group.items()):
-                if task.status == TaskStatus.RUNNING and not task.is_alive():
-                    task.wait()
-                    self.running_tasks = max(self.running_tasks - 1, 0)
-                    self.update_task_status(task)
-
-        # Start new tasks from queue
-        while self.task_queue and self.running_tasks < self.max_concurrent_tasks:
-            task = self.task_queue.pop(0)
-            self._start_task(task, "Queued task ")
-            self.update_task_status(task)
-
-    async def pause_all_running_tasks(self):
-        """Pause all running tasks and persist their state."""
-        self.logger.info("Pausing all running tasks...")
-        for task_id, task in self.tasks[TaskStatus.RUNNING.value].items():
+        if self._idle_task:
+            self._idle_task.cancel()
             try:
-                task.pause()
-                task.status = TaskStatus.PAUSED
-                self.logger.info(f"Paused task {task_id}")
-                await self._save_task_to_db(task)
-            except Exception as e:
-                self.logger.error(f"Failed to pause task {task_id}: {e}")
+                await self._idle_task
+            except asyncio.CancelledError:
+                pass
 
-    def set_exclusive_task_types(self, exclusive_types: list[TaskType]):
-        """Set which TaskTypes are limited to a single running instance."""
-        self.exclusive_task_types = set(exclusive_types)
+        # wait for running tasks to finish (best-effort)
+        start = time.time()
+        while self._running and (time.time() - start) < 30:
+            await asyncio.sleep(0.1)
 
-    def register_task(self, task: Task):
-        status = task.status.value
-        if status not in self.tasks:
-            self.tasks[status] = {}
-        self.tasks[status][task.task_id] = task
+    # --------------------------
+    # Task execution primitives
+    # --------------------------
+    async def _run_task_instance(self, task_instance) -> None:
+        """
+        Runs the task instance (no args). Catches/logs exceptions.
+        """
+        tid = getattr(task_instance, "task_id", f"{task_instance.name}:{id(task_instance)}")
+        self._running[tid] = task_instance
+        self._last_activity_ts = time.time()
+        logger.info(f"TaskManager: starting task {task_instance.name} ({tid})")
 
-    def unregister_task(self, task_id: str, status: TaskStatus):
-        if status.value in self.tasks and task_id in self.tasks[status.value]:
-            del self.tasks[status.value][task_id]
+        try:
+            # prefer task.run() as tasks manage batches internally
+            await task_instance.run()
+            logger.info(f"TaskManager: finished task {task_instance.name} ({tid})")
+        except Exception as exc:
+            logger.exception(f"TaskManager: task {task_instance.name} ({tid}) raised: {exc}")
+            # allow tasks to set their own error state; we just log
+        finally:
+            self._running.pop(tid, None)
+            self._last_activity_ts = time.time()
 
-    def update_task_status(self, task: Task):
-        self.unregister_task(task.task_id, task.old_status)
-        self.register_task(task)
+    async def _maybe_wait_for_normal_capacity(self) -> bool:
+        """
+        Wait (with bounded backoff) until normal semaphore is available if load is high.
+        Returns True if succeeded and we should proceed, False if timed out and should skip.
+        """
+        waited = 0.0
+        while self._is_load_high() and waited < NORMAL_TASK_MAX_WAIT_SEC:
+            await asyncio.sleep(NORMAL_TASK_BACKOFF_SEC)
+            waited += NORMAL_TASK_BACKOFF_SEC
+        return not self._is_load_high()
 
-    def get_task(self, task_id: str) -> Optional[Task]:
-        return next(
-            (task_group[task_id] for task_group in self.tasks.values() if task_id in task_group),
-            None,
-        )
+    async def _execute_with_constraints(self, create_instance_coro, *, exclusive: bool, heavy_io: bool, task_type_name: Optional[str]):
+        """
+        create_instance_coro: coroutine that returns an instantiated task (registry.create_task)
+        Enforces:
+          - system load checks
+          - heavy_io semaphore
+          - normal semaphore
+          - exclusive per task_type (if provided)
+        """
+        # If system load high and heavy_io then skip immediately
+        if heavy_io and self._is_load_high():
+            logger.info("TaskManager: skipping heavy_io task due to high system load")
+            return None  # skip
 
-    def _exclusive_task_running(self, task_type: TaskType) -> bool:
-        """Check if an exclusive task type is currently running."""
-        for task_group in self.tasks.values():
-            for task in task_group.values():
-                if task.task_type == task_type and task.status == TaskStatus.RUNNING:
-                    return True
-        return False
+        # For non-exclusive normal tasks, when load is high, wait a bit (bounded)
+        if not exclusive and not heavy_io and self._is_load_high():
+            ok = await self._maybe_wait_for_normal_capacity()
+            if not ok:
+                logger.info("TaskManager: skipping non-exclusive task after backoff due to sustained high load")
+                return None  # skip
 
-    def _queue_task_with_message(self, task: Task, message: str) -> str:
-        self.logger.info(message)
-        self.task_queue.append(task)
-        return task.task_id
+        # Acquire semaphores/locks then run
+        exclusive_lock = None
+        if exclusive and task_type_name:
+            exclusive_lock = self._get_exclusive_lock_for(task_type_name)
 
-    async def start_task(
-        self,
-        task_class: Type[Task],
-        batch: Any,
-        kwargs: Optional[dict[str, Any]] = None,
-    ) -> str:
-        """Creates and starts (or queues) a task."""
-        from ..core.registry import registry
-        task = await registry.create_task(task_class.name, batch=batch, config=self.config, **(kwargs or {}))
+        # choose semaphores
+        sem = self._heavy_sem if heavy_io else self._normal_sem
 
-        self.register_task(task)
-        if self.is_mutually_exclusive(task.task_type):
-            return self._queue_task_with_message(
-                task,
-                f"Task {task.task_id} conflicts with another running task. Queued.",
-            )
-
-        # Check if task type is exclusive and already running
-        if task.task_type in self.exclusive_task_types and self._exclusive_task_running(task.task_type):
-            return self._queue_task_with_message(
-                task,
-                f"Task {task.task_id} is exclusive and another of its type is running. Queued.",
-            )
-
-        if self.running_tasks >= self.max_concurrent_tasks:
-            return self._queue_task_with_message(task, f"Task {task.task_id} queued (limit reached).")
-
-        self._start_task(task, "Task ")
-        await self._save_task_to_db(task)
-        return task.task_id
-
-    def _start_task(self, task: Task, task_desc: str):
-        """Actually start the task."""
-        task.start()
-        self.running_tasks += 1
-        self.logger.info(f"{task_desc}{task.task_id} started.")
-
-    async def _save_task_to_db(self, task: Task):
-        """Persist task to DB."""
-        if getattr(task, "is_idle_task", False):
-            return  # Skip saving idle tasks to DB
-        if not isinstance(task, Task):
-            raise TypeError("Expected Task instance")
-        if not task.task_id:
-            raise ValueError("Task must have task_id before saving")
-
-        # Pylance mistakes DBTask to be a Task subclass instead of a SQLModel/SQLAlchemy model
-        db_task = DBTask()  # type: ignore
-        db_task.import_task(task)  # type: ignore
-
-        async for session in self.db.get_session():
-            session.add(db_task)
-            await session.commit()
-            await session.close()
-
-    def list_tasks(self) -> list[dict[str, Any]]:
-        """Returns list of task summaries."""
-        return [
-            {
-                "task_id": task.task_id,
-                "status": status,
-                "alive": task.is_alive(),
-                "progress": task.progress,
-            }
-            for status, group in self.tasks.items()
-            for task in group.values()
-        ]
-
-    def resume_tasks(self):
-        """Resume tasks saved in DB."""
-        self.logger.info("Resuming paused tasks from DB...")
-        paused_tasks = self.db.get_paused_tasks()
-        for record in paused_tasks:  # type: ignore
-            try:
-                task_type = TaskType(record.task_type)
-                batch = record.get_batch()
-                kwargs = json.loads(record.kwargs or "{}")
-
-                # You need to know which task class to use — map or store it
-                task_class = self._get_task_class(task_type)
-                task = task_class(config=self.config, task_type=task_type)
-                task.batch = batch
-                for k, v in kwargs.items():
-                    setattr(task, k, v)
-
-                self.logger.info(f"Resuming task {record.id}")
-                self.register_task(task)
-
-                if task_type in self.exclusive_task_types or self.running_tasks >= self.max_concurrent_tasks:
-                    self.task_queue.append(task)
+        # acquire in fair order: exclusive lock (if any) -> sem
+        # use async context managers
+        async def _acquire_and_run():
+            async with sem:
+                # exclusive_lock ensures only one of the same task_type runs concurrently
+                if exclusive_lock:
+                    async with exclusive_lock:
+                        inst = await create_instance_coro()
+                        if inst is None:
+                            return None
+                        await self._run_task_instance(inst)
+                        return inst
                 else:
-                    task.start()
-                    self.running_tasks += 1
+                    inst = await create_instance_coro()
+                    if inst is None:
+                        return None
+                    await self._run_task_instance(inst)
+                    return inst
+
+        # run and return instance (or None if skipped)
+        return await _acquire_and_run()
+
+    # --------------------------
+    # High-level APIs
+    # --------------------------
+    async def run_task(self, task_name: str, *, batch: Any = None, config: Any = None, **kwargs) -> Optional[Any]:
+        """
+        Instantiate via registry.create_task and run it while respecting constraints.
+        Returns the task instance or None if skipped.
+        """
+        # get class-level flags by name -> prefer registry.get_task_class if available
+        cls = registry.get_task_class(task_name)
+        if cls is None:
+            logger.error(f"TaskManager: unknown task '{task_name}'")
+            return None
+
+        exclusive = bool(getattr(cls, "exclusive", False))
+        heavy_io = bool(getattr(cls, "heavy_io", False))
+        task_type = getattr(cls, "task_type", None)
+        task_type_name = task_type.name if task_type is not None else None
+
+        # coroutine to create instance (registry will inject audio utils)
+        async def _create():
+            try:
+                return await registry.create_task(task_name, batch=batch, config=(config or registry.Config()), **kwargs)
             except Exception as e:
-                self.logger.error(f"Failed to resume task {record.task_id}: {e}")
+                logger.exception(f"TaskManager: failed to instantiate task {task_name}: {e}")
+                return None
 
-    def _get_task_class(self, task_type: TaskType) -> type[Task]:
-        # You must fill in this mapping with your task types and classes
-        if task_type not in self.task_map:
-            raise ValueError(f"No task class mapped for {task_type}")
-        return self.task_map[task_type]
+        return await self._execute_with_constraints(_create, exclusive=exclusive, heavy_io=heavy_io, task_type_name=task_type_name)
 
-    def is_mutually_exclusive(self, task_type: TaskType) -> bool:
-        """Check if the given task type conflicts with currently running tasks."""
-        for task_group in self.tasks.values():
-            for task in task_group.values():
-                running_type = task.task_type
-                conflicts = self.mutually_exclusive_tasks.get(task_type, set())
-                if running_type in conflicts:
-                    return True
-        return False
+    async def run_stage(self, stage: StageType, *, batch: Any = None, config: Any = None):
+        """
+        Run all tasks declared for a StageType in registration order.
+        The registry's _stage_records is authoritative (maps stage -> [task_names]).
+        This method does not pass data; tasks operate on batches internally.
+        """
+        # allow stage being an enum etc.
+        stage_key = getattr(stage, "value", stage)
+        task_names: List[str] = registry._stage_records.get(stage_key, [])
+        if not task_names:
+            logger.debug(f"TaskManager: no tasks for stage {stage_key}")
+            return
 
-    def set_mutual_exclusion(self, task_type: TaskType, conflicting_types: set[TaskType]):
-        """Dynamically set mutual exclusion rules for a task type."""
-        self.mutually_exclusive_tasks[task_type] = conflicting_types
+        logger.info(f"TaskManager: running stage {stage_key} with {len(task_names)} task(s)")
 
-    def _maybe_start_idle_task(self):
-        """Start the idle task if no tasks are running and interval passed."""
-        if not self.idle_task_class:
-            return  # No idle task configured
+        # Run tasks sequentially in registration order but each task internal concurrency is managed
+        for tname in task_names:
+            if self._shutdown:
+                logger.info("TaskManager: shutdown requested, stopping stage execution")
+                break
 
-        if self.running_tasks == 0:
-            current_time = time.time()
-            if current_time - self._last_idle_task_time >= self.idle_task_interval:
-                idle_task = self.idle_task_class(config=self.config, batch=None)
-                idle_task.is_idle_task = True  # Optional flag
-                self._idle_task_running = True
-                self._start_task(idle_task, "Idle task ")
-                self._last_idle_task_time = current_time
+            await self.run_task(tname, batch=batch, config=config)
+
+    # --------------------------
+    # Processor APIs
+    # --------------------------
+    async def run_processor(self, processor_name: str, *, config: Any = None, **kwargs):
+        """
+        Instantiate and run a processor. Processors do not accept pipeline/batch args
+        from TaskManager — they manage their own inputs if any.
+        """
+        cls = registry.get_processor_class(processor_name)
+        if cls is None:
+            logger.error(f"TaskManager: unknown processor '{processor_name}'")
+            return None
+
+        heavy_io = bool(getattr(cls, "heavy_io", False))
+        exclusive = bool(getattr(cls, "exclusive", False))
+        task_type = getattr(cls, "task_type", None)
+        task_type_name = task_type.name if task_type is not None else None
+
+        async def _create_proc():
+            try:
+                return await registry.create_processor(processor_name, config=(config or registry.Config()), **kwargs)
+            except Exception as e:
+                logger.exception(f"TaskManager: failed to instantiate processor {processor_name}: {e}")
+                return None
+
+        return await self._execute_with_constraints(_create_proc, exclusive=exclusive, heavy_io=heavy_io, task_type_name=task_type_name)
+
+    async def run_all_processors(self):
+        """Run all registered processors in registry (excluding idle_runner)."""
+        for pname in registry.list_registered().get("processors", []):
+            if pname == "idle_runner":
+                continue
+            await self.run_processor(pname)
+
+    # --------------------------
+    # Idle runner loop
+    # --------------------------
+    async def _idle_loop(self):
+        """
+        Background loop that triggers the idle_runner processor when
+        TaskManager has been idle for idle_interval seconds.
+        """
+        while not self._shutdown:
+            try:
+                now = time.time()
+                idle_time = now - self._last_activity_ts
+                if idle_time >= self.idle_interval:
+                    if "idle_runner" in registry.list_registered().get("processors", []):
+                        logger.debug("TaskManager: triggering idle_runner")
+                        await self.run_processor("idle_runner")
+                        # update activity timestamp after idle_runner runs
+                        self._last_activity_ts = time.time()
+                await asyncio.sleep(1.0)
+            except asyncio.CancelledError:
+                break
+            except Exception as exc:
+                logger.exception(f"TaskManager: idle loop error: {exc}")
+                await asyncio.sleep(1.0)
+
+    # --------------------------
+    # Helpers / monitoring
+    # --------------------------
+    def running_tasks(self) -> int:
+        return len(self._running)
+
+    def is_idle(self) -> bool:
+        return self.running_tasks() == 0
+
+    # convenience wrapper to trigger stages in sequence
+    async def run_pipeline(self, stage_order: List[StageType], *, batch: Any = None, config: Any = None):
+        """
+        Execute stages in order. Tasks manage batches internally.
+        """
+        for stage in stage_order:
+            if self._shutdown:
+                break
+            await self.run_stage(stage, batch=batch, config=config)
