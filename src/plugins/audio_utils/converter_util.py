@@ -1,24 +1,31 @@
-# plugins/audioutil/converter_util.py
 from __future__ import annotations
+
 from pathlib import Path
-from typing import Optional
+from typing import Optional, ClassVar
+from asyncio import to_thread
 
 from pydub import AudioSegment
 
-from ..core.audioutil_base import AudioUtilBase
-from ..core.decorators import register_audioutil
-from ..singletons import Logger, Config
+from ..core.audioutil_base import AudioUtilBase, register_audioutil
+from ..Singletons import Logger, Config
 
-@register_audioutil()
+logger = Logger  # singleton
+
+
+@register_audioutil
 class ConverterUtil(AudioUtilBase):
-    name = "converter_util"
-    description = "Converts audio files between codecs using pydub."
-    version = "1.0.0"
-    depends: list[str] = []
+    name: ClassVar[str] = "converter_util"
+    description: ClassVar[str] = "Converts audio files between codecs using pydub."
+    version: ClassVar[str] = "1.1.0"
+    author: ClassVar[str] = "Mattijs Snepvangers"
+    exclusive: ClassVar[bool] = False
+    heavy_io: ClassVar[bool] = True  # conversion is I/O/CPU heavy; mark accordingly
 
-    def __init__(self, config: Optional[Config] = None):
-        super().__init__(config=config)
-        self.logger = Logger(self.config)
+    def __init__(self):
+        # registry may call with no args; accept None and use global Config
+        self.config = Config()
+        # logger is the singleton — don't instantiate
+        self.logger = Logger
         self.lq_inputs = self.config._get("convert", "lqinputs", "ogg,aac").split(",")
         self.hq_inputs = self.config._get("convert", "hqinputs", "wav,mp4").split(",")
         self.lq_format = self.config._get("convert", "lqformat", "mp3").lower()
@@ -32,7 +39,10 @@ class ConverterUtil(AudioUtilBase):
         return None
 
     async def convert_file(self, input_path: Path, codec: str) -> None:
-        from asyncio import to_thread
+        """
+        Public async entrypoint. This is non-blocking: conversion runs on a thread
+        via asyncio.to_thread (so it doesn't block the event loop).
+        """
         await to_thread(self._convert_file_sync, input_path, codec)
 
     def _convert_file_sync(self, input_path: Path, codec: str) -> None:

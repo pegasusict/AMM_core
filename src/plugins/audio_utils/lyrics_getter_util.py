@@ -1,12 +1,18 @@
-from amm.core.registry import register_audioutil
-from ..Singletons import Logger, Config
+from __future__ import annotations
+
 import aiohttp
+from typing import ClassVar, Optional
 
-logger = Logger()
+from amm.core.audioutil_base import AudioUtilBase, register_audioutil
+
+from ..Singletons import Logger, Config
 
 
-@register_audioutil()
-class LyricsGetter:
+logger = Logger  # singleton instance
+
+
+@register_audioutil
+class LyricsGetter(AudioUtilBase):
     """
     Unified async lyrics provider util.
 
@@ -16,25 +22,30 @@ class LyricsGetter:
     - Use AMM logging
     - Support dependency injection via AMM’s util registry
     """
-    name = "lyricsgetter"
-    description = "Unified async lyrics provider util."
-    version = "1.0.0"
-    # declare optional util dependencies here
-    depends = []
 
-    def __init__(self, config:Config):
-        self.config = config
+    # --- PluginBase metadata ---
+    name: ClassVar[str] = "lyricsgetter"
+    description: ClassVar[str] = "Unified async lyrics provider util."
+    version: ClassVar[str] = "1.1.1"
+    author: ClassVar[str] = "Mattijs Snepvangers"
+    exclusive: ClassVar[bool] = False   # safe to run concurrently
+    heavy_io: ClassVar[bool] = True     # network I/O
+
+    def __init__(self):
+        self.logger = logger
+
+        self.config = Config()
         self.provider_url = self.config.get("lyrics_provider")
 
         if not self.provider_url:
-            logger.warning(
+            self.logger.warning(
                 "LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled."
             )
 
-    async def get_lyrics(self, track: str) -> str | None:
+    async def get_lyrics(self, track: str) -> Optional[str]:
         """
-        Fetch lyrics asynchronously. Track is a string; your tasks may pass
-        title/artist combined or a normalized dict depending on your project.
+        Fetch lyrics asynchronously. `track` is a flexible string:
+        Tasks may pass "artist - title" or any normalized format.
         """
         if not self.provider_url:
             return None
@@ -43,13 +54,12 @@ class LyricsGetter:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
                     f"{self.provider_url}/search",
-                    params={"q": track}
+                    params={"q": track},
                 ) as resp:
 
                     if resp.status != 200:
-                        logger.error(
-                            "LyricsGetter: Provider returned HTTP %s for track '%s'",
-                            resp.status, track
+                        self.logger.error(
+                            f"LyricsGetter: Provider returned HTTP {resp.status} for track '{track}'"
                         )
                         return None
 
@@ -57,10 +67,10 @@ class LyricsGetter:
                     lyrics = data.get("lyrics")
 
                     if not lyrics:
-                        logger.info("LyricsGetter: No lyrics found for '%s'", track)
+                        self.logger.info(f"LyricsGetter: No lyrics found for '{track}'")
 
                     return lyrics
 
         except Exception as e:
-            logger.exception("LyricsGetter: Fetch failed for '%s': %s", track, e)
+            self.logger.exception(f"LyricsGetter: Fetch failed for '{track}': {e}")
             return None

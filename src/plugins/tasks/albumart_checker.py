@@ -1,31 +1,29 @@
-# -*- coding: utf-8 -*-
-"""Task that updates stages for files whose albums have art."""
+from __future__ import annotations
 
-from ..core.task_base import TaskBase
+from ..core.task_base import TaskBase, register_task
 from ..core.enums import StageType, TaskType
-from ..core.decorators import register_task
 from ..Singletons import Logger
 
 
-@register_task
+@register_task()
 class AlbumArtChecker(TaskBase):
     """
     Uses AlbumArtCheckerUtil to detect files whose albums contain art
     and updates their stage.
     """
 
-    name = "AlbumArtChecker"
+    name = "album_art_checker"
     description = "Checks DB for album art and updates file stages."
     version = "2.0.0"
     task_type = TaskType.ART_CHECKER
     stage_type = StageType.ANALYSE
 
-    # Util injection
     depends = ["AlbumArtCheckerUtil"]
+    exclusive = False
+    heavy_io = False
 
-    def __init__(self, config, AlbumArtCheckerUtil):
-        super().__init__(config=config)
-        self.logger = Logger(config)
+    def __init__(self, AlbumArtCheckerUtil):
+        self.logger = Logger()
         self.util = AlbumArtCheckerUtil
 
     async def run(self):

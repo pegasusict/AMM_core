@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import ClassVar, Iterable
+from typing import ClassVar
 import re
 
 from .enums import PluginType, StageType, TaskType

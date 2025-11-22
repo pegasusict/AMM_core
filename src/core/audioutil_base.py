@@ -1,6 +1,6 @@
 from __future__ import annotations
 from abc import ABCMeta
-from typing import Optional, ClassVar
+from typing import ClassVar
 import asyncio
 
 from ..Singletons import Logger, Config
@@ -20,8 +20,8 @@ class AudioUtilBase(PluginBase, metaclass=ABCMeta):
     version: ClassVar[str]
     author: ClassVar[str]
 
-    def __init__(self, config: Optional[Config] = None):
-        self.config = config or Config()
+    def __init__(self):
+        self.config = Config()
         self.logger = Logger(self.config)
 
     # lifecycle hooks

@@ -1,25 +1,30 @@
-# -*- coding: utf-8 -*-
-"""Audio util that checks DB for tracks whose albums contain art."""
+# src/plugins/audioutil/albumart_checker_util.py
+from __future__ import annotations
+
+from typing import ClassVar, Optional
 
 from sqlmodel import select
 from sqlalchemy.orm.strategy_options import selectinload
 
-from ..core.audioutil_base import AudioUtilBase
+from ..core.audioutil_base import AudioUtilBase, register_audioutil
 from ..core.dbmodels import DBFile, DBTrack, DBAlbum, DBAlbumTrack, DBPicture
-from ..core.decorators import register_audioutil
-from ..Singletons import DBInstance
+from ..Singletons import DBInstance, Logger
+
+logger = Logger  # singleton
 
 
-@register_audioutil()
+@register_audioutil
 class AlbumArtCheckerUtil(AudioUtilBase):
-    """Queries the DB for files whose primary album contains art."""
+    """Queries the DB for tracks whose albums contain art."""
 
-    name = "AlbumArtCheckerUtil"
-    description = "Finds DBFiles belonging to tracks with album art."
-    version = "2.0.0"
-    depends = []
+    name: ClassVar[str] = "albumart_checker"
+    description: ClassVar[str] = "Finds DBFiles belonging to tracks with album art."
+    version: ClassVar[str] = "2.1.0"
+    author: ClassVar[str] = "Mattijs Snepvangers"
+    exclusive: ClassVar[bool] = False
+    heavy_io: ClassVar[bool] = False
 
-    async def get_files_with_album_art(self):
+    async def get_files_with_album_art(self) -> Optional[list]:
         """
         Returns all DBFile objects that belong to tracks
         whose primary album contains DBPicture entries.

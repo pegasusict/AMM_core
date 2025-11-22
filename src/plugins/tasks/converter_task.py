@@ -1,4 +1,3 @@
-# plugins/task/converter_task.py
 from __future__ import annotations
 from pathlib import Path
 from typing import Optional, Iterable
@@ -6,62 +5,98 @@ from typing import Optional, Iterable
 from ..core.decorators import register_task
 from ..core.task_base import TaskBase
 from ..core.enums import TaskType, StageType
-from ..singletons import DBInstance, Logger, Config
-# from ..core.registry import registry  # if you need to fetch utils by name at runtime
+from ..Singletons import DBInstance, Logger, Config
+
 
 @register_task()
 class ConverterTask(TaskBase):
-    name: str = "converter_task"
-    description: str = "Converts audio files to target formats using pydub."
+    """
+    Converts audio files using the injected converter_util.
+    """
+
+    name = "converter_task"
+    description = "Converts audio files to target formats using pydub."
+    version = "2.0.0"
+
     task_type = TaskType.CONVERTER
     stage_type = StageType.CONVERT
-    depends: list[str] = ["converter_util"]
+
+    # MUST be explicit per new rules
+    exclusive: bool = False         # allows multiple conversions in parallel
+    heavy_io: bool = True           # file reading + writing
+
+    # Injected by registry
+    depends = ["converter_util"]
 
     def __init__(
         self,
-        converter_util: Optional[object] = None,  # injected as first positional arg by registry
+        converter_util: object,                 # always injected
         *,
         batch: Optional[Iterable[int]] = None,
         config: Optional[Config] = None,
-    ) -> None:
-        cfg = config or Config()
-        super().__init__(config=cfg, batch=list(batch) if batch else [], logger=Logger(cfg))
+    ):
+        self.logger = Logger()
+
+        self.config = config or Config()
+        self.batch = list(batch or [])
+
+        # injected util
         self.converter = converter_util
-        self.logger = Logger(cfg)
 
-    # Allow post-construction injection if needed
-    def set_converter_util(self, util: object) -> None:
-        self.converter = util
+        self.db = DBInstance
 
+        self._total = len(self.batch)
+        self._processed = 0
+
+    # ------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------
+
+    async def _get_track(self, track_id: int):
+        """
+        ORM model accessor (placeholder).
+        Replace with your real async ORM loader.
+        """
+        from ..core.models import Track
+        return Track(track_id)
+
+    # ------------------------------------------------------------
+    # Main async execution
+    # ------------------------------------------------------------
     async def run(self):
         if not self.converter:
-            self.logger.error("Converter util not available; aborting conversion task.")
+            self.logger.error("Converter util not provided; aborting task.")
             return
 
-        async for session in DBInstance.get_session():
+        self.logger.info(f"Starting ConverterTask for {self._total} tracks.")
+
+        async for session in self.db.get_session():
             for track_id in self.batch:
                 try:
-                    # Track model access — replicate your previous behaviour
                     track = await self._get_track(track_id)
                     if not getattr(track, "files", None):
-                        self.logger.warning(f"No files found for track {track_id}")
-                        self.set_progress()
+                        self.logger.warning(f"No files for track {track_id}.")
+                        self._processed += 1
+                        self.set_progress(self._processed / self._total)
                         continue
 
+                    # first file only (your existing behaviour)
                     file = track.files[0]
+
+                    # converter_util handles thread offloading internally or via TaskManager
                     await self.converter.convert_file(Path(file.file_path), file.codec)
-                    # update stage in DB — reuse your existing helper
-                    await self.update_file_stage(file.id, session)  # implement update_file_stage on TaskBase or here
-                    self.set_progress()
+
+                    # update stage
+                    await self.update_file_stage(file.id, session)
+
+                    self._processed += 1
+                    self.set_progress(self._processed / self._total)
+
                 except Exception as e:
                     self.logger.error(f"Conversion failed for track {track_id}: {e}")
 
             await session.commit()
             await session.close()
-            self.set_end_time_to_now()
 
-    # Example helper (adapt to your DB models)
-    async def _get_track(self, track_id: int):
-        # adapt to your ORM; placeholder to match previous code
-        from ..core.models import Track
-        return Track(track_id)
+        self.logger.info("Conversion task completed.")
+        self.set_completed("All files converted successfully.")

@@ -1,8 +1,9 @@
 # plugins/audioutil/tagger.py
 from __future__ import annotations
+
 import asyncio
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional, Any, ClassVar
 
 from mutagen import MutagenError
 from mutagen.apev2 import APEv2
@@ -11,22 +12,43 @@ from mutagen.flac import FLAC
 from mutagen.id3 import ID3
 from mutagen.asf import ASF
 
-from ..core.audioutil_base import AudioUtilBase
-from ..core.decorators import register_audioutil
-from ..singletons import Logger
+from ..core.audioutil_base import AudioUtilBase, register_audioutil
+from ..Singletons import Logger
 
-@register_audioutil()
+
+logger = Logger  # singleton instance
+
+
+@register_audioutil
 class Tagger(AudioUtilBase):
-    name = "tagger"
-    description = "Reads and writes tags (ID3, FLAC, OGG, APE, ASF) using Mutagen."
-    version = "1.0.0"
-    depends: list[str] = []
+    """
+    Reads and writes tags (ID3, FLAC, OGG, APE, ASF) using Mutagen.
 
-    def __init__(self, logger: Optional[Logger] = None) -> None:
-        super().__init__()
-        self.logger = logger or Logger()
+    Provides convenience APIs:
+      - get()
+      - set_tag()
+      - get_mbid()
+      - get_acoustid()
+      - get_all()
+    """
+
+    # --- PluginBase metadata ---
+    name: ClassVar[str] = "tagger"
+    description: ClassVar[str] = "Reads and writes tags (ID3, FLAC, OGG, APE, ASF) using Mutagen."
+    version: ClassVar[str] = "1.0.0"
+    author: ClassVar[str] = "Mattijs Snepvangers"
+    exclusive: ClassVar[bool] = False    # can run concurrently
+    heavy_io: ClassVar[bool] = True      # reads/writes full audio files
+
+    def __init__(self):
+        self.logger = logger
+
+    # --------------------------------
+    # Internal loader
+    # --------------------------------
 
     def _load_audio(self, file_path: Path, file_type: str):
+        """Loads audio file with the appropriate Mutagen handler."""
         try:
             match file_type.upper():
                 case "FLAC":
@@ -39,12 +61,18 @@ class Tagger(AudioUtilBase):
                     return ASF(file=file_path)
                 case _:
                     return ID3(file=file_path)
+
         except MutagenError as e:
             self.logger.error(f"Failed to load tags for {file_path}: {e}")
             raise
+
         except Exception as e:
             self.logger.exception(f"Unexpected error loading {file_path}: {e}")
             raise
+
+    # --------------------------------
+    # Read operations
+    # --------------------------------
 
     async def get_all(self, file_path: Path, file_type: str) -> dict[str, Any]:
         return await asyncio.to_thread(self._get_all_sync, file_path, file_type)
@@ -61,12 +89,20 @@ class Tagger(AudioUtilBase):
         return audio.get(tag)
 
     async def get_mbid(self, file_path: Path, file_type: str) -> Optional[str]:
-        return await self.get(file_path, file_type, "musicbrainz_trackid") or \
-               await self.get(file_path, file_type, "mbid")
+        return (
+            await self.get(file_path, file_type, "musicbrainz_trackid")
+            or await self.get(file_path, file_type, "mbid")
+        )
 
     async def get_acoustid(self, file_path: Path, file_type: str) -> Optional[str]:
-        return await self.get(file_path, file_type, "acoustid_id") or \
-               await self.get(file_path, file_type, "acoustid")
+        return (
+            await self.get(file_path, file_type, "acoustid_id")
+            or await self.get(file_path, file_type, "acoustid")
+        )
+
+    # --------------------------------
+    # Write operations
+    # --------------------------------
 
     async def set_tag(self, file_path: Path, file_type: str, tag: str, value: str) -> None:
         await asyncio.to_thread(self._set_tag_sync, file_path, file_type, tag, value)
@@ -76,9 +112,7 @@ class Tagger(AudioUtilBase):
         audio[tag] = value
         audio.save()
 
-    async def set_tags(
-        self, file_path: Path, file_type: str, tags: dict[str, Any]
-    ) -> None:
+    async def set_tags(self, file_path: Path, file_type: str, tags: dict[str, Any]) -> None:
         await asyncio.to_thread(self._set_tags_sync, file_path, file_type, tags)
 
     def _set_tags_sync(self, file_path: Path, file_type: str, tags: dict[str, Any]) -> None:

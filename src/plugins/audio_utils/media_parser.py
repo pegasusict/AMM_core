@@ -1,8 +1,9 @@
 # plugins/audioutil/media_parser.py
 from __future__ import annotations
+
 import asyncio
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, ClassVar
 
 from mutagen import File
 from mutagen.id3._util import ID3NoHeaderError
@@ -13,17 +14,32 @@ from ..core.decorators import register_audioutil
 from ..singletons import Config, Logger
 from ..core.file_utils import get_file_type, get_file_extension
 
-@register_audioutil()
-class MediaParser(AudioUtilBase):
-    name = "media_parser"
-    description = "Parses media files and extracts bitrate, duration, codec, and more."
-    version = "1.0.1"
-    depends: list[str] = []
 
-    def __init__(self, config: Optional[Config] = None):
-        super().__init__(config=config)
-        self.config = config or Config()
-        self.logger = Logger(self.config)
+logger = Logger  # singleton instance
+
+
+@register_audioutil
+class MediaParser(AudioUtilBase):
+    """
+    Parses media files using mutagen and extracts audio metadata such as:
+    bitrate, duration, sample rate, channels, codec, etc.
+    """
+
+    # ---- PluginBase metadata ----
+    name: ClassVar[str] = "media_parser"
+    description: ClassVar[str] = "Parses media files and extracts bitrate, duration, codec, and more."
+    version: ClassVar[str] = "1.1.1"
+    author: ClassVar[str] = "Mattijs Snepvangers"
+    exclusive: ClassVar[bool] = False     # safe to run concurrently
+    heavy_io: ClassVar[bool] = True       # file I/O + mutagen parsing
+
+    def __init__(self):
+        self.config = Config()
+        self.logger = logger
+
+    # --------------------------
+    # Public parse API
+    # --------------------------
 
     async def parse(self, file_path: Path) -> Optional[dict[str, Any]]:
         file_type = get_file_type(file_path)
@@ -32,14 +48,19 @@ class MediaParser(AudioUtilBase):
             return None
 
         try:
-            metadata: dict[str, Any] = await self._gather_metadata(file_path, file_type)
-            return metadata
+            return await self._gather_metadata(file_path, file_type)
+
         except (ID3NoHeaderError, FLACNoHeaderError) as e:
             self.logger.error(f"Failed to parse {file_path}: {e}")
             return None
+
         except Exception as e:
             self.logger.exception(f"Unexpected error parsing {file_path}: {e}")
             return None
+
+    # --------------------------
+    # Metadata gathering
+    # --------------------------
 
     async def _gather_metadata(self, file_path: Path, file_type: str) -> dict[str, Any]:
         loop = asyncio.get_running_loop()
@@ -71,6 +92,10 @@ class MediaParser(AudioUtilBase):
 
         return metadata
 
+    # --------------------------
+    # Helpers
+    # --------------------------
+
     def _safe_get(self, attr: Any, default: Any = None) -> Any:
         return attr if attr is not None else default
 
@@ -83,17 +108,25 @@ class MediaParser(AudioUtilBase):
             result = getattr(audio.info, key, None)
             if isinstance(result, float) and result.is_integer():
                 result = int(result)
+
             return self._safe_get(result)
+
         except Exception as e:
             self.logger.debug(f"Could not get '{key}' from {file_path}: {e}")
             return None
+
+    # --------------------------
+    # Attribute getters
+    # --------------------------
 
     def get_bitrate(self, file_path: Path) -> Optional[int]:
         return self._get_audio_info_from_file(file_path, "bitrate")
 
     def get_duration(self, file_path: Path) -> Optional[int]:
-        return self._get_audio_info_from_file(file_path, "length") or \
-               self._get_audio_info_from_file(file_path, "duration")
+        return (
+            self._get_audio_info_from_file(file_path, "length")
+            or self._get_audio_info_from_file(file_path, "duration")
+        )
 
     def get_sample_rate(self, file_path: Path) -> Optional[int]:
         return self._get_audio_info_from_file(file_path, "sample_rate")
