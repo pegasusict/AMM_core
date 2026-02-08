@@ -3,11 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional, Any, Protocol, ClassVar
 
-from ..core.audioutil_base import AudioUtilBase, register_audioutil
-from ..Singletons import Logger, Config
-from ..core.exceptions import FileError, OperationFailedError
+from core.audioutil_base import AudioUtilBase, register_audioutil
+from Singletons import Logger, Config
+from core.exceptions import FileError, OperationFailedError
 
-logger = Logger  # singleton
+logger = Logger()  # singleton
 
 class AcoustIDClient(Protocol):
     async def fingerprint_file(self, path: Path) -> tuple[int, str]:
@@ -31,7 +31,7 @@ class AcoustID(AudioUtilBase):
     exclusive: ClassVar[bool] = False
     heavy_io: ClassVar[bool] = True
 
-    def __init__(self, tagger: Any = None, media_parser: Any = None, acoustid_client: Optional[AcoustIDClient] = None):
+    def __init__(self, tagger: Any = None, media_parser: Any = None, acoustid_client: Optional[AcoustIDClient] = None) -> None:
         """
         AudioUtil is instantiated by the registry. The registry will inject
         dependencies listed in `depends` (tagger, media_parser). Optionally,

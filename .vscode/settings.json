@@ -1,5 +1,32 @@
 {
-    "postman.settings.dotenv-detection-notification-visibility": false,
-    "zencoder.enableRepoIndexing": true,
-    "python.REPL.enableREPLSmartSend": false
+    // Python & virtualenv
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "python.terminal.activateEnvironment": true,
+    // Formatting & linting
+    "python.formatting.provider": "black",
+    "editor.formatOnSave": true,
+    "ruff.enable": true,
+    "ruff.lint.onSave": true,
+    "python.linting.enabled": false, // we use Ruff instead
+    // Testing
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    // Pylance strict mode
+    "python.analysis.typeCheckingMode": "strict",
+    "python.analysis.useLibraryCodeForTypes": true,
+    "python.analysis.autoImportCompletions": true,
+    // Import sorting (handled by Ruff)
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "never",
+        "source.fixAll": "always",
+        "source.fixAll.ruff": "always"
+    },
+    // Files / UI
+    "files.exclude": {
+        "**/__pycache__": true
+    },
+    "explorer.compactFolders": false,
+    "python-envs.pythonProjects": []
 }

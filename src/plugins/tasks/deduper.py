@@ -1,13 +1,15 @@
 from pathlib import Path
+from typing import ClassVar
 from sqlmodel import select
 
-from ..core.task_base import TaskBase, register_task
-from ..core.enums import TaskType, StageType
-from ..Singletons import Logger, DBInstance
-from ..core.dbmodels import DBTrack
+from core.task_base import TaskBase, register_task
+from core.types import DBInterface, DedupeFilesProtocol
+from core.enums import TaskType, StageType
+from Singletons import Logger, DBInstance
+from core.dbmodels import DBTrack
 
 
-@register_task()
+@register_task
 class Deduper(TaskBase):
     """
     Eliminates duplicate files based on audio quality.
@@ -16,30 +18,32 @@ class Deduper(TaskBase):
     name = "Deduper"
     description = "Eliminates duplicate files based on audio quality."
     version = "2.0.0"
+    author = "Mattijs Snepvangers"
 
     task_type = TaskType.DEDUPER
-    stage_type = StageType.DEDUPED
+    stage_type = StageType.PROCESS
+    stage_name = "process"
 
     # required in new architecture
-    exclusive: bool = False        # dedupe can run in parallel
-    heavy_io: bool = True          # deletes files on disk
+    exclusive: ClassVar[bool] = False        # dedupe can run in parallel
+    heavy_io: ClassVar[bool] = True          # deletes files on disk
 
     depends = ["dedupe_files"]
 
-    def __init__(self, dedupe_files, *, batch: list[int]):
+    def __init__(self, dedupe_files: DedupeFilesProtocol, *, batch: list[int]) -> None:
         self.logger = Logger()
         self.batch = batch
 
         # injected util
         self.dedupe = dedupe_files
 
-        self.db = DBInstance
+        self.db: DBInterface = DBInstance
 
         self._total = len(batch)
         self._processed = 0
 
     # ---------------------------------------------------------
-    async def run(self):
+    async def run(self) -> None:
         self.logger.info(f"Starting Deduper for {self._total} tracks.")
 
         async for session in self.db.get_session():

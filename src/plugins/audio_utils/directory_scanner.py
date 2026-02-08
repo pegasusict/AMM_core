@@ -4,10 +4,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List, Tuple, ClassVar
 
-from ..core.audioutil_base import AudioUtilBase, register_audioutil
-from ..Singletons import Logger
+from core.audioutil_base import AudioUtilBase, register_audioutil
+from Singletons import Logger
 
-logger = Logger  # singleton logger
+logger = Logger()  # singleton logger
 
 
 @register_audioutil
@@ -18,14 +18,14 @@ class DirectoryScanner(AudioUtilBase):
 
     # --- Required plugin metadata ---
     name: ClassVar[str] = "directory_scanner"
-    description: ClassVar[str] = "Recursively scans directories and returns file/folder lists."
+    description: ClassVar[str] = "Recursively scans directories and returns file and folder lists."
     version: ClassVar[str] = "1.0.0"
     author: ClassVar[str] = "Mattijs Snepvangers"
     exclusive: ClassVar[bool] = True
     heavy_io: ClassVar[bool] = False    # light I/O (metadata only)
 
-    def __init__(self):
-        self.logger = Logger
+    def __init__(self) -> None:
+        self.logger = Logger()
 
     async def scan(self, path: Path) -> Tuple[List[Path], List[Path]]:
         """Return (files, folders) recursively under a given directory."""

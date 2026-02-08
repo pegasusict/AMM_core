@@ -1,7 +1,10 @@
-import asyncio
+from __future__ import annotations
 
-from registry import audio_util_registry
-from singletons import Logger
+import asyncio
+from typing import Any, Dict
+
+from Singletons import Logger
+from .registry import registry
 
 logger = Logger()
 
@@ -9,31 +12,24 @@ logger = Logger()
 
 class AudioUtilManager:
     """Handles lazy async loading and caching of AudioUtil instances."""
-    _instances = {}
-    _locks = {}
+    _instances: Dict[str, Any] = {}
+    _locks: Dict[str, asyncio.Lock] = {}
 
     @classmethod
-    async def get(cls, name: str):
-        if name in cls._instances:
-            return cls._instances[name]
+    async def get(cls, name: str) -> Any:
+        key = name.lower()
+        if key in cls._instances:
+            return cls._instances[key]
 
-        if name not in cls._locks:
-            cls._locks[name] = asyncio.Lock()
+        lock = cls._locks.setdefault(key, asyncio.Lock())
+        async with lock:
+            if key in cls._instances:  # double-checked lock
+                return cls._instances[key]
 
-        async with cls._locks[name]:
-            if name in cls._instances:  # double-checked lock
-                return cls._instances[name]
-
-            util_cls = audio_util_registry.get(name)
-            if util_cls is None:
+            instance = await registry._instantiate_audioutil(key)
+            if instance is None:
                 raise ValueError(f"AudioUtil '{name}' not found in registry")
 
-            instance = (
-                await util_cls.create_async()
-                if hasattr(util_cls, "create_async")
-                else util_cls()
-            )
-
-            cls._instances[name] = instance
+            cls._instances[key] = instance
             logger.debug(f"AudioUtil '{name}' instantiated")
             return instance

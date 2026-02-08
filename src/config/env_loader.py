@@ -1,8 +1,11 @@
 # env_loader.py
 
+from __future__ import annotations
+
 import os
-from dotenv import load_dotenv
 from typing import Any, Dict
+
+from dotenv import load_dotenv
 
 load_dotenv()   # executed on import
 
@@ -12,16 +15,16 @@ def apply_environment(cfg: Dict[str, Any]) -> Dict[str, Any]:
     Replace ${VAR} with environment vars.
     """
 
-    def resolve(value):
+    def resolve(value: Any) -> Any:
         if isinstance(value, str) and value.startswith("${") and value.endswith("}"):
             key = value[2:-1]
             return os.getenv(key, value)
         return value
 
-    def walk(obj):
+    def walk(obj: Any) -> Any:
         if isinstance(obj, dict):
             return {k: walk(resolve(v)) for k, v in obj.items()}
-        elif isinstance(obj, list):
+        if isinstance(obj, list):
             return [walk(v) for v in obj]
         return resolve(obj)
 

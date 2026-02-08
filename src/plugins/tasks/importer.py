@@ -1,12 +1,14 @@
-# -*- coding: utf-8 -*-
+from __future__ import annotations
+
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import ClassVar, List
 
-from ..core.task_base import TaskBase
-from ..core.registry import register_task
-from ..enums import Stage
-from ..dbmodels import DBFile
+from core.task_base import TaskBase, register_task
+from core.types import DBInterface, DirectoryScannerProtocol, StackProtocol
+from core.enums import StageType, TaskType
+from core.dbmodels import DBFile
+from Singletons import Config, DBInstance, Logger
 
 
 @dataclass
@@ -17,7 +19,7 @@ class ImporterConfig:
     dry_run: bool
 
     @classmethod
-    def from_config(cls, config, dry_run: bool = False):
+    def from_config(cls, config: Config, dry_run: bool = False) -> "ImporterConfig":
         base_path = Path(config.get_path("import"))
         raw_ext = config.get_list("extensions", "import")
 
@@ -29,6 +31,7 @@ class ImporterConfig:
             extensions = []
 
         clean = bool(config.get_bool("import", "clean", False))
+
         return cls(
             base_path=base_path,
             extensions=extensions,
@@ -37,29 +40,46 @@ class ImporterConfig:
         )
 
 
-@register_task("importer")
+@register_task
 class Importer(TaskBase):
     """
     Scans directories for files to import based on configured extensions.
     """
 
-    # dependency injection from unified registry
-    depends: list[str] = ["directory_scanner"]
+    name = "importer"
+    description = "Scan a directory tree and import supported files."
+    version = "2.0.0"
+    author = "Mattijs Snepvangers"
+    task_type = TaskType.IMPORTER
+    stage_type = StageType.IMPORT
+    stage_name = "import"
 
-    def __init__(self, config, directory_scanner, logger, db, stack):
-        super().__init__(config)
+    # new required flags
+    exclusive: ClassVar[bool] = False          # can run in parallel
+    heavy_io: ClassVar[bool] = True            # disk scanning and DB writes
 
-        self.scanner = directory_scanner
-        self.logger = logger
-        self.db = db
+    depends = ["directory_scanner"]
+
+    def __init__(
+        self,
+        directory_scanner: DirectoryScannerProtocol,
+        *,
+        config: Config,
+        stack: StackProtocol,
+    ) -> None:
+        # no parent super(), new architecture handles base init
+        self.logger = Logger()
+        self.config = config
+        self.db: DBInterface = DBInstance
         self.stack = stack
-        self.stage = Stage.IMPORTED
+        self.scanner = directory_scanner
 
         self.config_data = ImporterConfig.from_config(
-            config=self.config,
+            config=config,
             dry_run=config.get_bool("import", "dry_run", False),
         )
 
+        # counters defined in legacy behaviour
         for counter in (
             "all_files",
             "all_folders",
@@ -70,7 +90,8 @@ class Importer(TaskBase):
         ):
             self.stack.add_counter(counter)
 
-    async def run(self):
+    # ------------------------------------------------------------
+    async def run(self) -> None:
         base = self.config_data.base_path
 
         if not base.exists():
@@ -79,11 +100,15 @@ class Importer(TaskBase):
 
         files, folders = await self.scanner.scan(base)
 
+        # statistics
         self.stack.add_counter("scanned_folders", len(folders))
         self.stack.add_counter("scanned_files", len(files))
 
         files_to_import: List[Path] = []
 
+        # ------------------------------------------------------------
+        # Determine importable files
+        # ------------------------------------------------------------
         for file_path in files:
             if self._should_import(file_path):
                 files_to_import.append(file_path)
@@ -91,6 +116,9 @@ class Importer(TaskBase):
             elif self._should_remove(file_path):
                 self._remove_file(file_path)
 
+        # ------------------------------------------------------------
+        # Process import
+        # ------------------------------------------------------------
         if files_to_import and not self.config_data.dry_run:
             await self._import_files(files_to_import)
         else:
@@ -98,6 +126,7 @@ class Importer(TaskBase):
                 f"[Dry-run] Found {len(files_to_import)} files. No changes made."
             )
 
+    # ------------------------------------------------------------
     def _should_import(self, file_path: Path) -> bool:
         suffix = file_path.suffix.lower()
         return not self.config_data.extensions or suffix in self.config_data.extensions
@@ -105,6 +134,7 @@ class Importer(TaskBase):
     def _should_remove(self, file_path: Path) -> bool:
         return not self._should_import(file_path) and self.config_data.clean
 
+    # ------------------------------------------------------------
     def _remove_file(self, file_path: Path) -> None:
         if self.config_data.dry_run:
             self.logger.info(f"[Dry-run] Would delete: {file_path}")
@@ -116,7 +146,8 @@ class Importer(TaskBase):
         except Exception as e:
             self.logger.warning(f"Could not delete {file_path}: {e}")
 
-    async def _import_files(self, files_to_import: List[Path]):
+    # ------------------------------------------------------------
+    async def _import_files(self, files_to_import: List[Path]) -> None:
         process_path = Path(self.config.get_path("process"))
         process_path.mkdir(parents=True, exist_ok=True)
 
@@ -132,7 +163,7 @@ class Importer(TaskBase):
                     )
                     continue
 
-                db_file = DBFile(file_path=str(destination), stage=self.stage)
+                db_file = DBFile(file_path=str(destination), stage=self.stage_type)
                 session.add(db_file)
                 self.stack.add_counter("imported_files")
 
@@ -142,6 +173,7 @@ class Importer(TaskBase):
             f"Importer: {len(files_to_import)} files moved into {process_path}"
         )
 
+    # ------------------------------------------------------------
     def _unique_dest(self, target_dir: Path, name: str) -> Path:
         base = target_dir / name
         if not base.exists():

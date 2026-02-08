@@ -19,3 +19,1079 @@
 2025-06-07 17:34:22,447 - ERROR - Unsupported file type: .mp3
 2025-06-07 17:34:22,447 - ERROR - Unsupported file type: .mp3
 2025-06-07 18:32:56,908 - ERROR - Unsupported file type: .xyz
+2026-02-03 18:09:22,285 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:09:22,285 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:09:22,285 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:09:22,285 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:09:22,286 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:09:22,286 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:09:22,286 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:09:22,286 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:15:08,306 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:15:08,306 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:15:08,306 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:15:08,306 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:15:08,307 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:15:08,307 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:15:08,307 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:15:08,307 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:15:08,315 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:08,315 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:08,315 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:08,315 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:08,316 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:08,316 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:08,316 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:08,316 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:08,317 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:08,317 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:08,317 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:08,317 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:08,317 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:15:08,317 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:15:08,317 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:15:08,317 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:15:25,567 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:15:25,567 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:15:25,567 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:15:25,567 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:15:25,568 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:15:25,568 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:15:25,568 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:15:25,568 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:15:25,576 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:25,576 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:25,576 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:25,576 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:25,577 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:25,577 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:25,577 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:25,577 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:25,578 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:25,578 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:25,578 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:25,578 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:25,578 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:15:25,578 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:15:25,578 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:15:25,578 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:15:33,336 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:15:33,336 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:15:33,336 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:15:33,336 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:15:33,337 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:15:33,337 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:15:33,337 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:15:33,337 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:15:33,345 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:33,345 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:33,345 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:33,345 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:33,346 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:33,346 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:33,346 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:33,346 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:33,346 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:33,346 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:33,346 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:33,346 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:15:33,347 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:15:33,347 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:15:33,347 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:15:33,347 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:18:50,013 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:18:50,013 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:18:50,013 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:18:50,013 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:18:50,014 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:18:50,014 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:18:50,014 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:18:50,014 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:18:50,023 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:18:50,023 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:18:50,023 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:18:50,023 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:18:50,024 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:18:50,024 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:18:50,024 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:18:50,024 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:18:50,025 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:18:50,025 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:18:50,025 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:18:50,025 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:18:50,025 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:18:50,025 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:18:50,025 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:18:50,025 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:19:26,032 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:19:26,032 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:19:26,032 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:19:26,032 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:19:26,033 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:19:26,033 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:19:26,033 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:19:26,033 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:19:26,041 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:19:26,041 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:19:26,041 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:19:26,041 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:19:26,042 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:19:26,042 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:19:26,042 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:19:26,042 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:19:26,043 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:19:26,043 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:19:26,043 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:19:26,043 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:19:26,043 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:19:26,043 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:19:26,043 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:19:26,043 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:20:26,815 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:20:26,815 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:20:26,815 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:20:26,815 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:20:26,816 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:20:26,816 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:20:26,816 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:20:26,816 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:20:26,824 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:20:26,824 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:20:26,824 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:20:26,824 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:20:26,825 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:20:26,825 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:20:26,825 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:20:26,825 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:20:26,825 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:20:26,825 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:20:26,825 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:20:26,825 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:20:26,825 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:20:26,825 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:20:26,825 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:20:26,825 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:21:48,240 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:21:48,240 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:21:48,240 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:21:48,240 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:21:48,241 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:21:48,241 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:21:48,241 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:21:48,241 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:21:48,249 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:21:48,249 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:21:48,249 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:21:48,249 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:21:48,250 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:21:48,250 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:21:48,250 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:21:48,250 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:21:48,251 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:21:48,251 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:21:48,251 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:21:48,251 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:21:48,251 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:21:48,251 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:21:48,251 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:21:48,251 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:22:06,699 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:22:06,699 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:22:06,699 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:22:06,699 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:22:06,700 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:22:06,700 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:22:06,700 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:22:06,700 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:22:06,708 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:06,708 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:06,708 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:06,708 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:06,709 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:06,709 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:06,709 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:06,709 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:06,709 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:06,709 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:06,709 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:06,709 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:06,710 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:22:06,710 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:22:06,710 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:22:06,710 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:22:21,915 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:22:21,915 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:22:21,915 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:22:21,915 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:22:21,916 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:22:21,916 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:22:21,916 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:22:21,916 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:22:21,925 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:21,925 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:21,925 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:21,925 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:21,926 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:21,926 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:21,926 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:21,926 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:21,926 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:21,926 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:21,926 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:21,926 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:22:21,927 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:22:21,927 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:22:21,927 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:22:21,927 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:24:43,275 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:24:43,275 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:24:43,275 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:24:43,275 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:24:43,276 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:24:43,276 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:24:43,276 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:24:43,276 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:24:43,285 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:24:43,285 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:24:43,285 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:24:43,285 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:24:43,286 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:24:43,286 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:24:43,286 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:24:43,286 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:24:43,286 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:24:43,286 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:24:43,286 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:24:43,286 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:24:43,287 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:24:43,287 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:24:43,287 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:24:43,287 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:25:56,959 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:25:56,959 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:25:56,959 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:25:56,959 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:25:56,961 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:25:56,961 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:25:56,961 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:25:56,961 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:25:56,970 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:25:56,970 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:25:56,970 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:25:56,970 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:25:56,970 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:25:56,970 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:25:56,970 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:25:56,970 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:25:56,971 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:25:56,971 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:25:56,971 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:25:56,971 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:25:56,971 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:25:56,971 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:25:56,971 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:25:56,971 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:26:59,258 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:26:59,258 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:26:59,258 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:26:59,258 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:26:59,259 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:26:59,259 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:26:59,259 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:26:59,259 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:26:59,268 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:26:59,268 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:26:59,268 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:26:59,268 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:26:59,269 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:26:59,269 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:26:59,269 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:26:59,269 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:26:59,269 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:26:59,269 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:26:59,269 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:26:59,269 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:26:59,269 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:26:59,269 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:26:59,269 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:26:59,269 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:27:19,732 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:27:19,732 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:27:19,732 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:27:19,732 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:27:19,733 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:27:19,733 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:27:19,733 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:27:19,733 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:27:19,742 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:19,742 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:19,742 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:19,742 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:19,743 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:19,743 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:19,743 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:19,743 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:19,743 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:19,743 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:19,743 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:19,743 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:19,743 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:27:19,743 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:27:19,743 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:27:19,743 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:27:34,840 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:27:34,840 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:27:34,840 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:27:34,840 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:27:34,841 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:27:34,841 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:27:34,841 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:27:34,841 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:27:34,850 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:34,850 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:34,850 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:34,850 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:34,851 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:34,851 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:34,851 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:34,851 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:34,851 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:34,851 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:34,851 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:34,851 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:27:34,851 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:27:34,851 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:27:34,851 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:27:34,851 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:36:29,829 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:36:29,829 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:36:29,829 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:36:29,829 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:36:29,830 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:36:29,830 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:36:29,830 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:36:29,830 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:36:29,839 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:36:29,839 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:36:29,839 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:36:29,839 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:36:29,839 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:36:29,839 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:36:29,839 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:36:29,839 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:36:29,840 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:36:29,840 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:36:29,840 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:36:29,840 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:36:29,840 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:36:29,840 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:36:29,840 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:36:29,840 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:38:42,667 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:38:42,667 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:38:42,667 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:38:42,667 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:38:42,668 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:38:42,668 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:38:42,668 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:38:42,668 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:38:42,677 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:38:42,677 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:38:42,677 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:38:42,677 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:38:42,678 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:38:42,678 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:38:42,678 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:38:42,678 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:38:42,678 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:38:42,678 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:38:42,678 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:38:42,678 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:38:42,678 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:38:42,678 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:38:42,678 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:38:42,678 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:40:32,320 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:40:32,320 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:40:32,320 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:40:32,320 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:40:32,322 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:40:32,322 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:40:32,322 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:40:32,322 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:40:32,330 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:40:32,330 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:40:32,330 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:40:32,330 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:40:32,331 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:40:32,331 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:40:32,331 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:40:32,331 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:40:32,331 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:40:32,331 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:40:32,331 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:40:32,331 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:40:32,331 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:40:32,331 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:40:32,331 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:40:32,331 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:41:13,551 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:41:13,551 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:41:13,551 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:41:13,551 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 18:41:13,552 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:41:13,552 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:41:13,552 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:41:13,552 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 18:41:13,560 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:41:13,560 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:41:13,560 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:41:13,560 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:41:13,561 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:41:13,561 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:41:13,561 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:41:13,561 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:41:13,562 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:41:13,562 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:41:13,562 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:41:13,562 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 18:41:13,562 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:41:13,562 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:41:13,562 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 18:41:13,562 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 19:01:35,631 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 19:01:35,631 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 19:01:35,631 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 19:01:35,631 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 19:01:35,632 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 19:01:35,632 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 19:01:35,632 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 19:01:35,632 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 19:01:35,640 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:01:35,640 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:01:35,640 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:01:35,640 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:01:35,641 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:01:35,641 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:01:35,641 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:01:35,641 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:01:35,642 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:01:35,642 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:01:35,642 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:01:35,642 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:01:35,642 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 19:01:35,642 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 19:01:35,642 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 19:01:35,642 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 19:02:35,248 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 19:02:35,248 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 19:02:35,248 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 19:02:35,248 - ERROR - Fingerprint generation failed: fingerprint error
+2026-02-03 19:02:35,249 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 19:02:35,249 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 19:02:35,249 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 19:02:35,249 - ERROR - AcoustID lookup failed
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/plugins/audio_utils/acoustid.py", line 97, in process
+    response = await client.lookup(key, fingerprint, duration)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pegasus/snap/code/220/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/unittest/mock.py", line 2291, in _execute_mock_call
+    raise effect
+Exception: lookup failure
+2026-02-03 19:02:35,257 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:02:35,257 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:02:35,257 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:02:35,257 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:02:35,258 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:02:35,258 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:02:35,258 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:02:35,258 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:02:35,259 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:02:35,259 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:02:35,259 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:02:35,259 - WARNING - LyricsGetter: No 'lyrics_provider' configured; lyrics fetching disabled.
+2026-02-03 19:02:35,259 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 19:02:35,259 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 19:02:35,259 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-03 19:02:35,259 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'

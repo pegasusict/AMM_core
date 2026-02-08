@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#  Copyleft 2021-2025 Mattijs Snepvangers.
+#  Copyleft 2021-2026 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
 #  AMM is free software: you can redistribute it and/or modify  it under the terms of the
@@ -18,9 +18,9 @@
 import subprocess
 from typing import Dict, List, Optional
 
-from ..dbmodels import DBQueue, DBTrack
-from ..Singletons import EnvConfig
-from ..Singletons.database import DBInstance
+from core.dbmodels import DBQueue, DBTrack
+from Singletons import EnvConfig
+from Singletons.database import DBInstance
 
 
 class PlayerService:
@@ -28,7 +28,7 @@ class PlayerService:
 
     _instances: Dict[int, "PlayerService"] = {}
 
-    def __init__(self, user_id: int):
+    def __init__(self, user_id: int) -> None:
         self.user_id = user_id
         self.queue: List[int] = []  # track IDs
         self.current_process: Optional[subprocess.Popen] = None
@@ -43,14 +43,14 @@ class PlayerService:
             cls._instances[user_id] = service
         return cls._instances[user_id]
 
-    async def load_queue_from_db(self):
+    async def load_queue_from_db(self) -> None:
         """Load user's persistent queue from DB."""
         async for session in DBInstance.get_session():
             result = await session.get_one(DBQueue, DBQueue.user_id == self.user_id)
             if db_queue := result:
                 self.queue = db_queue.track_ids
 
-    async def save_queue_to_db(self):
+    async def save_queue_to_db(self) -> None:
         """Persist queue to DB."""
         async for session in DBInstance.get_session():
             result = await session.get_one(DBQueue, DBQueue.user_id == self.user_id)
@@ -62,12 +62,12 @@ class PlayerService:
 
             await session.commit()
 
-    async def queue_track(self, track_id: int):
+    async def queue_track(self, track_id: int) -> None:
         """Add track to the end of queue."""
         self.queue.append(track_id)
         await self.save_queue_to_db()
 
-    async def play_next(self):
+    async def play_next(self) -> None:
         """Play the next track in queue."""
         if not self.queue:
             print(f"User {self.user_id} queue is empty.")
@@ -97,7 +97,7 @@ class PlayerService:
             files = sorted(files, key=lambda f: (f.bitrate or 0), reverse=True)
             return files[0].file_path if files else None
 
-    async def start_vlc_stream(self, file_path: str):
+    async def start_vlc_stream(self, file_path: str) -> None:
         """Start VLC to stream to user's unique Icecast mount."""
         icecast_url = f"http://{EnvConfig.ICECAST_HOST}:{EnvConfig.ICECAST_PORT}{EnvConfig.ICECAST_MOUNT_TEMPLATE.format(username=self.user_id)}"
 
@@ -110,20 +110,20 @@ class PlayerService:
 
         self.current_process = subprocess.Popen(["cvlc", "-I", "dummy", file_path, "--sout", sout, "--sout-keep"])
 
-    async def stop(self):
+    async def stop(self) -> None:
         """Stop VLC process."""
         if self.current_process:
             self.current_process.terminate()
             self.current_process = None
             self.is_playing = False
 
-    async def pause(self):
+    async def pause(self) -> None:
         """Pausing is not supported in VLC Icecast streaming directly.
         Here, we stop the stream."""
         await self.stop()
 
     @classmethod
-    async def shutdown_all(cls):
+    async def shutdown_all(cls) -> None:
         """Stop all VLC streams across all user sessions."""
         for user_id, instance in cls._instances.items():
             if instance.is_playing:
@@ -131,11 +131,7 @@ class PlayerService:
                 await instance.stop()
         cls._instances.clear()
 
-    async def set_volume(self, level: int):
-        if self.current_process:
-            self.current_process.stdin.write(f"volume {level}\n".encode())  # type: ignore # example
-
-    async def seek(self, seconds: int):
+    async def seek(self, seconds: int) -> None:
         # For VLC via `rc` or other IPC, this may look like:
         if self.current_process:
             # This is pseudo: actual implementation may require IPC setup

@@ -2,8 +2,8 @@ from typing import Optional
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
-from ..dbmodels import DBUser
-from ..Singletons.database import DBInstance
+from core.dbmodels import DBUser
+from Singletons.database import DBInstance
 import os
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "super-secret")

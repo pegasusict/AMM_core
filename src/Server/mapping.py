@@ -1,4 +1,4 @@
-#  Copyleft 2021-2025 Mattijs Snepvangers.
+#  Copyleft 2021-2026 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
 #  AMM is free software: you can redistribute it and/or modify  it under the terms of the
@@ -17,7 +17,7 @@
 from typing import List, Optional, Any
 from sqlmodel import SQLModel
 
-from ..dbmodels import (
+from core.dbmodels import (
     DBLabel,
     DBTask,
     DBTrack,
@@ -27,7 +27,9 @@ from ..dbmodels import (
     DBGenre,
     DBAlbum,
     DBPerson,
+    DBFile,
 )
+from core.enums import Codec
 from .schemas import (
     DisplayTask,
     PlayerTrack,
@@ -38,6 +40,7 @@ from .schemas import (
     Genre,
     Person,
     Label,
+    FileType,
 )
 
 
@@ -56,10 +59,11 @@ def map_dbtrack_to_playertrack(track: DBTrack) -> PlayerTrack:
 
 
 def map_dbplaylist_to_playlist(playlist: DBPlaylist) -> Playlist:
+    ordered = sorted(playlist.tracks, key=lambda t: t.position)
     return Playlist(
         id=playlist.id,  # type: ignore
         name=playlist.name,
-        track_ids=[pltrack.track_id for pltrack in playlist.tracks],
+        track_ids=[pltrack.track_id for pltrack in ordered],
     )  # type: ignore
 
 
@@ -149,6 +153,16 @@ def map_dbtask_to_displaytask(task: DBTask) -> Any:
     )
 
 
+def map_dbfile_to_filetype(file: DBFile) -> FileType:
+    return FileType(
+        id=file.id,  # type: ignore
+        path=file.file_path or "",
+        size=file.file_size or 0,
+        extension=file.file_extension or "",
+        codec=file.codec.value if file.codec else Codec.UNKNOWN.value,
+    )
+
+
 # ------------------ GraphQL Input → DB Model (Dynamic Reverse Mapping) ------------------
 
 
@@ -157,7 +171,24 @@ def update_model_from_input(model: SQLModel, input_data: Any) -> SQLModel:
     Generic mapper: Updates DB model fields from GraphQL input.
     Only sets attributes that exist in the model and are not None in the input.
     """
+    field_map = {}
+    if isinstance(model, DBFile):
+        field_map = {
+            "path": "file_path",
+            "extension": "file_extension",
+            "size": "file_size",
+        }
+
     for field_name, value in input_data.__dict__.items():
-        if value is not None and hasattr(model, field_name):
-            setattr(model, field_name, value)
+        target_name = field_map.get(field_name, field_name)
+        if value is not None and hasattr(model, target_name):
+            if target_name == "codec" and isinstance(value, str):
+                try:
+                    value = Codec[value]
+                except KeyError:
+                    try:
+                        value = Codec(value)
+                    except Exception:
+                        pass
+            setattr(model, target_name, value)
     return model

@@ -3,12 +3,12 @@ from __future__ import annotations
 import aiohttp
 from typing import ClassVar, Optional
 
-from amm.core.audioutil_base import AudioUtilBase, register_audioutil
+from core.audioutil_base import AudioUtilBase, register_audioutil
 
-from ..Singletons import Logger, Config
+from Singletons import Logger, Config
 
 
-logger = Logger  # singleton instance
+logger = Logger()  # singleton instance
 
 
 @register_audioutil
@@ -31,7 +31,7 @@ class LyricsGetter(AudioUtilBase):
     exclusive: ClassVar[bool] = False   # safe to run concurrently
     heavy_io: ClassVar[bool] = True     # network I/O
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logger
 
         self.config = Config()

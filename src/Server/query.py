@@ -3,9 +3,10 @@ from typing import Optional
 import strawberry
 from strawberry.types import Info
 from sqlmodel import func, select
+from sqlalchemy import or_
 
-from ..enums import TaskType
-from ..dbmodels import (
+from Enums import TaskType, UserRole
+from core.dbmodels import (
     DBTask,
     DBTrack,
     DBAlbum,
@@ -14,8 +15,12 @@ from ..dbmodels import (
     DBLabel,
     DBFile,
     DBUser,
+    DBPlaylist,
+    DBQueue,
 )
-from ..Singletons.database import DBInstance
+from core.registry import registry
+from core.taskmanager import TaskManager
+from Singletons.database import DBInstance
 from .schemas import (
     DisplayTask,
     Paginated,
@@ -31,6 +36,8 @@ from .schemas import (
     Label,
     FileType,
     User,
+    Playlist,
+    Queue,
 )
 from .mapping import (
     map_dbtask_to_displaytask,
@@ -40,7 +47,17 @@ from .mapping import (
     map_dbgenre_to_genre,
     map_dblabel_to_label,
     map_dbuser_to_user,
+    map_dbfile_to_filetype,
+    map_dbplaylist_to_playlist,
+    map_dbqueue_track_ids,
 )
+
+
+def _require_user(info: Info) -> DBUser:
+    user = getattr(info.context, "user", None)
+    if user is None:
+        raise ValueError("Authentication required")
+    return user
 
 
 @strawberry.type
@@ -79,8 +96,9 @@ class Query:
     async def get_task_display(self, info: Info) -> Optional[list[DisplayTask]]:
         """Fetches a list of tasks."""
         async for session in DBInstance.get_session():
-            tasks = await session.get(DBTask, None)
-            return [map_dbtask_to_displaytask(task) for task in tasks] if tasks else None  # type: ignore
+            result = await session.exec(select(DBTask))
+            tasks = result.all()
+            return [map_dbtask_to_displaytask(task) for task in tasks] if tasks else []
 
     @strawberry.field
     async def task_stats(self, info: Info, task_type: TaskType) -> Optional[TaskStats]:
@@ -203,19 +221,111 @@ class Query:
     async def get_file(self, info: Info, file_id: int) -> FileType | None:
         """Retrieve a single file by ID."""
         async for session in DBInstance.get_session():
-            return await session.get(DBFile, file_id)  # type: ignore
+            file = await session.get(DBFile, file_id)
+            return map_dbfile_to_filetype(file) if file else None
 
     @strawberry.field
     async def files(self, info: Info, limit: int = 20, offset: int = 0) -> list[FileType]:  # type: ignore
         """Paginated file listing."""
         async for session in DBInstance.get_session():
-            result = await session.execute(select(DBFile).offset(offset).limit(limit))
-            return result.scalars().all()  # type: ignore
+            result = await session.exec(select(DBFile).offset(offset).limit(limit))
+            files = result.all()
+            return [map_dbfile_to_filetype(file) for file in files] if files else []
 
+    @strawberry.field
+    async def get_user(self, info: Info, user_id: int) -> Optional[User]:
+        """Fetch a single user by ID."""
+        async for session in DBInstance.get_session():
+            user = await session.get(DBUser, user_id)
+            return map_dbuser_to_user(user) if user else None
 
-@strawberry.field
-async def get_user(self, info: Info, user_id: int) -> Optional[User]:
-    """Fetch a single user by ID."""
-    async for session in DBInstance.get_session():
-        user = await session.get(DBUser, user_id)
-        return map_dbuser_to_user(user) if user else None
+    @strawberry.field
+    async def me(self, info: Info) -> Optional[User]:
+        """Return the current authenticated user."""
+        user = _require_user(info)
+        return map_dbuser_to_user(user)
+
+    @strawberry.field
+    async def users(
+        self,
+        info: Info,
+        limit: int = 25,
+        offset: int = 0,
+        username: Optional[str] = None,
+        email: Optional[str] = None,
+        role: Optional[UserRole] = None,
+        is_active: Optional[bool] = None,
+        search: Optional[str] = None,
+    ) -> Paginated[User]:  # type: ignore
+        stmt = select(DBUser)
+        filters = []
+        if username:
+            filters.append(DBUser.username == username)
+        if email:
+            filters.append(DBUser.email == email)
+        if role:
+            filters.append(DBUser.role == role.value)
+        if is_active is not None:
+            filters.append(DBUser.is_active == is_active)
+        if search:
+            like = f"%{search}%"
+            filters.append(
+                or_(
+                    DBUser.username.ilike(like),
+                    DBUser.email.ilike(like),
+                    DBUser.first_name.ilike(like),
+                    DBUser.last_name.ilike(like),
+                )
+            )
+        for f in filters:
+            stmt = stmt.where(f)
+
+        async for session in DBInstance.get_session():
+            total_stmt = select(func.count()).select_from(DBUser)
+            for f in filters:
+                total_stmt = total_stmt.where(f)
+            total = await session.exec(total_stmt)
+            total_count = total.one() if total else 0
+
+            results = await session.exec(stmt.offset(offset).limit(limit))
+            users = results.all()
+            return Paginated[User](items=[map_dbuser_to_user(u) for u in users], total=total_count)
+
+    @strawberry.field
+    async def start_import(self, info: Info) -> bool:
+        """Start an import task."""
+        tm = TaskManager()
+        task_cls = registry.get_task_class("importer")
+        if task_cls is None:
+            return False
+        await tm.start_task(task_cls, batch=None)
+        return True
+
+    @strawberry.field
+    async def playlists(self, info: Info) -> list[Playlist]:
+        """Return playlists for the current user."""
+        user = _require_user(info)
+        async for session in DBInstance.get_session():
+            result = await session.exec(select(DBPlaylist).where(DBPlaylist.user_id == user.id))
+            playlists = result.all()
+            return [map_dbplaylist_to_playlist(p) for p in playlists] if playlists else []
+
+    @strawberry.field
+    async def playlist(self, info: Info, playlist_id: int) -> Optional[Playlist]:
+        """Return a playlist by id for the current user."""
+        user = _require_user(info)
+        async for session in DBInstance.get_session():
+            result = await session.exec(
+                select(DBPlaylist).where(DBPlaylist.id == playlist_id).where(DBPlaylist.user_id == user.id)
+            )
+            playlist = result.first()
+            return map_dbplaylist_to_playlist(playlist) if playlist else None
+
+    @strawberry.field
+    async def queue(self, info: Info) -> Queue:
+        """Return the current user's queue."""
+        user = _require_user(info)
+        async for session in DBInstance.get_session():
+            result = await session.exec(select(DBQueue).where(DBQueue.user_id == user.id))
+            queue = result.first()
+            return Queue(track_ids=map_dbqueue_track_ids(queue))

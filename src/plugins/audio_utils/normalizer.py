@@ -7,10 +7,10 @@ from typing import ClassVar
 
 from pydub import AudioSegment, effects
 
-from ..core.audioutil_base import AudioUtilBase, register_audioutil
-from ..singletons import Logger
+from core.audioutil_base import AudioUtilBase, register_audioutil
+from Singletons import Logger
 
-logger = Logger  # singleton instance
+logger = Logger()  # singleton instance
 
 
 @register_audioutil
@@ -32,7 +32,7 @@ class Normalizer(AudioUtilBase):
     exclusive: ClassVar[bool] = False   # can run concurrently
     heavy_io: ClassVar[bool] = True     # reads/writes full audio files
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logger
 
     # ------------------------------

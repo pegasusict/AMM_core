@@ -3,13 +3,15 @@ from __future__ import annotations
 from pathlib import Path
 import urllib.request
 import re
+from typing import ClassVar
 
-from ..exceptions import InvalidURLError
-from ..Singletons import Logger, DBInstance
-from ..config import Config
-from ..core.enums import TaskType, ArtType, StageType
-from ..core.task_base import TaskBase
-from ..core.decorators import register_task
+from core.exceptions import InvalidURLError
+from Singletons import Logger, DBInstance
+from config import Config
+from core.enums import TaskType, ArtType, StageType
+from core.task_base import TaskBase
+from core.types import DBInterface, MusicBrainzClientProtocol
+from core.task_base import register_task
 
 
 def is_valid_url(url: str) -> bool:
@@ -22,32 +24,39 @@ def is_valid_url(url: str) -> bool:
         r"(?:/?|[/?]\S+)$",
         re.IGNORECASE,
     )
-    return url is not None and regex.search(url)
+    return bool(url and regex.search(url))
 
 
-@register_task()
+@register_task
 class ArtGetter(TaskBase):
     """
     Retrieves album/artist art and writes it to disk.
     """
 
     name = "art_getter"
-    description = "Retrieves album/artist art from online archives."
-    version = "2.0"
+    description = "Retrieves album and artist art from online archives."
+    version = "2.0.0"
+    author = "Mattijs Snepvangers"
     task_type = TaskType.ART_GETTER
-    stage_type = StageType.ART_RETRIEVED
+    stage_type = StageType.METADATA
+    stage_name = "metadata"
 
     # MUST be present:
-    exclusive: bool = False         # can run concurrently
-    heavy_io: bool = True           # downloads + filesystem writes
+    exclusive: ClassVar[bool] = False         # can run concurrently
+    heavy_io: ClassVar[bool] = True           # downloads + filesystem writes
 
     depends = ["MusicBrainzClient"]
 
-    def __init__(self, batch: dict[str, ArtType], config: Config, MusicBrainzClient):
+    def __init__(
+        self,
+        batch: dict[str, ArtType],
+        config: Config,
+        MusicBrainzClient: MusicBrainzClientProtocol,
+    ) -> None:
         self.logger = Logger()
         self.batch = batch
         self.config = config
-        self.db = DBInstance
+        self.db: DBInterface = DBInstance
         self.mbc = MusicBrainzClient
 
         self.art_path = self.config.get_path("art")
@@ -56,7 +65,7 @@ class ArtGetter(TaskBase):
         self._processed = 0
 
     # -----------------------------------------------
-    async def run(self):
+    async def run(self) -> None:
         self.logger.info("Running ArtGetter task")
 
         for mbid, art_type in self.batch.items():
@@ -67,7 +76,7 @@ class ArtGetter(TaskBase):
         self.set_completed("Art retrieval complete")
 
     # -----------------------------------------------
-    async def get_art(self, mbid: str, art_type: ArtType):
+    async def get_art(self, mbid: str, art_type: ArtType) -> None:
         self.logger.info(f"Retrieving {art_type.name} art for {mbid}")
 
         url = await self.mbc.get_art(mbid)
@@ -80,7 +89,7 @@ class ArtGetter(TaskBase):
         self._processed += 1
 
     # -----------------------------------------------
-    async def save_art(self, url: str, mbid: str, art_type: ArtType):
+    async def save_art(self, url: str, mbid: str, art_type: ArtType) -> None:
         if not is_valid_url(url):
             raise InvalidURLError(f"Invalid URL: {url}")
 

@@ -1,14 +1,17 @@
 # watcher.py
 
-# import asyncio
-from watchfiles import awatch
+from __future__ import annotations
+
+from typing import Awaitable, Callable
 import logging
 from pathlib import Path
+
+from watchfiles import awatch
 
 logger = logging.getLogger("AMM.ConfigWatcher")
 
 
-async def watch_file(path: Path, callback):
+async def watch_file(path: Path, callback: Callable[[], Awaitable[None]]) -> None:
     """
     Watches config file and calls the callback on change.
     """

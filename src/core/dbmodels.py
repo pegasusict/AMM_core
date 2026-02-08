@@ -1,4 +1,4 @@
-#  Copyleft 2021-2025 Mattijs Snepvangers.
+#  Copyleft 2021-2026 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
 #  AMM is free software: you can redistribute it and/or modify  it under the terms of the
@@ -17,20 +17,23 @@
 from __future__ import annotations
 import datetime as dt
 from pathlib import Path
-from typing import Optional, List, Any
+from typing import Optional, List, Any, ClassVar
 from sqlmodel import Field, SQLModel, Relationship
-from sqlalchemy import JSON, String
+from sqlalchemy import JSON, String, Integer, Float
+from enum import Enum
 
 from mixins.autofetch import AutoFetchable
-from enums import (
+from .enums import (
     UserRole,
     TaskType,
     TaskStatus,
     Codec,
     ArtType,
+    StageType,
+    TagType,
 )
 from .exceptions import InvalidValueError
-from .Tasks import Task
+from .task_base import TaskBase as Task
 
 
 class DBUser(AutoFetchable, SQLModel, table=True):
@@ -57,7 +60,7 @@ class DBUser(AutoFetchable, SQLModel, table=True):
     queue: Optional["DBQueue"] = Relationship(back_populates="user")
     playlists: List["DBPlaylist"] = Relationship(back_populates="user")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<User(id={self.id}, username={self.username}, email={self.email}, role={self.role})>"
 
 
@@ -66,7 +69,7 @@ class DBQueue(AutoFetchable, SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.id", nullable=False)
-    track_ids: List[int] = Field(default=[], sa_column_kwargs={"type_": JSON})
+    track_ids: List[int] = Field(default_factory=list, sa_type=JSON)
 
     user: DBUser = Relationship(back_populates="queue")
 
@@ -100,6 +103,7 @@ class DBFileToConvert(AutoFetchable, SQLModel, table=True):
 
     __tablename__ = "files_to_convert"  # type: ignore
 
+    id: Optional[int] = Field(default=None, primary_key=True)
     codec: Codec = Field(default=Codec.UNKNOWN)
     file_id: int = Field(foreign_key="files.id")
     task_id: int = Field(foreign_key="tasks.id")
@@ -116,13 +120,13 @@ class DBTask(AutoFetchable, SQLModel, table=True):
 
     __tablename__ = "tasks"  # type: ignore
 
-    id: int = Field(default=None, sa_type=int, primary_key=True, unique=True)
+    id: int = Field(default=None, sa_type=Integer, primary_key=True, unique=True)
     task_id: str = Field(default="", nullable=False, sa_type=String, max_length=40)
     start_time: dt.datetime = Field(default=None)
     end_time: dt.datetime = Field(default=None)
-    duration: int = Field(default=0, sa_type=int)
-    processed: int = Field(default=0, sa_type=int)
-    progress: float = Field(default=0, sa_type=float)
+    duration: int = Field(default=0, sa_type=Integer)
+    processed: int = Field(default=0, sa_type=Integer)
+    progress: float = Field(default=0, sa_type=Float)
     function: str = Field(default="", sa_type=String, max_length=20)
     kwargs: str = Field(default="", sa_type=String, max_length=1024)
     result: str = Field(default="", sa_type=String, max_length=1024)
@@ -140,7 +144,7 @@ class DBTask(AutoFetchable, SQLModel, table=True):
     def __repr__(self) -> str:
         return f"<DBTask(id={self.id}, task_id={self.task_id}, status={self.status})>"
 
-    required_fields = (
+    required_fields: ClassVar[tuple[str, ...]] = (
         "task_id",
         "start_time",
         "end_time",
@@ -262,11 +266,11 @@ class DBTask(AutoFetchable, SQLModel, table=True):
         def is_populated_list(subject: list[Any]) -> bool:
             return isinstance(subject, list) and len(subject) > 0
 
-        def get_ids(items: list[Any]):
+        def get_ids(items: list[Any]) -> list[int]:
             return [item.id for item in items]
 
-        def get_art_batch():
-            result = {}
+        def get_art_batch() -> dict[str, ArtType] | None:
+            result: dict[str, ArtType] = {}
             if is_populated_list(self.batch_albums):
                 result.update({album.mbid: ArtType.ALBUM for album in self.batch_albums})
             if is_populated_list(self.batch_persons):
@@ -275,7 +279,7 @@ class DBTask(AutoFetchable, SQLModel, table=True):
                 result.update({label.mbid: ArtType.LABEL for label in self.batch_labels})
             return result or None
 
-        def get_codec_batch():
+        def get_codec_batch() -> dict[int, Codec] | None:
             return {file.file.id: file.codec for file in self.batch_convert} if is_populated_list(self.batch_convert) else None
 
         match self.task_type:
@@ -379,23 +383,25 @@ class DBFile(ItemBase, table=True):
     batch_id: int = Field(default=None, foreign_key="filestoconvert.id")
     file_path: str = Field(default=None, sa_column_kwargs={"unique": True}, sa_type=String, max_length=1024)
     # --- 🔹 Stage/Substage Record ---
-    stage: Optional[int] = Field(default=0)  # Holds top-level stage value (e.g. 1, 2, 4, etc)
-    substages: Optional[List[str]] = Field(default_factory=list, sa_type=str)  # JSON-encoded list
-    stage_completed: bool = Field(default=False)
+    stage_type: StageType = Field(
+        default=StageType.NONE,
+        sa_type=Integer,
+    )
+    completed_tasks: List[str] = Field(default_factory=list, sa_type=JSON)
 
     track: DBTrack = Relationship(back_populates="files")
     task: DBTask = Relationship(back_populates="batch_files")
     batch_convert: "DBFileToConvert" = Relationship(back_populates="file")
 
-    def add_completed_substage(self, parent: str, substage: str):
-        subs = self.stages.get(parent, [])
-        if substage not in subs:
-            subs.append(substage)
-            self.stages[parent] = subs
-
-    def mark_stage_completed(self, stage: str):
-        self.stages[stage] = []
-        self.processed = dt.datetime.now(dt.timezone.utc)
+    def mark_task_completed(self, task_name: str) -> bool:
+        """
+        Add a task to the completion list.
+        Returns True if task was newly added, False if it was already there.
+        """
+        if task_name not in self.completed_tasks:
+            self.completed_tasks.append(task_name)
+            return True
+        return False
 
 
 class DBTrack(ItemBase, table=True):
@@ -405,11 +411,7 @@ class DBTrack(ItemBase, table=True):
 
     composed: dt.date = Field(default=dt.date.min, sa_column_kwargs={"nullable": False})
     release_date: dt.date = Field(default=dt.date.min, sa_column_kwargs={"nullable": False})
-    title: str = Field(default="", sa_type=String, max_length=255)
-    title_sort: str = Field(default="", sa_type=String, max_length=255)
-    subtitle: Optional[str] = Field(default=None)
     mbid: str = Field(default="", sa_type=String, unique=True, max_length=40)
-
     files: List["DBFile"] = Relationship(back_populates="track")
     album_tracks: List["DBAlbumTrack"] = Relationship(back_populates="track")
     key: "DBKey" = Relationship(back_populates="tracks")
@@ -421,6 +423,17 @@ class DBTrack(ItemBase, table=True):
     producers: List["DBPerson"] = Relationship(back_populates="produced_tracks")
     task: DBTask = Relationship(back_populates="batch_tracks")
     lyric: "DBTrackLyric" = Relationship(back_populates="track")
+    tracktags: List["DBTrackTag"] = Relationship(back_populates="track")
+
+
+class DBTrackTag(ItemBase, table=True):
+    """Track tags"""
+
+    __tablename__ = "track_tags"  # type: ignore
+
+    track: "DBTrack" = Relationship(back_populates="tracktags")
+    tag_type: TagType = Field(default=TagType.UNKNOWN)
+    data: str = Field(default="", sa_type=String, max_length=255)
 
 
 class DBAlbum(ItemBase, table=True):

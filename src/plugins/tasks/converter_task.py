@@ -1,14 +1,14 @@
 from __future__ import annotations
 from pathlib import Path
-from typing import Optional, Iterable
+from typing import Any, Optional, Iterable, ClassVar
 
-from ..core.decorators import register_task
-from ..core.task_base import TaskBase
-from ..core.enums import TaskType, StageType
-from ..Singletons import DBInstance, Logger, Config
+from core.task_base import TaskBase, register_task
+from core.enums import TaskType, StageType
+from Singletons import DBInstance, Logger, Config
+from core.types import ConverterUtilProtocol, DBInterface
 
 
-@register_task()
+@register_task
 class ConverterTask(TaskBase):
     """
     Converts audio files using the injected converter_util.
@@ -17,24 +17,26 @@ class ConverterTask(TaskBase):
     name = "converter_task"
     description = "Converts audio files to target formats using pydub."
     version = "2.0.0"
+    author = "Mattijs Snepvangers"
 
     task_type = TaskType.CONVERTER
     stage_type = StageType.CONVERT
+    stage_name = "convert"
 
     # MUST be explicit per new rules
-    exclusive: bool = False         # allows multiple conversions in parallel
-    heavy_io: bool = True           # file reading + writing
+    exclusive: ClassVar[bool] = False         # allows multiple conversions in parallel
+    heavy_io: ClassVar[bool] = True           # file reading + writing
 
     # Injected by registry
     depends = ["converter_util"]
 
     def __init__(
         self,
-        converter_util: object,                 # always injected
+        converter_util: ConverterUtilProtocol,                 # always injected
         *,
         batch: Optional[Iterable[int]] = None,
         config: Optional[Config] = None,
-    ):
+    ) -> None:
         self.logger = Logger()
 
         self.config = config or Config()
@@ -43,7 +45,7 @@ class ConverterTask(TaskBase):
         # injected util
         self.converter = converter_util
 
-        self.db = DBInstance
+        self.db: DBInterface = DBInstance
 
         self._total = len(self.batch)
         self._processed = 0
@@ -52,18 +54,18 @@ class ConverterTask(TaskBase):
     # Helpers
     # ------------------------------------------------------------
 
-    async def _get_track(self, track_id: int):
+    async def _get_track(self, track_id: int) -> Any:
         """
         ORM model accessor (placeholder).
         Replace with your real async ORM loader.
         """
-        from ..core.models import Track
-        return Track(track_id)
+        from core.models import Track
+        return await Track.from_id(track_id)
 
     # ------------------------------------------------------------
     # Main async execution
     # ------------------------------------------------------------
-    async def run(self):
+    async def run(self) -> None:
         if not self.converter:
             self.logger.error("Converter util not provided; aborting task.")
             return

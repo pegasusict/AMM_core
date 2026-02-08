@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from ..core.task_base import TaskBase, register_task
-from ..core.enums import StageType, TaskType
-from ..Singletons import Logger
+from core.task_base import TaskBase, register_task
+from core.types import AlbumArtCheckerUtilProtocol, DBInterface
+from core.enums import StageType, TaskType
+from Singletons import Logger
 
 
-@register_task()
+@register_task
 class AlbumArtChecker(TaskBase):
     """
     Uses AlbumArtCheckerUtil to detect files whose albums contain art
@@ -15,18 +16,21 @@ class AlbumArtChecker(TaskBase):
     name = "album_art_checker"
     description = "Checks DB for album art and updates file stages."
     version = "2.0.0"
+    author = "Mattijs Snepvangers"
     task_type = TaskType.ART_CHECKER
-    stage_type = StageType.ANALYSE
+    stage_type = StageType.METADATA
+    stage_name = "metadata"
 
     depends = ["AlbumArtCheckerUtil"]
     exclusive = False
     heavy_io = False
 
-    def __init__(self, AlbumArtCheckerUtil):
+    def __init__(self, AlbumArtCheckerUtil: AlbumArtCheckerUtilProtocol) -> None:
         self.logger = Logger()
         self.util = AlbumArtCheckerUtil
+        self.db: DBInterface = DBInstance
 
-    async def run(self):
+    async def run(self) -> None:
         self.logger.info("Running AlbumArtChecker")
 
         files = await self.util.get_files_with_album_art()

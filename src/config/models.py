@@ -1,7 +1,10 @@
 # models.py
 
-from pydantic import BaseModel, Field
+from __future__ import annotations
+
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List
+
 
 class LoggingConfig(BaseModel):
     level: str = "INFO"
@@ -32,10 +35,22 @@ class ExtensionsConfig(BaseModel):
     export: List[str]
 
 
+class AuthConfig(BaseModel):
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    admin_usernames: List[str] = []
+    allowed_usernames: List[str] = []
+    frontend_url: str = "http://localhost:3000"
+    backend_url: str = "http://localhost:8000"
+
+
 class AppConfig(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     version: str
     general: GeneralConfig
     musicbrainz: MusicBrainzConfig
     logging: LoggingConfig
     paths: PathsConfig
     extensions: ExtensionsConfig
+    auth: AuthConfig = AuthConfig()

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#  Copyleft 2021-2025 Mattijs Snepvangers.
+#  Copyleft 2021-2026 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
 #  AMM is free software: you can redistribute it and/or modify  it under the terms of the
@@ -38,6 +38,7 @@ class UserRole(StrEnum):
     """Enum for user roles."""
 
     ADMIN = auto()
+    MOD = auto()
     USER = auto()
     GUEST = auto()
 
@@ -45,13 +46,27 @@ class StageType(IntFlag):
     """Enum for Stage Types."""
 
     NONE = 0
-    IMPORT = 1
-    ANALYSE = 2
-    PROCESS = 4
-    CONVERT = 8
-    METADATA = 16
-    TAG_WRITE = 32
-    SORT = 64
+    PREIMPORT = 1
+    IMPORT = 2          # importer
+    POSTIMPORT = 4      
+    PREANALYSE = 8
+    ANALYSE = 16        # fingerprinter
+    POSTANALYSE = 32
+    PREPROCESS = 64     # duplicate scanner,
+    PROCESS = 128       # normalizer, trimmer
+    POSTPROCESS = 256
+    PRECONVERT = 512
+    CONVERT = 1024      # converter
+    POSTCONVERT = 2048
+    PREMETADATA = 4096
+    METADATA = 8192     # metadata getter, artgetter, lyrics getter
+    POSTMETADATA = 16384
+    PRETAGWRITE = 32768
+    TAGWRITE = 65536    # tagger
+    POSTTAGWERITE = 131072
+    PRESORT = 262144
+    SORT = 524288       # sorter
+    POSTSORT = 1048576
 
 
 class TaskType(StrEnum):
@@ -153,3 +168,12 @@ class FileType(Enum):
     OGG = OggVorbis
     APE = APEv2
     ASF = ASF
+
+
+class TagType(StrEnum):
+    """Defines Tag Types."""
+
+    UNKNOWN = auto()
+    TITLE = auto()
+    SUBTITLE = auto()
+    TITLESORT = auto()

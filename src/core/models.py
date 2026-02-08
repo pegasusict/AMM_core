@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#  Copyleft 2021-2025 Mattijs Snepvangers.
+#  Copyleft 2021-2026 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
 #  AMM is free software: you can redistribute it and/or modify  it under the terms of the
@@ -22,7 +22,7 @@ from pydantic import BaseModel
 from sqlmodel import select
 from sqlalchemy.orm import selectinload
 
-from exceptions import InvalidValueError
+from .exceptions import InvalidValueError
 from Singletons import DBInstance
 from dbmodels import DBFile, DBTrack, DBPerson, DBAlbum, DBAlbumTrack
 
@@ -60,8 +60,13 @@ class Track(BaseModel):
 
     def __init__(self, track_id: int | None = None) -> None:
         if track_id is not None:
-            session = DBInstance().get_session()
-            trackdata = session.exec(
+            self.id = track_id
+
+    @classmethod
+    async def from_id(cls, track_id: int) -> "Track":
+        """Async loader for Track from the database."""
+        async for session in DBInstance.get_session():
+            result = await session.exec(
                 select(DBTrack)
                 .where(DBTrack.id == track_id)
                 .options(
@@ -71,21 +76,28 @@ class Track(BaseModel):
                     selectinload(DBTrack.album_tracks),  # type: ignore
                     # Add more as needed
                 )
-            ).first()
-            session.close()
+            )
+            trackdata = result.first()
+            await session.close()
             if not trackdata:
                 raise InvalidValueError(
                     f"Track with id {track_id} not found in the database."
                 )
-            for key, value in trackdata.__dict__.items():
-                setattr(self, key, value or None)
 
-    def get_tags(self) -> dict[str, str | int | dt.date]:
-        """Gets all the tagdata, converts if nessecary and
-        returns it as a dictionairy"""
+            obj = cls(track_id=track_id)
+            for key, value in trackdata.__dict__.items():
+                setattr(obj, key, value or None)
+            return obj
+
+        raise InvalidValueError(f"Track with id {track_id} not found in the database.")
+
+
+    @property
+    def tags(self) -> dict[str, str | int | dt.date]:
         return {
             "title": self.title,
             "subtitle": self.subtitle or "",
+            "titlesort": self.title_sort,
             "artists": ",".join(
                 map(
                     str,

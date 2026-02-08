@@ -3,8 +3,8 @@ import asyncio
 import strawberry
 from strawberry.types import Info
 
-from ..dbmodels import DBTrack
-from ..Singletons import DBInstance
+from core.dbmodels import DBTrack
+from Singletons import DBInstance
 from .playerservice import get_player_service
 from .mapping import map_dbtrack_to_playertrack
 from .schemas import PlayerTrack
@@ -20,7 +20,9 @@ class Subscription:
         Subscription that notifies when the next track starts playing
         for the current user.
         """
-        user = info.context["user"]
+        user = getattr(info.context, "user", None)
+        if user is None:
+            raise ValueError("Authentication required")
         player = await get_player_service(user.id)
         while True:
             await asyncio.sleep(1)  # Polling interval

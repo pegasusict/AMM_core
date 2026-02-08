@@ -12,11 +12,11 @@ from mutagen.flac import FLAC
 from mutagen.id3 import ID3
 from mutagen.asf import ASF
 
-from ..core.audioutil_base import AudioUtilBase, register_audioutil
-from ..Singletons import Logger
+from core.audioutil_base import AudioUtilBase, register_audioutil
+from Singletons import Logger
 
 
-logger = Logger  # singleton instance
+logger = Logger()  # singleton instance
 
 
 @register_audioutil
@@ -34,20 +34,20 @@ class Tagger(AudioUtilBase):
 
     # --- PluginBase metadata ---
     name: ClassVar[str] = "tagger"
-    description: ClassVar[str] = "Reads and writes tags (ID3, FLAC, OGG, APE, ASF) using Mutagen."
+    description: ClassVar[str] = "Reads and writes tags using Mutagen."
     version: ClassVar[str] = "1.0.0"
     author: ClassVar[str] = "Mattijs Snepvangers"
     exclusive: ClassVar[bool] = False    # can run concurrently
     heavy_io: ClassVar[bool] = True      # reads/writes full audio files
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logger
 
     # --------------------------------
     # Internal loader
     # --------------------------------
 
-    def _load_audio(self, file_path: Path, file_type: str):
+    def _load_audio(self, file_path: Path, file_type: str) -> Any:
         """Loads audio file with the appropriate Mutagen handler."""
         try:
             match file_type.upper():

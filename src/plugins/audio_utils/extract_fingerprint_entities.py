@@ -1,12 +1,12 @@
 from __future__ import annotations
 from typing import Dict, Any, ClassVar
 
-from ..core.audioutil_base import AudioUtilBase, register_audioutil
-from ..Singletons import Logger
-from ..models import MetadataModel
+from core.audioutil_base import AudioUtilBase, register_audioutil
+from Singletons import Logger
+from core.models import MetadataModel
 
 
-logger = Logger  # singleton logger instance
+logger = Logger()  # singleton logger instance
 
 
 @register_audioutil
@@ -17,14 +17,14 @@ class ExtractFingerprintEntities(AudioUtilBase):
 
     # --- Plugin metadata ---
     name: ClassVar[str] = "extract_fp_entities"
-    description: ClassVar[str] = "Extracts normalized track + artist metadata for fingerprint tasks."
+    description: ClassVar[str] = "Extracts normalized track and artist metadata for fingerprint tasks."
     version: ClassVar[str] = "1.1.1"
     author: ClassVar[str] = "Mattijs Snepvangers"
     exclusive: ClassVar[bool] = False     # safe to run in parallel
     heavy_io: ClassVar[bool] = False      # very lightweight CPU work
 
-    def __init__(self):
-        self.logger = Logger
+    def __init__(self) -> None:
+        self.logger = Logger()
 
     async def run(self, metadata: MetadataModel) -> Dict[str, Any]:
         """

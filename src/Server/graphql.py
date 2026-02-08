@@ -1,4 +1,4 @@
-#  Copyleft 2021-2025 Mattijs Snepvangers.
+#  Copyleft 2021-2026 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
 #  AMM is free software: you can redistribute it and/or modify  it under the terms of the
@@ -21,10 +21,10 @@ from strawberry.fastapi import BaseContext
 from fastapi import Request
 
 from auth.dependencies import get_current_user
-from ..dbmodels import DBUser
-from subscription import Subscription
-from mutation import Mutation
-from query import Query
+from core.dbmodels import DBUser
+from .subscription import Subscription
+from .mutation import Mutation
+from .query import Query
 
 # ------------------ GraphQL Schema ------------------
 

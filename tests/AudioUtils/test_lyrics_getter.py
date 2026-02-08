@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#  Copyleft 2021-2025 Mattijs Snepvangers.
+#  Copyleft 2021-2026 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
 #  AMM is free software: you can redistribute it and/or modify  it under the terms of the
@@ -13,140 +13,78 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
+import asyncio
 import pytest
-from unittest.mock import patch, MagicMock  # noqa: F401
+from unittest.mock import patch
 
-# Mock all required modules before importing the class under test
-import sys
+pytest.importorskip("aiohttp")
 
-# Mock lyricsgenius
-mock_genius = MagicMock()
-sys.modules["lyricsgenius"] = mock_genius
-sys.modules["lyricsgenius.genius"] = mock_genius
-
-# Mock config and logger
-mock_config = MagicMock()
-mock_logger = MagicMock()
-sys.modules["Singletons.config"] = mock_config
-sys.modules["Singletons.logger"] = mock_logger
-
-# Mock mutagen modules
-for module_name in [
-    "mutagen.mp4",
-    "mutagen.apev2",
-    "mutagen.oggvorbis",
-    "mutagen.flac",
-    "mutagen.mp3",
-    "mutagen.wavpack",
-    "mutagen.asf",
-]:
-    sys.modules[module_name] = MagicMock()
-
-# Now we can import the class directly
-from AudioUtils.lyrics_getter import LyricsGetter  # noqa: E402
+from plugins.audio_utils.lyrics_getter_util import LyricsGetter
 
 
-@pytest.fixture
-def lyrics_getter_fixture():
-    """Set up test fixtures"""
-    # Reset mocks for each test
-    mock_genius.reset_mock()
+class _MockResponse:
+    def __init__(self, status: int, payload: dict):
+        self.status = status
+        self._payload = payload
 
-    # Create a mock Song object that will be returned by Genius.search_song
-    mock_song = MagicMock()
-    mock_song.lyrics = "Test lyrics for the song"
+    async def json(self):
+        return self._payload
 
-    # Create a mock Genius instance
-    mock_genius_instance = MagicMock()
-    mock_genius_instance.search_song.return_value = mock_song
+    async def __aenter__(self):
+        return self
 
-    # Set up the mock Genius class to return our mock instance
-    mock_genius.Genius.return_value = mock_genius_instance
-
-    # Create an instance of LyricsGetter for each test
-    lyrics_getter = LyricsGetter()
-
-    # Return both the lyrics_getter instance and the mock_song for tests to use
-    return lyrics_getter, mock_song
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
 
 
-def test_init(lyrics_getter_fixture):
-    """Test initialization of LyricsGetter"""
-    lyrics_getter, _ = lyrics_getter_fixture
+class _MockSession:
+    def __init__(self, response: _MockResponse):
+        self._response = response
 
-    # Verify that Genius was instantiated
-    mock_genius.Genius.assert_called_once()
+    def get(self, *args, **kwargs):
+        return self._response
 
-    # Verify that remove_section_headers was set to True
-    assert lyrics_getter.genius.remove_section_headers is True
+    async def __aenter__(self):
+        return self
 
-
-def test_get_lyrics_success(lyrics_getter_fixture):
-    """Test successful lyrics retrieval"""
-    lyrics_getter, mock_song = lyrics_getter_fixture
-
-    # Reset the search_song mock to clear previous calls
-    lyrics_getter.genius.search_song.reset_mock()  # type: ignore
-
-    # Set up test data
-    artist = "Test Artist"
-    title = "Test Song"
-
-    # Call the method
-    result = lyrics_getter.get_lyrics(artist, title)
-
-    # Verify that search_song was called with the correct parameters
-    lyrics_getter.genius.search_song.assert_called_once_with(title, artist)  # type: ignore
-
-    # Verify that the result is the mock song object
-    assert result == mock_song
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
 
 
-def test_get_lyrics_not_found(lyrics_getter_fixture):
-    """Test lyrics retrieval when song is not found"""
-    lyrics_getter, _ = lyrics_getter_fixture
+def test_get_lyrics_success():
+    lg = LyricsGetter()
+    lg.provider_url = "http://example.com"
 
-    # Reset the search_song mock to clear previous calls
-    lyrics_getter.genius.search_song.reset_mock()  # type: ignore
+    response = _MockResponse(200, {"lyrics": "Test lyrics"})
+    session = _MockSession(response)
 
-    # Set up test data
-    artist = "Nonexistent Artist"
-    title = "Nonexistent Song"
+    with patch("aiohttp.ClientSession", return_value=session):
+        result = asyncio.run(lg.get_lyrics("Artist - Title"))
 
-    # Configure the mock to return None (song not found)
-    lyrics_getter.genius.search_song.return_value = None  # type: ignore
+    assert result == "Test lyrics"
 
-    # Call the method
-    result = lyrics_getter.get_lyrics(artist, title)
 
-    # Verify that search_song was called with the correct parameters
-    lyrics_getter.genius.search_song.assert_called_once_with(title, artist)  # type: ignore
+def test_get_lyrics_not_found():
+    lg = LyricsGetter()
+    lg.provider_url = "http://example.com"
 
-    # Verify that the result is None
+    response = _MockResponse(200, {"lyrics": None})
+    session = _MockSession(response)
+
+    with patch("aiohttp.ClientSession", return_value=session):
+        result = asyncio.run(lg.get_lyrics("Artist - Missing"))
+
     assert result is None
 
 
-def test_get_lyrics_exception(lyrics_getter_fixture):
-    """Test lyrics retrieval when an exception occurs"""
-    lyrics_getter, _ = lyrics_getter_fixture
+def test_get_lyrics_http_error():
+    lg = LyricsGetter()
+    lg.provider_url = "http://example.com"
 
-    # Reset the search_song mock to clear previous calls
-    lyrics_getter.genius.search_song.reset_mock()  # type: ignore
+    response = _MockResponse(500, {})
+    session = _MockSession(response)
 
-    # Set up test data
-    artist = "Exception Artist"
-    title = "Exception Song"
+    with patch("aiohttp.ClientSession", return_value=session):
+        result = asyncio.run(lg.get_lyrics("Artist - Error"))
 
-    # Configure the mock to raise an exception
-    lyrics_getter.genius.search_song.side_effect = Exception("API Error")  # type: ignore
-
-    # Call the method and verify it handles the exception gracefully
-    # Note: The current implementation doesn't handle exceptions, so we expect it to propagate
-    with pytest.raises(Exception) as excinfo:
-        lyrics_getter.get_lyrics(artist, title)
-
-    # Verify the exception message
-    assert str(excinfo.value) == "API Error"
-
-    # Verify that search_song was called with the correct parameters
-    lyrics_getter.genius.search_song.assert_called_once_with(title, artist)  # type: ignore
+    assert result is None

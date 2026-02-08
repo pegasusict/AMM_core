@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#  Copyleft 2021-2025 Mattijs Snepvangers.
+#  Copyleft 2021-2026 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
 #  AMM is free software: you can redistribute it and/or modify  it under the terms of the
@@ -19,7 +19,10 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from AudioUtils import get_file_extension, get_file_type, FileType
+pytest.importorskip("pydantic")
+
+from core.file_utils import get_file_extension, get_file_type
+from core.enums import FileType
 
 
 class TestFileExtension:
@@ -58,30 +61,19 @@ class TestFileType:
     @pytest.mark.parametrize(
         "file_type", [".mp3", ".mp4", ".flac", ".wav", ".ogg", ".ape", ".asf"]
     )
-    @patch("AudioUtils.Logger")
-    @patch("AudioUtils.Config")
-    def test_get_file_type_supported(self, mock_config_cls, mock_logger_cls, file_type):
+    @patch("core.file_utils.Logger")
+    def test_get_file_type_supported(self, mock_logger_cls, file_type):
         """Test get_file_type function with supported file types."""
         test_path = Path(f"/path/to/file{file_type}")
 
-        # Create a patch for the FileTypes enum to simulate the file type being supported
-        with patch("AudioUtils.get_file_extension", return_value=file_type):
-            with patch(
-                "AudioUtils.FileTypes.__members__.__contains__", return_value=True
-            ):
-                result = get_file_type(test_path)
+        with patch("core.file_utils.get_file_extension", return_value=file_type):
+            result = get_file_type(test_path)
 
-                # Check that the function returns the file extension for supported types
-                assert result == file_type
+            assert result == file_type
+            mock_logger_cls.assert_not_called()
 
-                # Ensure logger was not called for supported types
-                mock_logger_cls.assert_not_called()
-
-    @patch("AudioUtils.Logger")
-    @patch("AudioUtils.Config")
-    def test_get_file_type_unsupported(
-        self, mock_config_cls, mock_logger_cls, mock_logger_instance
-    ):
+    @patch("core.file_utils.Logger")
+    def test_get_file_type_unsupported(self, mock_logger_cls, mock_logger_instance):
         """Test get_file_type function with unsupported file types."""
         # Set up the mock logger
         mock_logger_cls.return_value = mock_logger_instance
@@ -90,19 +82,13 @@ class TestFileType:
         test_path = Path("/path/to/file.xyz")
         unsupported_extension = ".xyz"
 
-        with patch("AudioUtils.get_file_extension", return_value=unsupported_extension):
-            with patch(
-                "AudioUtils.FileTypes.__members__.__contains__", return_value=False
-            ):
-                result = get_file_type(test_path)
+        with patch("core.file_utils.get_file_extension", return_value=unsupported_extension):
+            result = get_file_type(test_path)
 
-                # Check that the function returns None for unsupported types
-                assert result is None
-
-                # Verify that the logger was called with the correct error message
-                mock_logger_instance.error.assert_called_once_with(
-                    message=f"Unsupported file type: {unsupported_extension}"
-                )
+            assert result is None
+            mock_logger_instance.error.assert_called_once_with(
+                message=f"Unsupported file type: {unsupported_extension}"
+            )
 
 
 class TestFileTypesEnum:

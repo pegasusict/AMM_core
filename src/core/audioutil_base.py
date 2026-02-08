@@ -1,9 +1,10 @@
 from __future__ import annotations
 from abc import ABCMeta
-from typing import ClassVar
+from typing import Any, ClassVar
 import asyncio
 
-from ..Singletons import Logger, Config
+from Singletons import Logger
+from config import Config
 from .enums import PluginType
 from .plugin_base import PluginBase
 from .registry import registry
@@ -20,13 +21,13 @@ class AudioUtilBase(PluginBase, metaclass=ABCMeta):
     version: ClassVar[str]
     author: ClassVar[str]
 
-    def __init__(self):
-        self.config = Config()
+    def __init__(self, config: Config | None = None) -> None:
+        self.config = config or Config.get_sync()
         self.logger = Logger(self.config)
 
     # lifecycle hooks
     @classmethod
-    async def create_async(cls, *args, **kwargs) -> "AudioUtilBase":
+    async def create_async(cls, *args: Any, **kwargs: Any) -> "AudioUtilBase":
         """
         Optional factory create_async returning an initialized instance.
         Default falls back to __init__ + init().
@@ -41,7 +42,7 @@ class AudioUtilBase(PluginBase, metaclass=ABCMeta):
         """Optional instance-level async init; default no-op."""
         return None
 
-def register_audioutil(cls):
+def register_audioutil(cls: type[AudioUtilBase]) -> type[AudioUtilBase]:
     # validate class vars early
     cls._validate_classvars()
     # also ensure plugin_type is AUDIOUTIL

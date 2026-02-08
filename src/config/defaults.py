@@ -1,9 +1,9 @@
 # defaults.py
 
-CONFIG_VERSION = "1.0"
+CONFIG_VERSION = "1.3"
 
 DEFAULT_CONFIG = {
-    "version": "1.0",
+    "version": "1.3",
     "general": {"clean": True},
     "musicbrainz": {
         "host": "musicbrainz.org",
@@ -25,5 +25,13 @@ DEFAULT_CONFIG = {
             "wma","opus","mp4","mp2",
         ],
         "export": ["mp3", "flac"],
+    },
+    "auth": {
+        "google_client_id": "",
+        "google_client_secret": "",
+        "admin_usernames": [],
+        "allowed_usernames": [],
+        "frontend_url": "http://localhost:3000",
+        "backend_url": "http://localhost:8000",
     },
 }

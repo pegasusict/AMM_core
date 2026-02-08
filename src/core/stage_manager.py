@@ -1,6 +1,6 @@
 # src/core/stage_manager.py
 from typing import Optional
-from ..singletons import Logger
+from Singletons import Logger
 from .registry import stage_registry
 from .stage import Stage
 from .enums import StageType
@@ -14,7 +14,7 @@ class StageManager:
     This class does not perform database writes; use StageTracker for persistence.
     """
 
-    def register_stage(self, stage: Stage):
+    def register_stage(self, stage: Stage) -> None:
         """
         Register a Stage object (task-side). Plugins call this on import.
         """
@@ -27,14 +27,14 @@ class StageManager:
         stage_type: StageType,
         task_name: Optional[str] = None,
         description: Optional[str] = None,
-    ):
+    ) -> None:
         """
         Convenience: register a stage by parameters (used by plugins that want a lighter syntax).
         """
-        stage = Stage(name=name, stage_type=stage_type, task_name=task_name, description=description)
+        stage = Stage(name=name, stage_type=stage_type, task=task_name, description=description)
         self.register_stage(stage)
 
-    def list_stages(self, stage_type: Optional[StageType] = None):
+    def list_stages(self, stage_type: Optional[StageType] = None) -> list[Stage]:
         """List stages for a StageType or all registered stages."""
         if stage_type:
             return stage_registry.get_stages(stage_type)

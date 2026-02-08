@@ -1,4 +1,4 @@
-#  Copyleft 2021-2025 Mattijs Snepvangers.
+#  Copyleft 2021-2026 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
 #  AMM is free software: you can redistribute it and/or modify  it under the terms of the
@@ -13,7 +13,7 @@
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 from pathlib import Path
 
-from ..Singletons import Config, Logger
+from Singletons import Logger
 from .enums import FileType
 
 def get_file_extension(file_path: Path) -> str:
@@ -44,5 +44,5 @@ def get_file_type(file_path: Path) -> str | None:
     extension_key = file_extension[1:].upper() if file_extension else ""
     if extension_key in FileType.__members__:
         return file_extension
-    Logger(Config()).error(message=f"Unsupported file type: {file_extension}")
+    Logger().error(message=f"Unsupported file type: {file_extension}")
     return None

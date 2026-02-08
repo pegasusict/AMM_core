@@ -4,7 +4,7 @@ from typing import Sequence
 from sqlmodel import select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from ..singletons import Logger
+from Singletons import Logger
 from .enums import StageType
 from .registry import stage_registry
 from .dbmodels import DBFile  # your existing SQLModel DBFile
@@ -24,10 +24,10 @@ class StageTracker:
       updates, we can add dialect-specific code paths later.
     """
 
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def complete_stage_for_file(self, file_id: int, stage_name: str):
+    async def complete_stage_for_file(self, file_id: int, stage_name: str) -> None:
         """
         Mark a single Stage (by name) completed for a single DBFile.
         Appends stage_name to DBFile.substages if missing and marks parent StageType completed
@@ -94,7 +94,7 @@ class StageTracker:
         await self.session.commit()
         logger.info(f"Completed stage '{stage_name}' for file_id={file_id}; stage_done={stage_completed}")
 
-    async def batch_complete_stage(self, file_ids: Sequence[int], stage_name: str):
+    async def batch_complete_stage(self, file_ids: Sequence[int], stage_name: str) -> None:
         """
         Batch-complete a named Stage for multiple files.
         For portability we loop through file_ids and call complete_stage_for_file per id.

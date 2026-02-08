@@ -1,18 +1,6 @@
-#  Copyleft 2021-2025 Mattijs Snepvangers.
-#  This file is part of Audiophiles' Music Manager, hereafter named AMM.
-#
-#  AMM is free software: you can redistribute it and/or modify  it under the terms of the
-#   GNU General Public License as published by  the Free Software Foundation, either version 3
-#   of the License or any later version.
-#
-#  AMM is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
-#   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-#   PURPOSE.  See the GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
-
-"""Base file for AMM core functionality."""
+#  Copyleft 2021-2026 Mattijs Snepvangers.
+#  This file is part of Audiophiles' Music Manager (AMM).
+#  Licensed under GPLv3+.
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,85 +8,121 @@ from fastapi_utils.tasks import repeat_every
 from contextlib import asynccontextmanager
 from strawberry.fastapi import GraphQLRouter
 from strawberry.subscriptions import GRAPHQL_WS_PROTOCOL
+from typing import AsyncGenerator
 
 from Singletons import Config, DBInstance, Logger
-from Server.graphql import schema
+from Server.graphql import schema, get_context
 from Server.playerservice import PlayerService
-from Tasks.taskmanager import TaskManager
-from Server.graphql import get_context
-from core.registry import audio_util_registry, task_registry, processor_registry
 
-# Initialize Config & Logger
+from core.registry import registry
+from core.taskmanager import TaskManager
+from core.processor_loop import ProcessorLoop
+
+# Global shared config
 config = Config()
 logger = Logger(config)
 config.use_real_logger(logger)
 
-async def initialize_system():
-    # Step 1: load audio utils first
-    await audio_util_registry.init_all()
 
-    # Step 2: initialize tasks and processors
-    await task_registry.init_all(audio_util_registry)
-    await processor_registry.init_all(audio_util_registry, task_registry)
+# ----------------------------
+# Registry Initialization
+# ----------------------------
 
-# GraphQL Router
-graphql_app = GraphQLRouter(schema, subscription_protocols=[GRAPHQL_WS_PROTOCOL], graphiql=True, context_getter=get_context)
+async def initialize_system() -> None:
+    """
+    Initializes AUDIOUTILS ONLY.
+    Tasks and processors are instantiated dynamically by
+    TaskManager and ProcessorLoop.
+    """
+    logger.info("Initializing audio utilities...")
+    await registry.init_all_audioutils()
+    logger.info("Audio utilities initialized.")
 
-# CORS Settings — Allow CLI, GUI, Web, Mobile clients
+
+# GraphQL
+graphql_app = GraphQLRouter(
+    schema,
+    subscription_protocols=[GRAPHQL_WS_PROTOCOL],
+    graphiql=True,
+    context_getter=get_context,
+)
+
+# CORS
 origins = [
     "http://localhost",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    "*",  # has to be wide open because of mobile clients
-    "http://localhost:3000",  # GUI
+    "*",
+    "http://localhost:3000",
 ]
 
 
+# ----------------------------
+# Lifespan
+# ----------------------------
+
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Lifespan handler to manage startup and shutdown of critical services."""
-    logger.info("App startup: initializing services...")
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    logger.info("AMM startup sequence beginning...")
+
+    # Step 1 — Init audio utils
+    await initialize_system()
+
+    # Step 2 — Start TaskManager
+    task_manager = TaskManager(registry=registry, config=config)
+    logger.info("TaskManager ready.")
+
+    # Step 3 — Start ProcessorLoop (persistent processors)
+    processor_loop = ProcessorLoop(registry=registry, config=config)
+    await processor_loop.start_all()
+    logger.info("ProcessorLoop started.")
+
+    yield  # ➜ App runs
+
+    # ----------------------------
+    # Shutdown
+    # ----------------------------
+
+    logger.info("AMM shutdown starting...")
 
     try:
-        task_manager = TaskManager()
-        logger.info("TaskManager started successfully.")
+        await processor_loop.shutdown()
+        logger.info("ProcessorLoop shutdown complete.")
     except Exception as e:
-        logger.exception(f"TaskManager failed to start: {e}")
+        logger.exception(f"Error stopping ProcessorLoop: {e}")
 
-    yield
-
-    logger.info("App shutdown: cleaning up services...")
+    try:
+        await task_manager.shutdown()
+        logger.info("TaskManager shutdown complete.")
+    except Exception as e:
+        logger.exception(f"Error stopping TaskManager: {e}")
 
     try:
         await PlayerService.shutdown_all()
-        logger.info("PlayerServiceManager shutdown complete.")
+        logger.info("PlayerService shutdown complete.")
     except Exception as e:
-        logger.exception(f"Error shutting down PlayerServiceManager: {e}")
-
-    try:
-        task_manager.shutdown()  # type: ignore
-        logger.info("TaskManager shutdown complete.")
-    except Exception as e:
-        logger.exception(f"Error shutting down TaskManager: {e}")
+        logger.exception(f"PlayerService shutdown error: {e}")
 
     try:
         config.stop_watching()
-        logger.info("Config file watcher stopped.")
+        logger.info("Stopped config watcher.")
     except Exception as e:
-        logger.exception(f"Error stopping Config watcher: {e}")
+        logger.exception(f"Config watcher shutdown error: {e}")
+
+    logger.info("AMM shutdown complete.")
 
 
-# FastAPI App with lifespan management
+# ----------------------------
+# FastAPI App
+# ----------------------------
+
 app = FastAPI(lifespan=lifespan)
 
-
 @app.on_event("startup")
-@repeat_every(seconds=86400)  # every 24 hours
-async def daily_stat_snapshot():
+@repeat_every(seconds=86400)
+async def daily_stat_snapshot() -> None:
     await DBInstance.snapshot_task_stats()
 
-
-# Apply CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -106,11 +130,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount GraphQL API
 app.include_router(graphql_app, prefix="/graphql")
 
-
 @app.get("/")
-async def root():
-    """Root endpoint for health checking."""
+async def root() -> dict[str, str]:
     return {"status": "Music Manager API running", "graphql": "/graphql"}

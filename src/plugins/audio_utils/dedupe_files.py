@@ -2,11 +2,11 @@
 from __future__ import annotations
 from typing import ClassVar, List, Dict, Any
 
-from ..core.audioutil_base import AudioUtilBase, register_audioutil
-from ..core.enums import CodecPriority
-from ..Singletons import Logger
+from core.audioutil_base import AudioUtilBase, register_audioutil
+from core.enums import CodecPriority
+from Singletons import Logger
 
-logger = Logger  # singleton
+logger = Logger()  # singleton
 
 
 @register_audioutil
@@ -18,15 +18,15 @@ class DedupeUtil(AudioUtilBase):
 
     # --- Plugin metadata ---
     name: ClassVar[str] = "dedupe"
-    description: ClassVar[str] = "Determines best-quality file and marks others for deletion."
+    description: ClassVar[str] = "Determines best quality file and marks others for deletion."
     version: ClassVar[str] = "1.1.0"
     author: ClassVar[str] = "Mattijs Snepvangers"
     depends: ClassVar[List[str]] = []   # standalone util
     exclusive: ClassVar[bool] = False   # safe to run in parallel
     heavy_io: ClassVar[bool] = False    # CPU-light
 
-    def __init__(self):
-        self.logger = Logger
+    def __init__(self) -> None:
+        self.logger = Logger()
 
     async def dedupe_files(self, files: list) -> Dict[str, Any]:
         """

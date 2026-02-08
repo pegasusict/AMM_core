@@ -7,13 +7,13 @@ from typing import ClassVar
 
 from pydub import AudioSegment
 
-from ..core.audioutil_base import AudioUtilBase, register_audioutil
-from ..core.exceptions import OperationFailedError
-from ..core.dbmodels import Codec
-from ..singletons import Logger
+from core.audioutil_base import AudioUtilBase, register_audioutil
+from core.exceptions import OperationFailedError
+from core.dbmodels import Codec
+from Singletons import Logger
 
 
-logger = Logger  # singleton instance
+logger = Logger()  # singleton instance
 
 
 @register_audioutil
@@ -30,7 +30,7 @@ class SilenceTrimmer(AudioUtilBase):
     exclusive: ClassVar[bool] = False   # can run concurrently
     heavy_io: ClassVar[bool] = True     # loads + exports full audio files
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logger
 
     # -----------------------------------------------------

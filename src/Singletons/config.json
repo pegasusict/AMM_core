@@ -1,0 +1,47 @@
+{
+    "general": {
+        "debug": true
+    },
+    "musicbrainz": {
+        "host": "musicbrainz.org",
+        "port": 443,
+        "ignore_existing_acoustid_fingerprints": false
+    },
+    "logging": {
+        "level": "DEBUG",
+        "file": "amm.log"
+    },
+    "paths": {
+        "base": "/alpha/music/amm/",
+        "import": "import/",
+        "export": "export/",
+        "music": "music/",
+        "art": "art/"
+    },
+    "features": {
+        "art_getter": true,
+        "lyrics_getter": true,
+        "normalizer": true,
+        "trimmer": true,
+        "converter": true,
+        "file_rename": true
+    },
+    "extensions": {
+        "import": [
+            ".mp3",
+            ".flac",
+            ".ogg",
+            ".wav",
+            ".m4a",
+            ".aac",
+            ".wma",
+            ".opus",
+            ".mp4",
+            "mp2"
+        ],
+        "export": [
+            ".mp3",
+            ".flac"
+        ]
+    }
+}

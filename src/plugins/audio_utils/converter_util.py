@@ -6,10 +6,10 @@ from asyncio import to_thread
 
 from pydub import AudioSegment
 
-from ..core.audioutil_base import AudioUtilBase, register_audioutil
-from ..Singletons import Logger, Config
+from core.audioutil_base import AudioUtilBase, register_audioutil
+from Singletons import Logger, Config
 
-logger = Logger  # singleton
+logger = Logger()  # singleton
 
 
 @register_audioutil
@@ -21,11 +21,11 @@ class ConverterUtil(AudioUtilBase):
     exclusive: ClassVar[bool] = False
     heavy_io: ClassVar[bool] = True  # conversion is I/O/CPU heavy; mark accordingly
 
-    def __init__(self):
+    def __init__(self) -> None:
         # registry may call with no args; accept None and use global Config
         self.config = Config()
         # logger is the singleton — don't instantiate
-        self.logger = Logger
+        self.logger = Logger()
         self.lq_inputs = self.config._get("convert", "lqinputs", "ogg,aac").split(",")
         self.hq_inputs = self.config._get("convert", "hqinputs", "wav,mp4").split(",")
         self.lq_format = self.config._get("convert", "lqformat", "mp3").lower()

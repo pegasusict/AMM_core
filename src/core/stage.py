@@ -6,7 +6,12 @@ from .enums import StageType
 @dataclass(frozen=True)
 class Stage:
     name: str
+    stage_type: StageType
     task: Optional[str] = None
-    type: StageType
     description: Optional[str] = None
     # additional metadata can be added later (timeout, retries, etc.)
+
+    @property
+    def type(self) -> StageType:
+        # Compatibility alias for older call sites.
+        return self.stage_type

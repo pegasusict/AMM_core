@@ -9,13 +9,13 @@ from mutagen import File
 from mutagen.id3._util import ID3NoHeaderError
 from mutagen.flac import FLACNoHeaderError
 
-from ..core.audioutil_base import AudioUtilBase
-from ..core.decorators import register_audioutil
-from ..singletons import Config, Logger
-from ..core.file_utils import get_file_type, get_file_extension
+from core.audioutil_base import AudioUtilBase
+from core.audioutil_base import register_audioutil
+from Singletons import Config, Logger
+from core.file_utils import get_file_type, get_file_extension
 
 
-logger = Logger  # singleton instance
+logger = Logger()  # singleton instance
 
 
 @register_audioutil
@@ -33,7 +33,7 @@ class MediaParser(AudioUtilBase):
     exclusive: ClassVar[bool] = False     # safe to run concurrently
     heavy_io: ClassVar[bool] = True       # file I/O + mutagen parsing
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.config = Config()
         self.logger = logger
 

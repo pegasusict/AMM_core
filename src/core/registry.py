@@ -4,14 +4,17 @@ import asyncio
 import inspect
 from typing import Any, Dict, List, Optional, Sequence, Type
 
-from ..singletons import Logger, Config
+from Singletons import Logger
+from config import Config
+from .stage import Stage
+from .enums import StageType
 
 logger = Logger()
 
 class PluginRegistry:
     """Unified registry for AudioUtils, Tasks, Processors and Stages."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # classes (populated by decorators at import time)
         self._audioutil_classes: Dict[str, Type[Any]] = {}
         self._task_classes: Dict[str, Type[Any]] = {}
@@ -41,6 +44,8 @@ class PluginRegistry:
         stage_type = getattr(cls, "stage_type", None)
         if stage_type is not None:
             self._stage_records.setdefault(stage_type, []).append(name)
+            stage_name = getattr(cls, "stage_name", None) or getattr(cls, "name", None) or cls.__name__
+            stage_registry.register_stage(Stage(name=stage_name, stage_type=stage_type))
 
     def register_processor(self, cls: Type[Any]) -> None:
         name = getattr(cls, "name", cls.__name__).lower()
@@ -90,7 +95,7 @@ class PluginRegistry:
             await asyncio.gather(*coro)
 
     # ---------------- factories (DI) ----------------
-    async def create_task(self, name: str, *, batch: Any = None, **kwargs) -> Any:
+    async def create_task(self, name: str, *, batch: Any = None, **kwargs: Any) -> Any:
         """
         Instantiate a task with positional audio util injections followed by keyword args.
         Returns an instance ready to start.
@@ -127,7 +132,13 @@ class PluginRegistry:
         setattr(instance, "_registry", self)
         return instance
 
-    async def create_processor(self, name: str, *, config: Optional[Config] = None, **kwargs) -> Any:
+    async def create_processor(
+        self,
+        name: str,
+        *,
+        config: Optional[Config] = None,
+        **kwargs: Any,
+    ) -> Any:
         cls = self._processor_classes.get(name.lower())
         if not cls:
             raise ValueError(f"Processor '{name}' not registered")
@@ -140,7 +151,7 @@ class PluginRegistry:
                 inst = await self._instantiate_audioutil(dep.lower())
             util_args.append(inst)
 
-        ctor_kwargs = dict(config=(config or Config()), **kwargs)
+        ctor_kwargs = dict(config=(config or Config.get_sync()), **kwargs)
         instance = cls(*util_args, **ctor_kwargs)
         setattr(instance, "_registry", self)
         return instance
@@ -160,10 +171,10 @@ class PluginRegistry:
             "stages": {k: v for k, v in self._stage_records.items()},
         }
 
-    def tasks_for_stage(self, stage_type) -> List[str]:
+    def tasks_for_stage(self, stage_type: StageType) -> List[str]:
         return list(self._stage_records.get(stage_type, []))
 
-    def get_processor_class(self, name: str):
+    def get_processor_class(self, name: str) -> Optional[Type[Any]]:
         return self._processor_classes.get(name.lower())
 
     def processor_names(self) -> List[str]:
@@ -172,3 +183,29 @@ class PluginRegistry:
 
 # single global registry instance
 registry = PluginRegistry()
+
+
+class StageRegistry:
+    def __init__(self) -> None:
+        self._stages: Dict[StageType, List[Stage]] = {}
+
+    def register_stage(self, stage: Stage) -> None:
+        self._stages.setdefault(stage.stage_type, []).append(stage)
+
+    def get_stages(self, stage_type: StageType) -> List[Stage]:
+        return list(self._stages.get(stage_type, []))
+
+    def all(self) -> List[Stage]:
+        stages: List[Stage] = []
+        for items in self._stages.values():
+            stages.extend(items)
+        return stages
+
+    def find_stage(self, stage_name: str) -> Optional[Stage]:
+        for stage in self.all():
+            if stage.name == stage_name:
+                return stage
+        return None
+
+
+stage_registry = StageRegistry()

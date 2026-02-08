@@ -1,4 +1,4 @@
-#  Copyleft 2021-2025 Mattijs Snepvangers.
+#  Copyleft 2021-2026 Mattijs Snepvangers.
 #  This file is part of Audiophiles' Music Manager, hereafter named AMM.
 #
 #  AMM is free software: you can redistribute it and/or modify  it under the terms of the
@@ -22,7 +22,7 @@ from typing import Generic, List, Optional, TypeVar
 import strawberry
 from pydantic import EmailStr
 
-from ..enums import Stage, TaskType, UserRole, Codec
+from Enums import Stage, TaskType, UserRole, Codec
 
 
 # ----------------- User & Task -----------------
@@ -244,7 +244,44 @@ class Playlist:
     track_ids: List[int]
 
 
+@strawberry.type
+class Queue:
+    track_ids: List[int]
+
+
+@strawberry.type
+class AuthPayload:
+    access_token: str
+    refresh_token: str
+    user: User
+
+
 # ----------------- Mutation Input Types -----------------
+
+
+@strawberry.input
+class UserCreateInput:
+    username: str
+    email: EmailStr
+    password_hash: str
+    first_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    last_name: Optional[str] = None
+    role: Optional[UserRole] = None
+    is_active: Optional[bool] = None
+
+
+@strawberry.input
+class UserUpdateInput:
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password_hash: Optional[str] = None
+    first_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    last_name: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    role: Optional[UserRole] = None
+    is_active: Optional[bool] = None
 
 
 @strawberry.input
@@ -266,6 +303,17 @@ class PersonInput:
 @strawberry.input
 class GenreInput:
     name: Optional[str] = None
+
+
+@strawberry.input
+class LabelInput:
+    name: Optional[str] = None
+    mbid: Optional[str] = None
+    description: Optional[str] = None
+    founded: Optional[date] = None
+    defunct: Optional[date] = None
+    owner_id: Optional[int] = None
+    parent_id: Optional[int] = None
 
 
 @strawberry.type

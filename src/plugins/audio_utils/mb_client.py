@@ -5,12 +5,12 @@ from typing import Any, ClassVar, Optional
 import aiohttp
 from aiohttp import ClientError
 
-from ..core.audioutil_base import AudioUtilBase, register_audioutil
-from ..core.exceptions import OperationFailedError
-from ..Singletons import Logger, Config
+from core.audioutil_base import AudioUtilBase, register_audioutil
+from core.exceptions import OperationFailedError
+from Singletons import Logger, Config
 
 
-logger = Logger  # singleton instance
+logger = Logger()  # singleton instance
 
 
 @register_audioutil
@@ -36,7 +36,7 @@ class MusicBrainzClient(AudioUtilBase):
     BASE_URL = "https://musicbrainz.org/ws/2"
     COVERART_URL = "https://coverartarchive.org"
 
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(self, config: Optional[Config] = None) -> None:
         super().__init__(config=config)
         self.config = config or Config()
         self.logger = logger
