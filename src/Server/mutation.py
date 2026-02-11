@@ -20,7 +20,12 @@ from core.dbmodels import (
     DBQueue,
 )
 from .playerservice import get_player_service
-from .mapping import update_model_from_input, map_dbuser_to_user, map_dbplaylist_to_playlist
+from .mapping import (
+    update_model_from_input,
+    map_dbuser_to_user,
+    map_dbplaylist_to_playlist,
+    map_dblabel_to_label,
+)
 from .schemas import (
     TrackInput,
     AlbumInput,
@@ -42,6 +47,23 @@ def _require_user(info: Info) -> DBUser:
     user = getattr(info.context, "user", None)
     if user is None:
         raise ValueError("Authentication required")
+    return user
+
+
+def _is_admin(user: DBUser) -> bool:
+    role = getattr(user, "role", None)
+    if isinstance(role, UserRole):
+        return role == UserRole.ADMIN
+    if isinstance(role, str):
+        normalized = role.strip().lower()
+        return normalized in {UserRole.ADMIN.value.lower(), UserRole.ADMIN.name.lower()}
+    return False
+
+
+def _require_admin(info: Info) -> DBUser:
+    user = _require_user(info)
+    if not _is_admin(user):
+        raise ValueError("Admin role required")
     return user
 
 
@@ -122,6 +144,7 @@ class Mutation:
     @strawberry.mutation
     async def create_user(self, info: Info, data: UserCreateInput) -> User:
         """Create a new user."""
+        _require_admin(info)
         user = DBUser(
             username=data.username,
             email=str(data.email),
@@ -142,6 +165,7 @@ class Mutation:
     @strawberry.mutation
     async def update_user(self, info: Info, user_id: int, data: UserUpdateInput) -> User:
         """Update an existing user."""
+        _require_admin(info)
         async for session in DBInstance.get_session():
             user = await session.get(DBUser, user_id)
             if not user:
@@ -157,6 +181,7 @@ class Mutation:
     @strawberry.mutation
     async def delete_user(self, info: Info, user_id: int) -> User:
         """Delete a user."""
+        _require_admin(info)
         async for session in DBInstance.get_session():
             user = await session.get(DBUser, user_id)
             if not user:
@@ -226,19 +251,7 @@ class Mutation:
             session.add(label)
             await session.commit()
             await session.refresh(label)
-            return Label(  # type: ignore
-                id=label.id,
-                name=label.name,
-                mbid=label.mbid,
-                description=label.description,
-                founded=label.founded,
-                defunct=label.defunct,
-                albums=[a.id for a in label.albums] if label.albums else [],
-                picture=label.picture.picture_path if label.picture else None,
-                parent=label.parent.id if label.parent else None,
-                children=[c.id for c in label.children] if label.children else [],
-                owner=label.owner.id if label.owner else None,
-            )
+            return map_dblabel_to_label(label)
 
         raise ValueError("Label update failed")
 

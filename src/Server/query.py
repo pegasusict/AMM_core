@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, TypeVar, Any
 
 import strawberry
 from strawberry.types import Info
@@ -17,6 +17,14 @@ from core.dbmodels import (
     DBUser,
     DBPlaylist,
     DBQueue,
+    DBStat,
+    DBTaskStatSnapshot,
+    DBAlbumTrack,
+    DBTrackTag,
+    DBKey,
+    DBTrackLyric,
+    DBPicture,
+    DBPlaylistTrack,
 )
 from core.registry import registry
 from core.taskmanager import TaskManager
@@ -29,27 +37,44 @@ from .schemas import (
     TaskStatSummary,
     TaskStatTrend,
     TaskStats,
+    TaskStatSnapshot,
+    Task,
+    Stat,
+    File,
     Track,
     Album,
     Person,
     Genre,
     Label,
-    FileType,
     User,
     Playlist,
     Queue,
+    AlbumTrack,
+    TrackTag,
+    Key,
+    TrackLyric,
+    Picture,
+    PlaylistTrack,
 )
 from .mapping import (
     map_dbtask_to_displaytask,
+    map_dbtask_to_task,
     map_dbtrack_to_track,
     map_dbalbum_to_album,
     map_dbperson_to_person,
     map_dbgenre_to_genre,
     map_dblabel_to_label,
     map_dbuser_to_user,
-    map_dbfile_to_filetype,
+    map_dbfile_to_file,
     map_dbplaylist_to_playlist,
-    map_dbqueue_track_ids,
+    map_dbqueue_to_queue,
+    map_dbstat_to_stat,
+    map_dbalbum_track_to_album_track,
+    map_dbtrack_tag_to_track_tag,
+    map_dbkey_to_key,
+    map_dbtrack_lyric_to_track_lyric,
+    map_dbpicture_to_picture,
+    map_dbplaylist_track_to_playlist_track,
 )
 
 
@@ -60,41 +85,44 @@ def _require_user(info: Info) -> DBUser:
     return user
 
 
+TModel = TypeVar("TModel")
+TGraph = TypeVar("TGraph")
+
+
+async def _paginate(
+    model: type[TModel],
+    mapper: Any,
+    limit: int,
+    offset: int,
+) -> Paginated[TGraph]:  # type: ignore
+    async for session in DBInstance.get_session():
+        stmt = select(model).offset(offset).limit(limit)
+        total_stmt = select(func.count()).select_from(model)
+
+        results = await session.exec(stmt)
+        total = await session.exec(total_stmt)
+        total_count = total.one() if total else 0
+        items = results.all()
+
+        return Paginated[TGraph](items=[mapper(item) for item in items], total=total_count)
+
+
 @strawberry.type
 class Query:
-    """GraphQL Queries to retrieve Tracks, Albums, Persons, Genres."""
+    """GraphQL Queries."""
 
     @strawberry.field
-    async def get_track(self, info: Info, track_id: int) -> Optional[Track]:
-        """Fetch a single track by ID."""
+    async def get_task(self, info: Info, task_id: int) -> Optional[Task]:
         async for session in DBInstance.get_session():
-            track = await session.get(DBTrack, track_id)
-            return map_dbtrack_to_track(track) if track else None
+            task = await session.get(DBTask, task_id)
+            return map_dbtask_to_task(task) if task else None
 
     @strawberry.field
-    async def get_album(self, info: Info, album_id: int) -> Optional[Album]:
-        """Fetch a single album by ID."""
-        async for session in DBInstance.get_session():
-            album = await session.get(DBAlbum, album_id)
-            return map_dbalbum_to_album(album) if album else None
+    async def tasks(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Task]:  # type: ignore
+        return await _paginate(DBTask, map_dbtask_to_task, limit, offset)
 
     @strawberry.field
-    async def get_person(self, info: Info, person_id: int) -> Optional[Person]:
-        """Fetch a single person (artist) by ID."""
-        async for session in DBInstance.get_session():
-            person = await session.get(DBPerson, person_id)
-            return map_dbperson_to_person(person) if person else None
-
-    @strawberry.field
-    async def get_genre(self, info: Info, genre_id: int) -> Optional[Genre]:
-        """Fetch a single genre by ID."""
-        async for session in DBInstance.get_session():
-            genre = await session.get(DBGenre, genre_id)
-            return map_dbgenre_to_genre(genre) if genre else None
-
-    @strawberry.field()
     async def get_task_display(self, info: Info) -> Optional[list[DisplayTask]]:
-        """Fetches a list of tasks."""
         async for session in DBInstance.get_session():
             result = await session.exec(select(DBTask))
             tasks = result.all()
@@ -104,6 +132,31 @@ class Query:
     async def task_stats(self, info: Info, task_type: TaskType) -> Optional[TaskStats]:
         stat = await DBInstance.get_task_stats(task_type)
         return TaskStats(**stat.dict()) if stat else None
+
+    @strawberry.field
+    async def task_stat_snapshots(
+        self,
+        info: Info,
+        task_type: TaskType,
+        limit: int = 25,
+        offset: int = 0,
+    ) -> Paginated[TaskStatSnapshot]:  # type: ignore
+        async for session in DBInstance.get_session():
+            stmt = (
+                select(DBTaskStatSnapshot)
+                .where(DBTaskStatSnapshot.task_type == task_type)
+                .order_by(DBTaskStatSnapshot.snapshot_time)  # type: ignore
+                .offset(offset)
+                .limit(limit)
+            )
+            total_stmt = select(func.count()).select_from(DBTaskStatSnapshot).where(DBTaskStatSnapshot.task_type == task_type)
+
+            results = await session.exec(stmt)
+            total = await session.exec(total_stmt)
+            total_count = total.one() if total else 0
+            snaps = results.all()
+            mapped = [TaskStatSnapshot(**snap.dict()) for snap in snaps]
+            return Paginated[TaskStatSnapshot](items=mapped, total=total_count)
 
     @strawberry.field
     async def task_stat_trend(self, info: Info, task_type: TaskType) -> Optional[TaskStatTrend]:
@@ -150,98 +203,102 @@ class Query:
         )
 
     @strawberry.field
-    async def get_tracks(
-        self,
-        info: Info,
-        limit: int = 25,
-        offset: int = 0,
-    ) -> Paginated[Track]:  # type: ignore
+    async def get_stat(self, info: Info, stat_id: int) -> Optional[Stat]:
         async for session in DBInstance.get_session():
-            stmt = select(DBTrack).offset(offset).limit(limit)
-            total_stmt = select(func.count()).select_from(DBTrack)
-
-            results = await session.exec(stmt)
-            total = await session.exec(total_stmt)
-            total_count = total.one() if total else 0
-
-            return Paginated[Track](items=[map_dbtrack_to_track(track) for track in results], total=total_count)
+            stat = await session.get(DBStat, stat_id)
+            return map_dbstat_to_stat(stat) if stat else None
 
     @strawberry.field
-    async def get_albums(
-        self,
-        info: Info,
-        limit: int = 25,
-        offset: int = 0,
-    ) -> Paginated[Album]:  # type: ignore
-        async for session in DBInstance.get_session():
-            stmt = select(DBAlbum).offset(offset).limit(limit)
-            total_stmt = select(func.count()).select_from(DBAlbum)
-
-            results = await session.exec(stmt)
-            total = await session.exec(total_stmt)
-            total_count = total.one() if total else 0
-
-            return Paginated[Album](items=[map_dbalbum_to_album(album) for album in results], total=total_count)
+    async def stats(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Stat]:  # type: ignore
+        return await _paginate(DBStat, map_dbstat_to_stat, limit, offset)
 
     @strawberry.field
-    async def get_persons(
-        self,
-        info: Info,
-        limit: int = 25,
-        offset: int = 0,
-    ) -> Paginated[Person]:  # type: ignore
+    async def get_track(self, info: Info, track_id: int) -> Optional[Track]:
         async for session in DBInstance.get_session():
-            stmt = select(DBPerson).offset(offset).limit(limit)
-            total_stmt = select(func.count()).select_from(DBPerson)
-
-            results = await session.exec(stmt)
-            total = await session.exec(total_stmt)
-            total_count = total.one() if total else 0
-
-            return Paginated[Person](items=[map_dbperson_to_person(person) for person in results], total=total_count)
+            track = await session.get(DBTrack, track_id)
+            return map_dbtrack_to_track(track) if track else None
 
     @strawberry.field
-    async def get_labels(
-        self,
-        info: Info,
-        limit: int = 25,
-        offset: int = 0,
-    ) -> Paginated[Label]:  # type: ignore
-        async for session in DBInstance.get_session():
-            stmt = select(DBLabel).offset(offset).limit(limit)
-            total_stmt = select(func.count()).select_from(DBLabel)
-
-            results = await session.exec(stmt)
-            total = await session.exec(total_stmt)
-            total_count = total.one() if total else 0
-
-            return Paginated[Label](items=[map_dblabel_to_label(label) for label in results], total=total_count)
+    async def tracks(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Track]:  # type: ignore
+        return await _paginate(DBTrack, map_dbtrack_to_track, limit, offset)
 
     @strawberry.field
-    async def get_file(self, info: Info, file_id: int) -> FileType | None:
-        """Retrieve a single file by ID."""
+    async def get_tracks(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Track]:  # type: ignore
+        return await self.tracks(info, limit, offset)
+
+    @strawberry.field
+    async def get_album(self, info: Info, album_id: int) -> Optional[Album]:
+        async for session in DBInstance.get_session():
+            album = await session.get(DBAlbum, album_id)
+            return map_dbalbum_to_album(album) if album else None
+
+    @strawberry.field
+    async def albums(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Album]:  # type: ignore
+        return await _paginate(DBAlbum, map_dbalbum_to_album, limit, offset)
+
+    @strawberry.field
+    async def get_albums(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Album]:  # type: ignore
+        return await self.albums(info, limit, offset)
+
+    @strawberry.field
+    async def get_person(self, info: Info, person_id: int) -> Optional[Person]:
+        async for session in DBInstance.get_session():
+            person = await session.get(DBPerson, person_id)
+            return map_dbperson_to_person(person) if person else None
+
+    @strawberry.field
+    async def persons(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Person]:  # type: ignore
+        return await _paginate(DBPerson, map_dbperson_to_person, limit, offset)
+
+    @strawberry.field
+    async def get_persons(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Person]:  # type: ignore
+        return await self.persons(info, limit, offset)
+
+    @strawberry.field
+    async def get_genre(self, info: Info, genre_id: int) -> Optional[Genre]:
+        async for session in DBInstance.get_session():
+            genre = await session.get(DBGenre, genre_id)
+            return map_dbgenre_to_genre(genre) if genre else None
+
+    @strawberry.field
+    async def genres(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Genre]:  # type: ignore
+        return await _paginate(DBGenre, map_dbgenre_to_genre, limit, offset)
+
+    @strawberry.field
+    async def get_label(self, info: Info, label_id: int) -> Optional[Label]:
+        async for session in DBInstance.get_session():
+            label = await session.get(DBLabel, label_id)
+            return map_dblabel_to_label(label) if label else None
+
+    @strawberry.field
+    async def labels(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Label]:  # type: ignore
+        return await _paginate(DBLabel, map_dblabel_to_label, limit, offset)
+
+    @strawberry.field
+    async def get_labels(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Label]:  # type: ignore
+        return await self.labels(info, limit, offset)
+
+    @strawberry.field
+    async def get_file(self, info: Info, file_id: int) -> Optional[File]:
         async for session in DBInstance.get_session():
             file = await session.get(DBFile, file_id)
-            return map_dbfile_to_filetype(file) if file else None
+            return map_dbfile_to_file(file) if file else None
 
     @strawberry.field
-    async def files(self, info: Info, limit: int = 20, offset: int = 0) -> list[FileType]:  # type: ignore
-        """Paginated file listing."""
+    async def files(self, info: Info, limit: int = 20, offset: int = 0) -> list[File]:  # type: ignore
         async for session in DBInstance.get_session():
             result = await session.exec(select(DBFile).offset(offset).limit(limit))
             files = result.all()
-            return [map_dbfile_to_filetype(file) for file in files] if files else []
+            return [map_dbfile_to_file(file) for file in files] if files else []
 
     @strawberry.field
     async def get_user(self, info: Info, user_id: int) -> Optional[User]:
-        """Fetch a single user by ID."""
         async for session in DBInstance.get_session():
             user = await session.get(DBUser, user_id)
             return map_dbuser_to_user(user) if user else None
 
     @strawberry.field
     async def me(self, info: Info) -> Optional[User]:
-        """Return the current authenticated user."""
         user = _require_user(info)
         return map_dbuser_to_user(user)
 
@@ -292,27 +349,57 @@ class Query:
             return Paginated[User](items=[map_dbuser_to_user(u) for u in users], total=total_count)
 
     @strawberry.field
-    async def start_import(self, info: Info) -> bool:
-        """Start an import task."""
-        tm = TaskManager()
-        task_cls = registry.get_task_class("importer")
-        if task_cls is None:
-            return False
-        await tm.start_task(task_cls, batch=None)
-        return True
-
-    @strawberry.field
-    async def playlists(self, info: Info) -> list[Playlist]:
-        """Return playlists for the current user."""
-        user = _require_user(info)
+    async def get_album_track(self, info: Info, album_track_id: int) -> Optional[AlbumTrack]:
         async for session in DBInstance.get_session():
-            result = await session.exec(select(DBPlaylist).where(DBPlaylist.user_id == user.id))
-            playlists = result.all()
-            return [map_dbplaylist_to_playlist(p) for p in playlists] if playlists else []
+            album_track = await session.get(DBAlbumTrack, album_track_id)
+            return map_dbalbum_track_to_album_track(album_track) if album_track else None
 
     @strawberry.field
-    async def playlist(self, info: Info, playlist_id: int) -> Optional[Playlist]:
-        """Return a playlist by id for the current user."""
+    async def album_tracks(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[AlbumTrack]:  # type: ignore
+        return await _paginate(DBAlbumTrack, map_dbalbum_track_to_album_track, limit, offset)
+
+    @strawberry.field
+    async def get_track_tag(self, info: Info, track_tag_id: int) -> Optional[TrackTag]:
+        async for session in DBInstance.get_session():
+            track_tag = await session.get(DBTrackTag, track_tag_id)
+            return map_dbtrack_tag_to_track_tag(track_tag) if track_tag else None
+
+    @strawberry.field
+    async def track_tags(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[TrackTag]:  # type: ignore
+        return await _paginate(DBTrackTag, map_dbtrack_tag_to_track_tag, limit, offset)
+
+    @strawberry.field
+    async def get_key(self, info: Info, key_id: int) -> Optional[Key]:
+        async for session in DBInstance.get_session():
+            key = await session.get(DBKey, key_id)
+            return map_dbkey_to_key(key) if key else None
+
+    @strawberry.field
+    async def keys(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Key]:  # type: ignore
+        return await _paginate(DBKey, map_dbkey_to_key, limit, offset)
+
+    @strawberry.field
+    async def get_track_lyric(self, info: Info, track_lyric_id: int) -> Optional[TrackLyric]:
+        async for session in DBInstance.get_session():
+            track_lyric = await session.get(DBTrackLyric, track_lyric_id)
+            return map_dbtrack_lyric_to_track_lyric(track_lyric) if track_lyric else None
+
+    @strawberry.field
+    async def track_lyrics(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[TrackLyric]:  # type: ignore
+        return await _paginate(DBTrackLyric, map_dbtrack_lyric_to_track_lyric, limit, offset)
+
+    @strawberry.field
+    async def get_picture(self, info: Info, picture_id: int) -> Optional[Picture]:
+        async for session in DBInstance.get_session():
+            picture = await session.get(DBPicture, picture_id)
+            return map_dbpicture_to_picture(picture) if picture else None
+
+    @strawberry.field
+    async def pictures(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Picture]:  # type: ignore
+        return await _paginate(DBPicture, map_dbpicture_to_picture, limit, offset)
+
+    @strawberry.field
+    async def get_playlist(self, info: Info, playlist_id: int) -> Optional[Playlist]:
         user = _require_user(info)
         async for session in DBInstance.get_session():
             result = await session.exec(
@@ -322,10 +409,67 @@ class Query:
             return map_dbplaylist_to_playlist(playlist) if playlist else None
 
     @strawberry.field
+    async def playlist(self, info: Info, playlist_id: int) -> Optional[Playlist]:
+        return await self.get_playlist(info, playlist_id)
+
+    @strawberry.field
+    async def playlists(self, info: Info) -> list[Playlist]:
+        user = _require_user(info)
+        async for session in DBInstance.get_session():
+            result = await session.exec(select(DBPlaylist).where(DBPlaylist.user_id == user.id))
+            playlists = result.all()
+            return [map_dbplaylist_to_playlist(p) for p in playlists] if playlists else []
+
+    @strawberry.field
+    async def get_playlist_track(self, info: Info, playlist_track_id: int) -> Optional[PlaylistTrack]:
+        user = _require_user(info)
+        async for session in DBInstance.get_session():
+            result = await session.exec(
+                select(DBPlaylistTrack)
+                .join(DBPlaylist, DBPlaylistTrack.playlist_id == DBPlaylist.id)
+                .where(DBPlaylistTrack.id == playlist_track_id)
+                .where(DBPlaylist.user_id == user.id)
+            )
+            playlist_track = result.first()
+            return map_dbplaylist_track_to_playlist_track(playlist_track) if playlist_track else None
+
+    @strawberry.field
+    async def playlist_tracks(self, info: Info, playlist_id: int) -> list[PlaylistTrack]:
+        user = _require_user(info)
+        async for session in DBInstance.get_session():
+            owner_result = await session.exec(
+                select(DBPlaylist).where(DBPlaylist.id == playlist_id).where(DBPlaylist.user_id == user.id)
+            )
+            playlist = owner_result.first()
+            if not playlist:
+                return []
+
+            result = await session.exec(select(DBPlaylistTrack).where(DBPlaylistTrack.playlist_id == playlist_id))
+            links = result.all()
+            ordered = sorted(links, key=lambda t: t.position)
+            return [map_dbplaylist_track_to_playlist_track(link) for link in ordered]
+
+    @strawberry.field
     async def queue(self, info: Info) -> Queue:
-        """Return the current user's queue."""
         user = _require_user(info)
         async for session in DBInstance.get_session():
             result = await session.exec(select(DBQueue).where(DBQueue.user_id == user.id))
             queue = result.first()
-            return Queue(track_ids=map_dbqueue_track_ids(queue))
+            return map_dbqueue_to_queue(queue)
+
+    @strawberry.field
+    async def get_queue(self, info: Info, queue_id: int) -> Optional[Queue]:
+        user = _require_user(info)
+        async for session in DBInstance.get_session():
+            result = await session.exec(select(DBQueue).where(DBQueue.id == queue_id).where(DBQueue.user_id == user.id))
+            queue = result.first()
+            return map_dbqueue_to_queue(queue) if queue else None
+
+    @strawberry.field
+    async def start_import(self, info: Info) -> bool:
+        tm = TaskManager()
+        task_cls = registry.get_task_class("importer")
+        if task_cls is None:
+            return False
+        await tm.start_task(task_cls)
+        return True
