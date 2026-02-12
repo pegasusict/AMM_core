@@ -41,4 +41,7 @@ async def get_context(request: Request) -> RequestContext:
         user = await get_current_user(request=request)  # type: ignore
     except Exception:
         user = None
-    return RequestContext(request=request, user=user)  # type: ignore
+    ctx = RequestContext()
+    ctx.request = request  # type: ignore[attr-defined]
+    ctx.user = user
+    return ctx

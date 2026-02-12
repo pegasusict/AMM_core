@@ -13,7 +13,7 @@ from abc import ABCMeta, abstractmethod
 
 from .enums import PluginType, TaskStatus, StageType, TaskType
 from .plugin_base import PluginBase
-from .config import Config
+from Singletons.config import Config
 from .registry import registry
 from .types import AsyncSessionLike
 

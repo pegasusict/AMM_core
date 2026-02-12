@@ -85,7 +85,7 @@ def map_dbtrack_to_playertrack(track: DBTrack) -> PlayerTrack:
         id=track.id,
         title=getattr(track, "title", None) or track.mbid or f"Track {track.id}",
         subtitle=getattr(track, "subtitle", None),
-        artists=[artist.full_name for artist in track.performers] if track.performers else ["Unknown Artist"],
+        artists=["Unknown Artist"],
         album_picture=album_picture,
         duration_seconds=duration_seconds,
         lyrics=lyrics,
@@ -121,13 +121,13 @@ def map_dbtrack_to_track(track: DBTrack) -> Track:
         mbid=track.mbid,
         file_ids=_id_list(track.files),
         album_track_ids=_id_list(track.album_tracks),
-        key_id=track.key.id if track.key else None,
-        genre_ids=_id_list(track.genres),
-        performer_ids=_id_list(track.performers),
-        conductor_ids=_id_list(track.conductors),
-        composer_ids=_id_list(track.composers),
-        lyricist_ids=_id_list(track.lyricists),
-        producer_ids=_id_list(track.producers),
+        key_id=track.key_id,
+        genre_ids=[track.genre_id] if track.genre_id is not None else [],
+        performer_ids=[],
+        conductor_ids=[],
+        composer_ids=[],
+        lyricist_ids=[],
+        producer_ids=[],
         task_ids=[track.task.id] if track.task and track.task.id is not None else [],
         lyric_id=track.lyric.id if track.lyric else None,
         tracktag_ids=_id_list(track.tracktags),
@@ -155,10 +155,10 @@ def map_dbgenre_to_genre(genre: DBGenre) -> Genre:
         id=genre.id,
         genre=genre.genre,
         description=genre.description,
-        track_ids=_id_list(genre.tracks),
-        album_ids=_id_list(genre.albums),
-        parent_ids=_id_list(genre.parents),
-        child_ids=_id_list(genre.children),
+        track_ids=_id_list(getattr(genre, "tracks", None)),
+        album_ids=_id_list(getattr(genre, "albums", None)),
+        parent_ids=[],
+        child_ids=[],
     )
 
 
@@ -174,15 +174,15 @@ def map_dbalbum_to_album(album: DBAlbum) -> Album:
         disc_count=album.disc_count,
         track_count=album.track_count,
         task_id=album.task_id,
-        label_id=album.label.id if album.label else None,
+        label_id=album.label_id,
         album_track_ids=_id_list(album.album_tracks),
-        genre_ids=_id_list(album.genres),
-        artist_ids=_id_list(album.artists),
-        conductor_ids=_id_list(album.conductors),
-        composer_ids=_id_list(album.composers),
-        lyricist_ids=_id_list(album.lyricists),
-        producer_ids=_id_list(album.producers),
-        picture_id=album.picture.id if album.picture else None,
+        genre_ids=[album.genre_id] if album.genre_id is not None else [],
+        artist_ids=[],
+        conductor_ids=[],
+        composer_ids=[],
+        lyricist_ids=[],
+        producer_ids=[],
+        picture_id=None,
     )
 
 
@@ -199,18 +199,18 @@ def map_dbperson_to_person(person: DBPerson) -> Person:
         alias=person.alias,
         date_of_birth=person.date_of_birth,
         date_of_death=person.date_of_death,
-        picture_id=person.picture.id if person.picture else None,
-        performed_track_ids=_id_list(person.performed_tracks),
-        conducted_track_ids=_id_list(person.conducted_tracks),
-        composed_track_ids=_id_list(person.composed_tracks),
-        lyric_track_ids=_id_list(person.lyric_tracks),
-        produced_track_ids=_id_list(person.produced_tracks),
-        performed_album_ids=_id_list(person.performed_albums),
-        conducted_album_ids=_id_list(person.conducted_albums),
-        composed_album_ids=_id_list(person.composed_albums),
-        lyric_album_ids=_id_list(person.lyric_albums),
-        produced_album_ids=_id_list(person.produced_albums),
-        task_ids=[person.task.id] if person.task and person.task.id is not None else [],
+        picture_id=None,
+        performed_track_ids=[],
+        conducted_track_ids=[],
+        composed_track_ids=[],
+        lyric_track_ids=[],
+        produced_track_ids=[],
+        performed_album_ids=[],
+        conducted_album_ids=[],
+        composed_album_ids=[],
+        lyric_album_ids=[],
+        produced_album_ids=[],
+        task_ids=[person.task_id] if person.task_id is not None else [],
         label_ids=_id_list(person.labels),
     )
 
@@ -226,7 +226,7 @@ def map_dblabel_to_label(label: DBLabel) -> Label:
         owner_id=label.owner_id,
         parent_id=label.parent_id,
         child_ids=_id_list(label.children),
-        picture_id=label.picture.id if label.picture else None,
+        picture_id=None,
         album_ids=_id_list(label.albums),
     )
 
@@ -314,7 +314,7 @@ def map_dbalbum_track_to_album_track(album_track: DBAlbumTrack) -> AlbumTrack:
 def map_dbtrack_tag_to_track_tag(track_tag: DBTrackTag) -> TrackTag:
     return TrackTag(
         id=track_tag.id,
-        track_id=track_tag.track.id if track_tag.track else None,
+        track_id=track_tag.track_id,
         tag_type=str(_enum_value(track_tag.tag_type)),
         data=track_tag.data,
     )
@@ -328,7 +328,7 @@ def map_dbtrack_lyric_to_track_lyric(track_lyric: DBTrackLyric) -> TrackLyric:
     return TrackLyric(
         id=track_lyric.id,
         lyric=track_lyric.lyric,
-        track_id=track_lyric.track.id if track_lyric.track else None,
+        track_id=track_lyric.track_id,
     )
 
 
@@ -336,9 +336,9 @@ def map_dbpicture_to_picture(picture: DBPicture) -> Picture:
     return Picture(
         id=picture.id,
         picture_path=picture.picture_path,
-        album_id=picture.album.id if picture.album else None,
-        person_id=picture.person.id if picture.person else None,
-        label_id=picture.label.id if picture.label else None,
+        album_id=picture.album_id,
+        person_id=picture.person_id,
+        label_id=picture.label_id,
     )
 
 

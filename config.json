@@ -1,51 +1,51 @@
 {
-    "version": "1.3",
-    "general": {
-        "clean": true,
-        "clean_on_start": true
-    },
-    "musicbrainz": {
-        "host": "musicbrainz.org",
-        "port": 443,
-        "ignore_existing_acoustid_fingerprints": false
-    },
-    "logging": {
-        "level": "DEBUG",
-        "file": "amm.log",
-        "format": "%(levelname)s:%(message)s"
-    },
-    "paths": {
-        "base": "/home/pegasus/Python Projects/AMM_core/testrun/amm/",
-        "import": "import/",
-        "process": "process/",
-        "export": "export/",
-        "music": "music/",
-        "art": "art/"
-    },
-    "extensions": {
-        "import": [
-            "mp3",
-            "flac",
-            "ogg",
-            "wav",
-            "m4a",
-            "aac",
-            "wma",
-            "opus",
-            "mp4",
-            "mp2"
-        ],
-        "export": [
-            "mp3",
-            "flac"
-        ]
-    },
-    "auth": {
-        "google_client_id": "",
-        "google_client_secret": "",
-        "admin_usernames": [],
-        "allowed_usernames": [],
-        "frontend_url": "http://localhost:3000",
-        "backend_url": "http://localhost:8000"
-    }
+  "version": "1.3",
+  "general": {
+    "clean": true,
+    "clean_on_start": true
+  },
+  "musicbrainz": {
+    "host": "musicbrainz.org",
+    "port": 443,
+    "ignore_existing_acoustid_fingerprints": false
+  },
+  "logging": {
+    "level": "DEBUG",
+    "file": "amm.log",
+    "format": "%(levelname)s:%(message)s"
+  },
+  "paths": {
+    "base": "/home/pegasus/Python Projects/AMM_core/testrun/amm/",
+    "import": "import/",
+    "process": "process/",
+    "export": "export/",
+    "music": "music/",
+    "art": "art/"
+  },
+  "extensions": {
+    "import": [
+      "mp3",
+      "flac",
+      "ogg",
+      "wav",
+      "m4a",
+      "aac",
+      "wma",
+      "opus",
+      "mp4",
+      "mp2"
+    ],
+    "export": [
+      "mp3",
+      "flac"
+    ]
+  },
+  "auth": {
+    "google_client_id": "261860805890-er5pb25l010cbr4vtcieak8h27em8v3c.apps.googleusercontent.com",
+    "google_client_secret": "",
+    "admin_usernames": [],
+    "allowed_usernames": [],
+    "frontend_url": "http://localhost:3000",
+    "backend_url": "http://localhost:8000"
+  }
 }

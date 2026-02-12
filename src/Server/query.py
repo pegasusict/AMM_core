@@ -224,7 +224,7 @@ class Query:
 
     @strawberry.field
     async def get_tracks(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Track]:  # type: ignore
-        return await self.tracks(info, limit, offset)
+        return await _paginate(DBTrack, map_dbtrack_to_track, limit, offset)
 
     @strawberry.field
     async def get_album(self, info: Info, album_id: int) -> Optional[Album]:
@@ -238,7 +238,7 @@ class Query:
 
     @strawberry.field
     async def get_albums(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Album]:  # type: ignore
-        return await self.albums(info, limit, offset)
+        return await _paginate(DBAlbum, map_dbalbum_to_album, limit, offset)
 
     @strawberry.field
     async def get_person(self, info: Info, person_id: int) -> Optional[Person]:
@@ -252,7 +252,7 @@ class Query:
 
     @strawberry.field
     async def get_persons(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Person]:  # type: ignore
-        return await self.persons(info, limit, offset)
+        return await _paginate(DBPerson, map_dbperson_to_person, limit, offset)
 
     @strawberry.field
     async def get_genre(self, info: Info, genre_id: int) -> Optional[Genre]:
@@ -276,7 +276,7 @@ class Query:
 
     @strawberry.field
     async def get_labels(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Label]:  # type: ignore
-        return await self.labels(info, limit, offset)
+        return await _paginate(DBLabel, map_dblabel_to_label, limit, offset)
 
     @strawberry.field
     async def get_file(self, info: Info, file_id: int) -> Optional[File]:

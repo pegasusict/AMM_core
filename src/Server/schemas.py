@@ -16,11 +16,9 @@
 
 from __future__ import annotations
 from datetime import datetime, date, timezone
-from pathlib import Path
 from typing import Generic, List, Optional, TypeVar
 
 import strawberry
-from pydantic import EmailStr
 
 from Enums import TaskType, UserRole, Codec
 
@@ -32,7 +30,7 @@ from Enums import TaskType, UserRole, Codec
 class User:
     id: Optional[int] = None
     username: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     first_name: Optional[str] = None
     middle_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -235,7 +233,7 @@ class TrackLyric:
 @strawberry.type
 class Picture:
     id: Optional[int] = None
-    picture_path: Optional[Path] = None
+    picture_path: Optional[str] = None
     album_id: Optional[int] = None
     person_id: Optional[int] = None
     label_id: Optional[int] = None
@@ -298,7 +296,7 @@ class AuthPayload:
 @strawberry.input
 class UserCreateInput:
     username: str
-    email: EmailStr
+    email: str
     password_hash: str
     first_name: Optional[str] = None
     middle_name: Optional[str] = None
@@ -310,7 +308,7 @@ class UserCreateInput:
 @strawberry.input
 class UserUpdateInput:
     username: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     password_hash: Optional[str] = None
     first_name: Optional[str] = None
     middle_name: Optional[str] = None

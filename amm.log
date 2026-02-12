@@ -1095,3 +1095,243 @@ Exception: lookup failure
 2026-02-03 19:02:35,259 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
 2026-02-03 19:02:35,259 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
 2026-02-03 19:02:35,259 - ERROR - LyricsGetter: Provider returned HTTP 500 for track 'Artist - Error'
+2026-02-12 16:09:29,082 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,082 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,082 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,082 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,082 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,082 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,082 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,082 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,082 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,082 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,083 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,083 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,083 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,083 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,083 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,089 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,089 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,089 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,089 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:09:29,089 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:11:26,477 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:11:26,477 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:11:26,477 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:11:26,477 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:11:26,477 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    await self.pause_all_running_tasks()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:12:09,822 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    pause_all = getattr(self, "pause_all_running_tasks", None)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:12:09,822 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    pause_all = getattr(self, "pause_all_running_tasks", None)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:12:09,822 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    pause_all = getattr(self, "pause_all_running_tasks", None)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:12:09,822 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    pause_all = getattr(self, "pause_all_running_tasks", None)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-12 16:12:09,822 - ERROR - Error stopping TaskManager: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+Traceback (most recent call last):
+  File "/home/pegasus/Python Projects/AMM_core/src/main.py", line 95, in lifespan
+    await task_manager.shutdown()
+  File "/home/pegasus/Python Projects/AMM_core/src/core/taskmanager.py", line 72, in shutdown
+    pause_all = getattr(self, "pause_all_running_tasks", None)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'

@@ -2,6 +2,8 @@ import aiohttp
 import strawberry
 from strawberry.types import Info
 from sqlmodel import select
+from sqlalchemy import text
+import datetime as dt
 
 from Singletons import DBInstance
 from config import Config
@@ -67,6 +69,28 @@ def _require_admin(info: Info) -> DBUser:
     return user
 
 
+def _build_google_user_insert_params(
+    *,
+    token_info: dict[str, object],
+    username: str,
+    role: UserRole,
+    now: dt.datetime,
+) -> dict[str, object]:
+    return {
+        "username": username,
+        "email": str(token_info.get("email") or ""),
+        "first_name": str(token_info.get("given_name") or ""),
+        "middle_name": "",
+        "last_name": str(token_info.get("family_name") or ""),
+        "date_of_birth": dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc),
+        "role": role.value if isinstance(role, UserRole) else str(role),
+        "created_at": now,
+        "updated_at": now,
+        "is_active": True,
+        "password_hash": "",
+    }
+
+
 @strawberry.type
 class Mutation:
     """GraphQL Mutations to update metadata or control playback."""
@@ -108,37 +132,81 @@ class Mutation:
 
         role = UserRole.ADMIN if username in admin_set else UserRole.USER
 
+        user_row: dict | None = None
         async for db in DBInstance.get_session():
-            result = await db.exec(select(DBUser).where(DBUser.email == email))
-            user = result.first()
+            result = await db.execute(
+                text(
+                    "SELECT id, username, email, first_name, middle_name, last_name, "
+                    "date_of_birth, role, created_at, updated_at, is_active "
+                    "FROM users WHERE email = :email"
+                ),
+                {"email": email},
+            )
+            mapping = result.mappings().first()
+            user_row = dict(mapping) if mapping else None
 
-            if not user:
-                user = DBUser(
+            if not user_row:
+                now = dt.datetime.now(dt.timezone.utc)
+                insert_params = _build_google_user_insert_params(
+                    token_info=token_info,
                     username=username,
-                    email=email,
-                    first_name=token_info.get("given_name", "") or "",
-                    last_name=token_info.get("family_name", "") or "",
                     role=role,
-                    is_active=True,
+                    now=now,
                 )
-                db.add(user)
+                await db.execute(
+                    text(
+                        "INSERT INTO users (username, email, first_name, middle_name, last_name, "
+                        "date_of_birth, role, created_at, updated_at, is_active, password_hash) "
+                        "VALUES (:username, :email, :first_name, :middle_name, :last_name, "
+                        ":date_of_birth, :role, :created_at, :updated_at, :is_active, :password_hash)"
+                    ),
+                    insert_params,
+                )
                 await db.commit()
-                await db.refresh(user)
+                result = await db.execute(
+                    text(
+                        "SELECT id, username, email, first_name, middle_name, last_name, "
+                        "date_of_birth, role, created_at, updated_at, is_active "
+                        "FROM users WHERE email = :email"
+                    ),
+                    {"email": email},
+                )
+                mapping = result.mappings().first()
+                user_row = dict(mapping) if mapping else None
             else:
-                if not user.is_active:
+                if not bool(user_row.get("is_active", True)):
                     raise ValueError("Inactive user")
-                if username in admin_set and user.role != UserRole.ADMIN:
-                    user.role = UserRole.ADMIN
-                    db.add(user)
+                current_role = str(user_row.get("role") or "")
+                if username in admin_set and current_role.upper() != UserRole.ADMIN.value.upper():
+                    await db.execute(
+                        text("UPDATE users SET role = :role WHERE id = :id"),
+                        {"role": UserRole.ADMIN.value, "id": user_row["id"]},
+                    )
                     await db.commit()
-                    await db.refresh(user)
+                    user_row["role"] = UserRole.ADMIN.value
 
-        access_token = create_access_token({"sub": str(user.id), "email": user.email})
-        refresh_token = create_refresh_token({"sub": str(user.id)})
+        if not user_row:
+            raise ValueError("Login failed: unable to load user")
+
+        access_token = create_access_token({"sub": str(user_row["id"]), "email": str(user_row["email"])})
+        refresh_token = create_refresh_token({"sub": str(user_row["id"])})
+        role_value = str(user_row.get("role") or UserRole.USER.value)
         return AuthPayload(
             access_token=access_token,
             refresh_token=refresh_token,
-            user=map_dbuser_to_user(user),
+            user=User(
+                id=user_row.get("id"),
+                username=user_row.get("username"),
+                email=user_row.get("email"),
+                first_name=user_row.get("first_name"),
+                middle_name=user_row.get("middle_name"),
+                last_name=user_row.get("last_name"),
+                date_of_birth=user_row.get("date_of_birth"),
+                role=UserRole(role_value) if role_value in {item.value for item in UserRole} else UserRole.USER,
+                created_at=user_row.get("created_at"),
+                updated_at=user_row.get("updated_at"),
+                is_active=bool(user_row.get("is_active", True)),
+            ),
         )
 
     @strawberry.mutation

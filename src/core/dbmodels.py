@@ -57,8 +57,8 @@ class DBUser(AutoFetchable, SQLModel, table=True):
         sa_column_kwargs={"onupdate": lambda: dt.datetime.now(dt.timezone.utc)},
     )
 
-    queue: Optional["DBQueue"] = Relationship(back_populates="user")
-    playlists: List["DBPlaylist"] = Relationship(back_populates="user")
+    queue: DBQueue = Relationship(back_populates="user")
+    playlists: DBPlaylist = Relationship(back_populates="user")
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, username={self.username}, email={self.email}, role={self.role})>"
@@ -82,7 +82,7 @@ class DBPlaylist(AutoFetchable, SQLModel, table=True):
     user_id: int = Field(foreign_key="users.id", nullable=False)
 
     user: DBUser = Relationship(back_populates="playlists")
-    tracks: List["DBPlaylistTrack"] = Relationship(back_populates="playlist")
+    tracks: DBPlaylistTrack = Relationship(back_populates="playlist")
 
 
 class DBPlaylistTrack(AutoFetchable, SQLModel, table=True):
@@ -94,7 +94,7 @@ class DBPlaylistTrack(AutoFetchable, SQLModel, table=True):
     position: int = Field(default=0)
 
     playlist: DBPlaylist = Relationship(back_populates="tracks")
-    track: "DBTrack" = Relationship()
+    track: DBTrack = Relationship()
 
 
 #######################################################################
@@ -108,8 +108,10 @@ class DBFileToConvert(AutoFetchable, SQLModel, table=True):
     file_id: int = Field(foreign_key="files.id")
     task_id: int = Field(foreign_key="tasks.id")
 
-    file: "DBFile" = Relationship(back_populates="batch_convert")
-    task: "DBTask" = Relationship(back_populates="batch_convert")
+    file: DBFile = Relationship(
+        sa_relationship_kwargs={"foreign_keys": "[DBFileToConvert.file_id]"},
+    )
+    task: DBTask = Relationship(back_populates="batch_convert")
 
     def __repr__(self) -> str:
         return f"<DBFileToConvert(file_id={self.file_id}, codec={self.codec})>"
@@ -134,12 +136,12 @@ class DBTask(AutoFetchable, SQLModel, table=True):
     status: TaskStatus = Field(default=TaskStatus.PENDING)
     task_type: TaskType = Field(default=TaskType.CUSTOM)
 
-    batch_files: List["DBFile"] = Relationship(back_populates="task")
-    batch_tracks: List["DBTrack"] = Relationship(back_populates="task")
-    batch_albums: List["DBAlbum"] = Relationship(back_populates="task")
-    batch_persons: List["DBPerson"] = Relationship(back_populates="task")
-    batch_labels: List["DBLabel"] = Relationship(back_populates="task")
-    batch_convert: List["DBFileToConvert"] = Relationship(back_populates="task")
+    batch_files: DBFile = Relationship(back_populates="task")
+    batch_tracks: DBTrack = Relationship(back_populates="task")
+    batch_albums: DBAlbum = Relationship(back_populates="task")
+    batch_persons: DBPerson = Relationship(back_populates="task")
+    batch_labels: DBLabel = Relationship(back_populates="task")
+    batch_convert: DBFileToConvert = Relationship(back_populates="task")
 
     def __repr__(self) -> str:
         return f"<DBTask(id={self.id}, task_id={self.task_id}, status={self.status})>"
@@ -380,7 +382,7 @@ class DBFile(ItemBase, table=True):
     duration: int = Field(default=None)
     track_id: int = Field(default=None, foreign_key="tracks.id")
     task_id: int = Field(default=None, foreign_key="tasks.id")
-    batch_id: int = Field(default=None, foreign_key="filestoconvert.id")
+    batch_id: int = Field(default=None, foreign_key="files_to_convert.id")
     file_path: str = Field(default=None, sa_column_kwargs={"unique": True}, sa_type=String, max_length=1024)
     # --- 🔹 Stage/Substage Record ---
     stage_type: StageType = Field(
@@ -391,7 +393,6 @@ class DBFile(ItemBase, table=True):
 
     track: DBTrack = Relationship(back_populates="files")
     task: DBTask = Relationship(back_populates="batch_files")
-    batch_convert: "DBFileToConvert" = Relationship(back_populates="file")
 
     def mark_task_completed(self, task_name: str) -> bool:
         """
@@ -412,18 +413,16 @@ class DBTrack(ItemBase, table=True):
     composed: dt.date = Field(default=dt.date.min, sa_column_kwargs={"nullable": False})
     release_date: dt.date = Field(default=dt.date.min, sa_column_kwargs={"nullable": False})
     mbid: str = Field(default="", sa_type=String, unique=True, max_length=40)
-    files: List["DBFile"] = Relationship(back_populates="track")
-    album_tracks: List["DBAlbumTrack"] = Relationship(back_populates="track")
-    key: "DBKey" = Relationship(back_populates="tracks")
-    genres: List["DBGenre"] = Relationship(back_populates="tracks")
-    performers: List["DBPerson"] = Relationship(back_populates="performed_tracks")
-    conductors: List["DBPerson"] = Relationship(back_populates="conducted_tracks")
-    composers: List["DBPerson"] = Relationship(back_populates="composed_tracks")
-    lyricists: List["DBPerson"] = Relationship(back_populates="lyric_tracks")
-    producers: List["DBPerson"] = Relationship(back_populates="produced_tracks")
+    task_id: int = Field(default=None, foreign_key="tasks.id")
+    key_id: Optional[int] = Field(default=None, foreign_key="keys.id")
+    genre_id: Optional[int] = Field(default=None, foreign_key="genres.id")
+    files: DBFile = Relationship(back_populates="track")
+    album_tracks: DBAlbumTrack = Relationship(back_populates="track")
+    key: DBKey = Relationship(back_populates="tracks")
+    genres: DBGenre = Relationship(back_populates="tracks")
     task: DBTask = Relationship(back_populates="batch_tracks")
-    lyric: "DBTrackLyric" = Relationship(back_populates="track")
-    tracktags: List["DBTrackTag"] = Relationship(back_populates="track")
+    lyric: DBTrackLyric = Relationship(back_populates="track")
+    tracktags: DBTrackTag = Relationship(back_populates="track")
 
 
 class DBTrackTag(ItemBase, table=True):
@@ -431,7 +430,8 @@ class DBTrackTag(ItemBase, table=True):
 
     __tablename__ = "track_tags"  # type: ignore
 
-    track: "DBTrack" = Relationship(back_populates="tracktags")
+    track_id: int = Field(default=None, foreign_key="tracks.id")
+    track: DBTrack = Relationship(back_populates="tracktags")
     tag_type: TagType = Field(default=TagType.UNKNOWN)
     data: str = Field(default="", sa_type=String, max_length=255)
 
@@ -450,17 +450,13 @@ class DBAlbum(ItemBase, table=True):
     disc_count: int = Field(default=0)
     track_count: int = Field(default=0)
     task_id: int = Field(default=None, foreign_key="tasks.id")
+    label_id: Optional[int] = Field(default=None, foreign_key="labels.id")
+    genre_id: Optional[int] = Field(default=None, foreign_key="genres.id")
 
-    task: "DBTask" = Relationship(back_populates="batch_albums")
-    label: "DBLabel" = Relationship(back_populates="albums")
-    album_tracks: List["DBAlbumTrack"] = Relationship(back_populates="album")
-    genres: List["DBGenre"] = Relationship(back_populates="albums")
-    artists: List["DBPerson"] = Relationship(back_populates="performed_albums")
-    conductors: List["DBPerson"] = Relationship(back_populates="conducted_albums")
-    composers: List["DBPerson"] = Relationship(back_populates="composed_albums")
-    lyricists: List["DBPerson"] = Relationship(back_populates="lyric_albums")
-    producers: List["DBPerson"] = Relationship(back_populates="produced_albums")
-    picture: "DBPicture" = Relationship(back_populates="album")
+    task: DBTask = Relationship(back_populates="batch_albums")
+    label: DBLabel = Relationship(back_populates="albums")
+    album_tracks: DBAlbumTrack = Relationship(back_populates="album")
+    genres: DBGenre = Relationship(back_populates="albums")
 
 
 class DBAlbumTrack(ItemBase, table=True):
@@ -473,8 +469,8 @@ class DBAlbumTrack(ItemBase, table=True):
     disc_number: int = Field(default=1)
     track_number: int = Field(default=1)
 
-    album: "DBAlbum" = Relationship(back_populates="album_tracks")
-    track: "DBTrack" = Relationship(back_populates="album_tracks")
+    album: DBAlbum = Relationship(back_populates="album_tracks")
+    track: DBTrack = Relationship(back_populates="album_tracks")
 
 
 class DBPerson(ItemBase, table=True):
@@ -492,20 +488,9 @@ class DBPerson(ItemBase, table=True):
     alias: Optional[str] = Field(default=None, sa_type=String, max_length=255)
     date_of_birth: dt.date = Field(default=None, sa_column_kwargs={"nullable": True})
     date_of_death: Optional[dt.date] = Field(default=None, sa_column_kwargs={"nullable": True})
-
-    picture: "DBPicture" = Relationship(back_populates="person")
-    performed_tracks: List["DBTrack"] = Relationship(back_populates="performers")
-    conducted_tracks: List["DBTrack"] = Relationship(back_populates="conductors")
-    composed_tracks: List["DBTrack"] = Relationship(back_populates="composers")
-    lyric_tracks: List["DBTrack"] = Relationship(back_populates="lyricists")
-    produced_tracks: List["DBTrack"] = Relationship(back_populates="producers")
-    performed_albums: List["DBAlbum"] = Relationship(back_populates="performers")
-    conducted_albums: List["DBAlbum"] = Relationship(back_populates="conductors")
-    composed_albums: List["DBAlbum"] = Relationship(back_populates="composers")
-    lyric_albums: List["DBAlbum"] = Relationship(back_populates="lyricists")
-    produced_albums: List["DBAlbum"] = Relationship(back_populates="producers")
+    task_id: int = Field(default=None, foreign_key="tasks.id")
     task: DBTask = Relationship(back_populates="batch_persons")
-    labels: List["DBLabel"] = Relationship(back_populates="owner")
+    labels: DBLabel = Relationship(back_populates="owner")
 
 
 class DBLabel(ItemBase, table=True):
@@ -526,12 +511,16 @@ class DBLabel(ItemBase, table=True):
 
     owner_id: int = Field(default=None, foreign_key="persons.id")
     parent_id: Optional[int] = Field(default=None, foreign_key="labels.id")
+    task_id: int = Field(default=None, foreign_key="tasks.id")
 
-    parent: "DBLabel" = Relationship(back_populates="children")
-    children: List["DBLabel"] = Relationship(back_populates="parent")
-    picture: "DBPicture" = Relationship(back_populates="label")
-    albums: List["DBAlbum"] = Relationship(back_populates="label")
-    owner: "DBPerson" = Relationship(back_populates="labels")
+    parent: DBLabel = Relationship(
+        back_populates="children",
+        sa_relationship_kwargs={"remote_side": "DBLabel.id"},
+    )
+    children: DBLabel = Relationship(back_populates="parent")
+    albums: DBAlbum = Relationship(back_populates="label")
+    owner: DBPerson = Relationship(back_populates="labels")
+    task: DBTask = Relationship(back_populates="batch_labels")
 
 
 class DBKey(ItemBase, table=True):
@@ -541,7 +530,7 @@ class DBKey(ItemBase, table=True):
 
     key: str = Field(sa_type=String, max_length=16, unique=True, nullable=False)
 
-    tracks: List["DBTrack"] = Relationship(back_populates="key")
+    tracks: DBTrack = Relationship(back_populates="key")
 
 
 class DBGenre(ItemBase, table=True):
@@ -552,10 +541,8 @@ class DBGenre(ItemBase, table=True):
     genre: str = Field(default="", sa_type=String, max_length=64)
     description: str = Field(default="", sa_type=String, max_length=1024)
 
-    tracks: List["DBTrack"] = Relationship(back_populates="genres")
-    albums: List["DBAlbum"] = Relationship(back_populates="genres")
-    parents: List["DBGenre"] = Relationship(back_populates="children")
-    children: List["DBGenre"] = Relationship(back_populates="parents")
+    tracks: DBTrack = Relationship(back_populates="genres")
+    albums: DBAlbum = Relationship(back_populates="genres")
 
 
 #######################################################################
@@ -564,9 +551,10 @@ class DBTrackLyric(OptFieldBase, table=True):
 
     __tablename__ = "track_lyrics"  # type: ignore
 
+    track_id: int = Field(default=None, foreign_key="tracks.id")
     lyric: str = Field(sa_type=String, max_length=2048)
 
-    track: "DBTrack" = Relationship(back_populates="lyric")
+    track: DBTrack = Relationship(back_populates="lyric")
 
 
 class DBPicture(OptFieldBase, table=True):
@@ -575,7 +563,10 @@ class DBPicture(OptFieldBase, table=True):
     __tablename__ = "pictures"  # type: ignore
 
     picture_path: Path = Field(unique=True, sa_type=String, max_length=1024)
+    album_id: Optional[int] = Field(default=None, foreign_key="albums.id")
+    person_id: Optional[int] = Field(default=None, foreign_key="persons.id")
+    label_id: Optional[int] = Field(default=None, foreign_key="labels.id")
 
-    album: "DBAlbum" = Relationship(back_populates="picture")
-    person: "DBPerson" = Relationship(back_populates="picture")
-    label: "DBLabel" = Relationship(back_populates="picture")
+    album: DBAlbum = Relationship()
+    person: DBPerson = Relationship()
+    label: DBLabel = Relationship()

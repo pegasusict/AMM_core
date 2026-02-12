@@ -23,7 +23,7 @@ class TaskManager:
 
     _instance = None
 
-    def __new__(cls) -> "TaskManager":
+    def __new__(cls, *args: Any, **kwargs: Any) -> "TaskManager":
         if cls._instance is None:
             cls._instance = super(TaskManager, cls).__new__(cls)
             cls._instance._initialize()
@@ -69,7 +69,13 @@ class TaskManager:
         if self._monitor_task:
             self._monitor_task.cancel()
             await asyncio.gather(self._monitor_task, return_exceptions=True)
-        await self.pause_all_running_tasks()
+        pause_all = getattr(self, "pause_all_running_tasks", None)
+        if pause_all is not None:
+            await pause_all()
+
+    async def pause_all_running_tasks(self) -> None:
+        """Compatibility no-op for legacy shutdown flow."""
+        return None
 
     async def _monitor_loop(self) -> None:
         while not self._shutdown:

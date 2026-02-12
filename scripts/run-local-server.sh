@@ -11,9 +11,19 @@ mkdir -p \
   "$BASE_DIR/music" \
   "$BASE_DIR/art"
 
-PYTHON_BIN="${PYTHON_BIN:-python3}"
+# Prefer project venv if present, unless caller explicitly sets PYTHON_BIN.
+if [[ -z "${PYTHON_BIN:-}" ]]; then
+  if [[ -x "$ROOT_DIR/.venv/bin/python" ]]; then
+    PYTHON_BIN="$ROOT_DIR/.venv/bin/python"
+  else
+    PYTHON_BIN="python3"
+  fi
+fi
 HOST="${HOST:-127.0.0.1}"
 PORT="${PORT:-8000}"
+if [[ -z "${DATABASE_URL:-}" ]]; then
+  export DATABASE_URL="sqlite+aiosqlite:///$ROOT_DIR/amm.db"
+fi
 
 export PYTHONPATH="$ROOT_DIR/src:${PYTHONPATH:-}"
 

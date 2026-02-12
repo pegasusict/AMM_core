@@ -9,8 +9,10 @@ from contextlib import asynccontextmanager
 from strawberry.fastapi import GraphQLRouter
 from strawberry.subscriptions import GRAPHQL_WS_PROTOCOL
 from typing import AsyncGenerator
+from sqlalchemy import text
 
 from Singletons import Config, DBInstance, Logger
+from Singletons.env_config import env_config
 from Server.graphql import schema, get_context
 from Server.playerservice import PlayerService
 
@@ -39,6 +41,30 @@ async def initialize_system() -> None:
     logger.info("Audio utilities initialized.")
 
 
+async def ensure_sqlite_schema_columns() -> None:
+    """Apply additive SQLite schema updates for local dev without migrations."""
+    if not env_config.DATABASE_URL.startswith("sqlite"):
+        return
+
+    required_columns: dict[str, list[str]] = {
+        "tracks": ["key_id INTEGER", "genre_id INTEGER"],
+        "albums": ["label_id INTEGER", "genre_id INTEGER"],
+        "track_tags": ["track_id INTEGER"],
+        "track_lyrics": ["track_id INTEGER"],
+        "pictures": ["album_id INTEGER", "person_id INTEGER", "label_id INTEGER"],
+    }
+
+    async with DBInstance.engine.begin() as conn:
+        for table_name, column_defs in required_columns.items():
+            info = await conn.execute(text(f"PRAGMA table_info({table_name})"))
+            existing = {row[1] for row in info.fetchall()}
+            for column_def in column_defs:
+                column_name = column_def.split()[0]
+                if column_name in existing:
+                    continue
+                await conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_def}"))
+
+
 # GraphQL
 graphql_app = GraphQLRouter(
     schema,
@@ -64,6 +90,11 @@ origins = [
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("AMM startup sequence beginning...")
+
+    # Ensure DB schema exists in dev/local environments.
+    await DBInstance.init_db()
+    await ensure_sqlite_schema_columns()
+    logger.info("Database schema check complete.")
 
     # Step 1 — Init audio utils
     await initialize_system()
