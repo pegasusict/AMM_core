@@ -1,13 +1,10 @@
-import aiohttp
 import strawberry
 from strawberry.types import Info
 from sqlmodel import select
-from sqlalchemy import text
-import datetime as dt
 
 from Singletons import DBInstance
-from config import Config
 from auth.jwt_utils import create_access_token, create_refresh_token
+from auth.passwords import hash_password, verify_password
 from core.enums import UserRole
 from core.dbmodels import (
     DBTrack,
@@ -69,154 +66,84 @@ def _require_admin(info: Info) -> DBUser:
     return user
 
 
-def _build_google_user_insert_params(
-    *,
-    token_info: dict[str, object],
-    username: str,
-    role: UserRole,
-    now: dt.datetime,
-) -> dict[str, object]:
-    return {
-        "username": username,
-        "email": str(token_info.get("email") or ""),
-        "first_name": str(token_info.get("given_name") or ""),
-        "middle_name": "",
-        "last_name": str(token_info.get("family_name") or ""),
-        "date_of_birth": dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc),
-        "role": role.value if isinstance(role, UserRole) else str(role),
-        "created_at": now,
-        "updated_at": now,
-        "is_active": True,
-        "password_hash": "",
-    }
-
-
 @strawberry.type
 class Mutation:
     """GraphQL Mutations to update metadata or control playback."""
 
     @strawberry.mutation
-    async def login_with_google(self, info: Info, id_token: str) -> AuthPayload:
-        """
-        Validate a Google ID token and return AMM access/refresh tokens.
-        Enforces username whitelist and admin username from config.
-        """
-        config = Config.get_sync()
-        client_id = config.get_string("auth", "google_client_id", "")
-        if not client_id:
-            raise ValueError("Google client ID not configured")
+    async def login(self, info: Info, username_or_email: str, password: str) -> AuthPayload:
+        """Local username/email + password login."""
+        username_or_email = (username_or_email or "").strip()
+        if not username_or_email:
+            raise ValueError("Username or email is required")
+        if not password:
+            raise ValueError("Password is required")
 
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                "https://oauth2.googleapis.com/tokeninfo",
-                params={"id_token": id_token},
-            ) as resp:
-                if resp.status != 200:
-                    raise ValueError("Invalid Google token")
-                token_info = await resp.json()
-
-        if token_info.get("aud") != client_id:
-            raise ValueError("Invalid token audience")
-
-        email = token_info.get("email")
-        if not email:
-            raise ValueError("Google token missing email")
-
-        username = email.split("@")[0]
-        allowed = config.get_list("auth", "allowed_usernames", [])
-        admin_usernames = config.get_list("auth", "admin_usernames", [])
-        admin_set = {name for name in admin_usernames if name}
-
-        if allowed and username not in allowed and username not in admin_set:
-            raise ValueError("User not allowed")
-
-        role = UserRole.ADMIN if username in admin_set else UserRole.USER
-
-        user_row: dict | None = None
-        async for db in DBInstance.get_session():
-            result = await db.execute(
-                text(
-                    "SELECT id, username, email, first_name, middle_name, last_name, "
-                    "date_of_birth, role, created_at, updated_at, is_active "
-                    "FROM users WHERE email = :email"
-                ),
-                {"email": email},
+        async for session in DBInstance.get_session():
+            stmt = select(DBUser).where(
+                (DBUser.username == username_or_email) | (DBUser.email == username_or_email)
             )
-            mapping = result.mappings().first()
-            user_row = dict(mapping) if mapping else None
+            user = (await session.exec(stmt)).first()
+            if not user or not user.is_active:
+                raise ValueError("Invalid username/email or password")
+            if not verify_password(password, user.password_hash):
+                raise ValueError("Invalid username/email or password")
 
-            if not user_row:
-                now = dt.datetime.now(dt.timezone.utc)
-                insert_params = _build_google_user_insert_params(
-                    token_info=token_info,
-                    username=username,
-                    role=role,
-                    now=now,
-                )
-                await db.execute(
-                    text(
-                        "INSERT INTO users (username, email, first_name, middle_name, last_name, "
-                        "date_of_birth, role, created_at, updated_at, is_active, password_hash) "
-                        "VALUES (:username, :email, :first_name, :middle_name, :last_name, "
-                        ":date_of_birth, :role, :created_at, :updated_at, :is_active, :password_hash)"
-                    ),
-                    insert_params,
-                )
-                await db.commit()
-                result = await db.execute(
-                    text(
-                        "SELECT id, username, email, first_name, middle_name, last_name, "
-                        "date_of_birth, role, created_at, updated_at, is_active "
-                        "FROM users WHERE email = :email"
-                    ),
-                    {"email": email},
-                )
-                mapping = result.mappings().first()
-                user_row = dict(mapping) if mapping else None
-            else:
-                if not bool(user_row.get("is_active", True)):
-                    raise ValueError("Inactive user")
-                current_role = str(user_row.get("role") or "")
-                if username in admin_set and current_role.upper() != UserRole.ADMIN.value.upper():
-                    await db.execute(
-                        text("UPDATE users SET role = :role WHERE id = :id"),
-                        {"role": UserRole.ADMIN.value, "id": user_row["id"]},
-                    )
-                    await db.commit()
-                    user_row["role"] = UserRole.ADMIN.value
+            access_token = create_access_token({"sub": str(user.id), "email": str(user.email)})
+            refresh_token = create_refresh_token({"sub": str(user.id)})
+            return AuthPayload(
+                access_token=access_token,
+                refresh_token=refresh_token,
+                user=map_dbuser_to_user(user),
+            )
 
-        if not user_row:
-            raise ValueError("Login failed: unable to load user")
+        raise ValueError("Login failed")
 
-        access_token = create_access_token({"sub": str(user_row["id"]), "email": str(user_row["email"])})
-        refresh_token = create_refresh_token({"sub": str(user_row["id"])})
-        role_value = str(user_row.get("role") or UserRole.USER.value)
-        return AuthPayload(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            user=User(
-                id=user_row.get("id"),
-                username=user_row.get("username"),
-                email=user_row.get("email"),
-                first_name=user_row.get("first_name"),
-                middle_name=user_row.get("middle_name"),
-                last_name=user_row.get("last_name"),
-                date_of_birth=user_row.get("date_of_birth"),
-                role=UserRole(role_value) if role_value in {item.value for item in UserRole} else UserRole.USER,
-                created_at=user_row.get("created_at"),
-                updated_at=user_row.get("updated_at"),
-                is_active=bool(user_row.get("is_active", True)),
-            ),
-        )
+    @strawberry.mutation
+    async def refresh_session(self, info: Info, refresh_token: str) -> AuthPayload:
+        """Exchange a refresh token for a new session."""
+        refresh_token = (refresh_token or "").strip()
+        if not refresh_token:
+            raise ValueError("Refresh token is required")
+
+        from jose import jwt, JWTError
+        from auth.jwt_utils import SECRET_KEY, ALGORITHM
+
+        try:
+            payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        except JWTError as exc:
+            raise ValueError("Invalid refresh token") from exc
+
+        token_type = payload.get("type")
+        if token_type is not None and str(token_type) != "refresh":
+            raise ValueError("Invalid refresh token")
+
+        sub = payload.get("sub")
+        if not sub:
+            raise ValueError("Invalid refresh token")
+        user_id = int(sub)
+
+        async for session in DBInstance.get_session():
+            user = await session.get(DBUser, user_id)
+            if not user or not user.is_active:
+                raise ValueError("Inactive user")
+            access_token = create_access_token({"sub": str(user.id), "email": str(user.email)})
+            new_refresh = create_refresh_token({"sub": str(user.id)})
+            return AuthPayload(
+                access_token=access_token,
+                refresh_token=new_refresh,
+                user=map_dbuser_to_user(user),
+            )
 
     @strawberry.mutation
     async def create_user(self, info: Info, data: UserCreateInput) -> User:
         """Create a new user."""
         _require_admin(info)
+        password_hash = hash_password(data.password)
         user = DBUser(
             username=data.username,
             email=str(data.email),
-            password_hash=data.password_hash,
+            password_hash=password_hash,
             first_name=data.first_name or "",
             middle_name=data.middle_name,
             last_name=data.last_name or "",
@@ -238,6 +165,11 @@ class Mutation:
             user = await session.get(DBUser, user_id)
             if not user:
                 raise ValueError("User not found")
+            # Handle password explicitly so we never accept a raw hash from clients.
+            if getattr(data, "password", None) is not None:
+                user.password_hash = hash_password(getattr(data, "password"))  # type: ignore[arg-type]
+                # Prevent generic mapping from clobbering password_hash.
+                setattr(data, "password", None)
             update_model_from_input(user, data)
             session.add(user)
             await session.commit()

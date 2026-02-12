@@ -297,7 +297,7 @@ class AuthPayload:
 class UserCreateInput:
     username: str
     email: str
-    password_hash: str
+    password: str
     first_name: Optional[str] = None
     middle_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -309,7 +309,7 @@ class UserCreateInput:
 class UserUpdateInput:
     username: Optional[str] = None
     email: Optional[str] = None
-    password_hash: Optional[str] = None
+    password: Optional[str] = None
     first_name: Optional[str] = None
     middle_name: Optional[str] = None
     last_name: Optional[str] = None

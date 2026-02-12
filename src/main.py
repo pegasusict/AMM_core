@@ -15,6 +15,7 @@ from Singletons import Config, DBInstance, Logger
 from Singletons.env_config import env_config
 from Server.graphql import schema, get_context
 from Server.playerservice import PlayerService
+from auth.bootstrap import ensure_bootstrap_admin
 
 from core.registry import registry
 from core.taskmanager import TaskManager
@@ -95,6 +96,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await DBInstance.init_db()
     await ensure_sqlite_schema_columns()
     logger.info("Database schema check complete.")
+
+    # Seed initial local admin account if AMM_BOOTSTRAP_ADMIN_* env vars are set.
+    await ensure_bootstrap_admin(logger)
 
     # Step 1 — Init audio utils
     await initialize_system()

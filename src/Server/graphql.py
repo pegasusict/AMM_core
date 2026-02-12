@@ -20,7 +20,7 @@ import strawberry
 from strawberry.fastapi import BaseContext
 from fastapi import Request
 
-from auth.dependencies import get_current_user
+from auth.dependencies import get_current_user_optional
 from core.dbmodels import DBUser
 from .subscription import Subscription
 from .mutation import Mutation
@@ -37,10 +37,7 @@ class RequestContext(BaseContext):
 
 
 async def get_context(request: Request) -> RequestContext:
-    try:
-        user = await get_current_user(request=request)  # type: ignore
-    except Exception:
-        user = None
+    user = await get_current_user_optional(request)
     ctx = RequestContext()
     ctx.request = request  # type: ignore[attr-defined]
     ctx.user = user
