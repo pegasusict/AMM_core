@@ -42,12 +42,14 @@ class DBUser(AutoFetchable, SQLModel, table=True):
     __tablename__ = "users"  # type: ignore
 
     id: Optional[int] = Field(primary_key=True, index=True, default=None)
-    username: str = Field(unique=True, default="", sa_type=String, max_length=40)
-    email: str = Field(unique=True, default="", sa_type=String, max_length=255)
-    password_hash: str = Field(default="", sa_type=String, max_length=255)
-    first_name: str = Field(default="", sa_type=String, max_length=40)
-    middle_name: str = Field(default="", sa_type=String, max_length=16)
-    last_name: str = Field(default="", sa_type=String, max_length=40)
+    # MySQL/MariaDB requires VARCHAR length; providing `sa_type=String` (no length)
+    # will fail DDL compilation even if `max_length` is set.
+    username: str = Field(unique=True, default="", sa_type=String(40), max_length=40)
+    email: str = Field(unique=True, default="", sa_type=String(255), max_length=255)
+    password_hash: str = Field(default="", sa_type=String(255), max_length=255)
+    first_name: str = Field(default="", sa_type=String(40), max_length=40)
+    middle_name: str = Field(default="", sa_type=String(16), max_length=16)
+    last_name: str = Field(default="", sa_type=String(40), max_length=40)
     date_of_birth: dt.datetime = Field(default=None)
     is_active: bool = Field(default=True)
     role: UserRole = Field(default=UserRole.USER.value)  # Default role is USER
@@ -78,7 +80,7 @@ class DBPlaylist(AutoFetchable, SQLModel, table=True):
     __tablename__ = "playlists"  # type: ignore
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    name: str = Field(sa_type=String, max_length=255)
+    name: str = Field(sa_type=String(255), max_length=255)
     user_id: int = Field(foreign_key="users.id", nullable=False)
 
     user: DBUser = Relationship(back_populates="playlists")
@@ -123,16 +125,16 @@ class DBTask(AutoFetchable, SQLModel, table=True):
     __tablename__ = "tasks"  # type: ignore
 
     id: int = Field(default=None, sa_type=Integer, primary_key=True, unique=True)
-    task_id: str = Field(default="", nullable=False, sa_type=String, max_length=40)
+    task_id: str = Field(default="", nullable=False, sa_type=String(40), max_length=40)
     start_time: dt.datetime = Field(default=None)
     end_time: dt.datetime = Field(default=None)
     duration: int = Field(default=0, sa_type=Integer)
     processed: int = Field(default=0, sa_type=Integer)
     progress: float = Field(default=0, sa_type=Float)
-    function: str = Field(default="", sa_type=String, max_length=20)
-    kwargs: str = Field(default="", sa_type=String, max_length=1024)
-    result: str = Field(default="", sa_type=String, max_length=1024)
-    error: str = Field(default="", sa_type=String, max_length=1024)
+    function: str = Field(default="", sa_type=String(20), max_length=20)
+    kwargs: str = Field(default="", sa_type=String(1024), max_length=1024)
+    result: str = Field(default="", sa_type=String(1024), max_length=1024)
+    error: str = Field(default="", sa_type=String(1024), max_length=1024)
     status: TaskStatus = Field(default=TaskStatus.PENDING)
     task_type: TaskType = Field(default=TaskType.CUSTOM)
 
@@ -352,11 +354,11 @@ class DBStat(ItemBase, table=True):
 
     __tablename__ = "stats"  # type: ignore
 
-    name: str = Field(default="", sa_type=String, max_length=40)
+    name: str = Field(default="", sa_type=String(40), max_length=40)
     value: int = Field(default=0)
     range_start: float = Field(default=0)
     range_end: float = Field(default=None)
-    unit: str = Field(default="", sa_type=String, max_length=16)
+    unit: str = Field(default="", sa_type=String(16), max_length=16)
 
 
 #######################################################################
@@ -365,7 +367,7 @@ class DBFile(ItemBase, table=True):
 
     __tablename__ = "files"  # type: ignore
 
-    audio_ip: str = Field(default=None, sa_type=String, max_length=1024)
+    audio_ip: str = Field(default=None, sa_type=String(1024), max_length=1024)
     imported: dt.datetime = Field(default=dt.datetime.now(dt.timezone.utc))
     processed: dt.datetime = Field(
         default=None,
@@ -374,16 +376,17 @@ class DBFile(ItemBase, table=True):
     bitrate: int = Field(default=None)
     sample_rate: int = Field(default=None)
     channels: int = Field(default=None)
-    file_type: str = Field(default=None, sa_type=String, max_length=20)
+    file_type: str = Field(default=None, sa_type=String(20), max_length=20)
     file_size: int = Field(default=None)
-    file_name: str = Field(default=None, sa_type=String, max_length=255)
-    file_extension: str = Field(default=None, sa_type=String, max_length=16)
+    file_name: str = Field(default=None, sa_type=String(255), max_length=255)
+    file_extension: str = Field(default=None, sa_type=String(16), max_length=16)
     codec: Codec = Field(default=Codec.UNKNOWN)
     duration: int = Field(default=None)
     track_id: int = Field(default=None, foreign_key="tracks.id")
     task_id: int = Field(default=None, foreign_key="tasks.id")
     batch_id: int = Field(default=None, foreign_key="files_to_convert.id")
-    file_path: str = Field(default=None, sa_column_kwargs={"unique": True}, sa_type=String, max_length=1024)
+    # Unique indexes on MySQL/MariaDB can hit key-length limits with long VARCHAR + utf8mb4.
+    file_path: str = Field(default=None, sa_column_kwargs={"unique": True}, sa_type=String(512), max_length=512)
     # --- 🔹 Stage/Substage Record ---
     stage_type: StageType = Field(
         default=StageType.NONE,
@@ -412,7 +415,7 @@ class DBTrack(ItemBase, table=True):
 
     composed: dt.date = Field(default=dt.date.min, sa_column_kwargs={"nullable": False})
     release_date: dt.date = Field(default=dt.date.min, sa_column_kwargs={"nullable": False})
-    mbid: str = Field(default="", sa_type=String, unique=True, max_length=40)
+    mbid: str = Field(default="", sa_type=String(40), unique=True, max_length=40)
     task_id: int = Field(default=None, foreign_key="tasks.id")
     key_id: Optional[int] = Field(default=None, foreign_key="keys.id")
     genre_id: Optional[int] = Field(default=None, foreign_key="genres.id")
@@ -433,7 +436,7 @@ class DBTrackTag(ItemBase, table=True):
     track_id: int = Field(default=None, foreign_key="tracks.id")
     track: DBTrack = Relationship(back_populates="tracktags")
     tag_type: TagType = Field(default=TagType.UNKNOWN)
-    data: str = Field(default="", sa_type=String, max_length=255)
+    data: str = Field(default="", sa_type=String(255), max_length=255)
 
 
 class DBAlbum(ItemBase, table=True):
@@ -441,7 +444,7 @@ class DBAlbum(ItemBase, table=True):
 
     __tablename__ = "albums"  # type: ignore
 
-    mbid: str = Field(default="", sa_type=String, unique=True, max_length=40)
+    mbid: str = Field(default="", sa_type=String(40), unique=True, max_length=40)
     title: str = Field(default="")
     title_sort: str = Field(default="")
     subtitle: Optional[str] = Field(default=None)
@@ -478,14 +481,14 @@ class DBPerson(ItemBase, table=True):
 
     __tablename__ = "persons"  # type: ignore
 
-    mbid: str = Field(default="", sa_type=String, unique=True, max_length=40)
-    first_name: str = Field(default="", sa_type=String, max_length=64)
-    middle_name: Optional[str] = Field(default=None, sa_type=String, max_length=16)
-    last_name: str = Field(default="", sa_type=String, max_length=64)
-    sort_name: str = Field(default="", sa_type=String, max_length=255)
-    full_name: str = Field(default="", sa_type=String, max_length=255)
-    nick_name: Optional[str] = Field(default=None, sa_type=String, max_length=255)
-    alias: Optional[str] = Field(default=None, sa_type=String, max_length=255)
+    mbid: str = Field(default="", sa_type=String(40), unique=True, max_length=40)
+    first_name: str = Field(default="", sa_type=String(64), max_length=64)
+    middle_name: Optional[str] = Field(default=None, sa_type=String(16), max_length=16)
+    last_name: str = Field(default="", sa_type=String(64), max_length=64)
+    sort_name: str = Field(default="", sa_type=String(255), max_length=255)
+    full_name: str = Field(default="", sa_type=String(255), max_length=255)
+    nick_name: Optional[str] = Field(default=None, sa_type=String(255), max_length=255)
+    alias: Optional[str] = Field(default=None, sa_type=String(255), max_length=255)
     date_of_birth: dt.date = Field(default=None, sa_column_kwargs={"nullable": True})
     date_of_death: Optional[dt.date] = Field(default=None, sa_column_kwargs={"nullable": True})
     task_id: int = Field(default=None, foreign_key="tasks.id")
@@ -498,14 +501,14 @@ class DBLabel(ItemBase, table=True):
 
     __tablename__ = "labels"  # type: ignore
 
-    name: str = Field(default="", sa_type=String, max_length=255)
-    mbid: str = Field(default="", sa_type=String, unique=True, max_length=40)
+    name: str = Field(default="", sa_type=String(255), max_length=255)
+    mbid: str = Field(default="", sa_type=String(40), unique=True, max_length=40)
     founded: dt.date = Field(default=None, sa_column_kwargs={"nullable": True})
     defunct: Optional[dt.date] = Field(default=None, sa_column_kwargs={"nullable": True})
     description: Optional[str] = Field(
         default=None,
         sa_column_kwargs={"nullable": True},
-        sa_type=String,
+        sa_type=String(1024),
         max_length=1024,
     )
 
@@ -528,7 +531,7 @@ class DBKey(ItemBase, table=True):
 
     __tablename__ = "keys"  # type: ignore
 
-    key: str = Field(sa_type=String, max_length=16, unique=True, nullable=False)
+    key: str = Field(sa_type=String(16), max_length=16, unique=True, nullable=False)
 
     tracks: DBTrack = Relationship(back_populates="key")
 
@@ -538,8 +541,8 @@ class DBGenre(ItemBase, table=True):
 
     __tablename__ = "genres"  # type: ignore
 
-    genre: str = Field(default="", sa_type=String, max_length=64)
-    description: str = Field(default="", sa_type=String, max_length=1024)
+    genre: str = Field(default="", sa_type=String(64), max_length=64)
+    description: str = Field(default="", sa_type=String(1024), max_length=1024)
 
     tracks: DBTrack = Relationship(back_populates="genres")
     albums: DBAlbum = Relationship(back_populates="genres")
@@ -552,7 +555,7 @@ class DBTrackLyric(OptFieldBase, table=True):
     __tablename__ = "track_lyrics"  # type: ignore
 
     track_id: int = Field(default=None, foreign_key="tracks.id")
-    lyric: str = Field(sa_type=String, max_length=2048)
+    lyric: str = Field(sa_type=String(2048), max_length=2048)
 
     track: DBTrack = Relationship(back_populates="lyric")
 
@@ -562,7 +565,7 @@ class DBPicture(OptFieldBase, table=True):
 
     __tablename__ = "pictures"  # type: ignore
 
-    picture_path: Path = Field(unique=True, sa_type=String, max_length=1024)
+    picture_path: Path = Field(unique=True, sa_type=String(512), max_length=512)
     album_id: Optional[int] = Field(default=None, foreign_key="albums.id")
     person_id: Optional[int] = Field(default=None, foreign_key="persons.id")
     label_id: Optional[int] = Field(default=None, foreign_key="labels.id")
