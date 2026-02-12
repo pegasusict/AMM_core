@@ -1,0 +1,28 @@
+[Unit]
+Description=AMM Core API (FastAPI/Uvicorn)
+After=network.target mariadb.service
+Wants=network.target
+
+[Service]
+Type=simple
+User=pegasus
+Group=pegasus
+
+# Repo checkout directory (note the space in "Python Projects").
+WorkingDirectory=/home/pegasus/Python Projects/AMM_core
+
+# Keep secrets out of git; put DATABASE_URL, AMM_GOOGLE_CLIENT_ID, etc in this file.
+EnvironmentFile=/home/pegasus/Python Projects/AMM_core/.env
+Environment=PYTHONPATH=/home/pegasus/Python Projects/AMM_core/src
+
+# Use bash to avoid systemd ExecStart parsing issues with spaces in paths.
+# Bind to localhost-only by default.
+ExecStart=/bin/bash -lc 'exec "/home/pegasus/Python Projects/AMM_core/.venv/bin/python" -m uvicorn main:app --app-dir "/home/pegasus/Python Projects/AMM_core/src" --host 127.0.0.1 --port 8000'
+
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target
+

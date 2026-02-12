@@ -18,8 +18,11 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from dotenv import load_dotenv
 
 from typing import Optional
+
+load_dotenv()
 
 
 def _as_bool(value: Optional[str], default: bool = False) -> bool:

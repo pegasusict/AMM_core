@@ -52,3 +52,13 @@ Or via Make:
 ```bash
 make run-local
 ```
+
+## MariaDB run
+
+Set `DATABASE_URL` to an async MySQL/MariaDB URL (driver: `asyncmy`) and start uvicorn:
+
+```bash
+export DATABASE_URL="mysql+asyncmy://amm_user:amm_pass@127.0.0.1:3306/amm_db?charset=utf8mb4"
+# Bind to localhost-only by default.
+PYTHONPATH="$(pwd)/src" .venv/bin/python -m uvicorn main:app --app-dir src --host 127.0.0.1 --port 8000
+```
