@@ -38,3 +38,17 @@ The system has a icecast like playbacksystem which works on a per-user basis.
 
 audiobook support?
 crossfading
+
+## Local test run
+
+Use the helper script to create local test directories and start the API server:
+
+```bash
+./scripts/run-local-server.sh
+```
+
+Or via Make:
+
+```bash
+make run-local
+```

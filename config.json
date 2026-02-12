@@ -15,7 +15,7 @@
         "format": "%(levelname)s:%(message)s"
     },
     "paths": {
-        "base": "/alpha/music/amm/",
+        "base": "/home/pegasus/Python Projects/AMM_core/testrun/amm/",
         "import": "import/",
         "process": "process/",
         "export": "export/",
