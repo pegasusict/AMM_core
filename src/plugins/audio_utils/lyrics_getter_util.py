@@ -5,7 +5,8 @@ from typing import ClassVar, Optional
 
 from core.audioutil_base import AudioUtilBase, register_audioutil
 
-from Singletons import Logger, Config
+from Singletons import Logger
+from config import Config
 
 
 logger = Logger()  # singleton instance
@@ -34,7 +35,7 @@ class LyricsGetter(AudioUtilBase):
     def __init__(self) -> None:
         self.logger = logger
 
-        self.config = Config()
+        self.config = Config.get_sync()
         self.provider_url = self.config.get("lyrics_provider")
 
         if not self.provider_url:

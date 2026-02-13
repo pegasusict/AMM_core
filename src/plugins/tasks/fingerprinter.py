@@ -14,7 +14,8 @@ from core.types import (
     FingerprintFileProtocol,
     ValidateFingerprintMetadataProtocol,
 )
-from Singletons import Config, DBInstance, Logger
+from config import Config
+from Singletons import DBInstance, Logger
 from core.dbmodels import DBFile, DBPerson, DBTrack
 
 
@@ -57,7 +58,7 @@ class FingerPrinter(TaskBase):
         batch: List[int],
     ) -> None:
         self.logger = Logger()
-        self.config = Config
+        self.config = Config.get_sync()
         self.batch = batch
 
         # injected utils

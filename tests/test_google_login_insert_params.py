@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import datetime as dt
 
+import pytest
+
+pytest.importorskip("strawberry")
+
 from Server.mutation import _build_google_user_insert_params
 from core.enums import UserRole
 

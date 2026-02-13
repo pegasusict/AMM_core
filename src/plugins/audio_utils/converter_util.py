@@ -7,7 +7,8 @@ from asyncio import to_thread
 from pydub import AudioSegment
 
 from core.audioutil_base import AudioUtilBase, register_audioutil
-from Singletons import Logger, Config
+from Singletons import Logger
+from config import Config
 
 logger = Logger()  # singleton
 
@@ -23,13 +24,13 @@ class ConverterUtil(AudioUtilBase):
 
     def __init__(self) -> None:
         # registry may call with no args; accept None and use global Config
-        self.config = Config()
+        self.config = Config.get_sync()
         # logger is the singleton — don't instantiate
         self.logger = Logger()
-        self.lq_inputs = self.config._get("convert", "lqinputs", "ogg,aac").split(",")
-        self.hq_inputs = self.config._get("convert", "hqinputs", "wav,mp4").split(",")
-        self.lq_format = self.config._get("convert", "lqformat", "mp3").lower()
-        self.hq_format = self.config._get("convert", "hqformat", "flac").lower()
+        self.lq_inputs = str(self.config.get("convert", "lqinputs", "ogg,aac")).split(",")
+        self.hq_inputs = str(self.config.get("convert", "hqinputs", "wav,mp4")).split(",")
+        self.lq_format = str(self.config.get("convert", "lqformat", "mp3")).lower()
+        self.hq_format = str(self.config.get("convert", "hqformat", "flac")).lower()
 
     def get_target_format(self, codec: str) -> Optional[str]:
         if codec in self.lq_inputs:

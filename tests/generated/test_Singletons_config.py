@@ -5,7 +5,7 @@ import sys
 import os
 from pathlib import Path
 
-MODULE = 'Singletons.config'
+MODULE = 'config'
 
 _INTERNAL_PREFIXES = ('core', 'config', 'plugins', 'Singletons', 'Server', 'GraphQL', 'auth', 'mixins', 'Enums', 'Exceptions', 'dbmodels', 'main',)
 

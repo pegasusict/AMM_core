@@ -12,7 +12,6 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
-from .config import Config
 from .env_config import EnvConfig
 from .logger import Logger
 from .database import DB, DBInstance
@@ -21,7 +20,6 @@ from .stack import Stack
 __all__ = (
     "DB",
     "DBInstance",
-    "Config",
     "EnvConfig",
     "Logger",
     "Stack",

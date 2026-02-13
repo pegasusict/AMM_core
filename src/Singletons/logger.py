@@ -16,7 +16,7 @@
 import logging
 from logging import getLogger, FileHandler, Formatter, StreamHandler, Logger as PyLogger
 
-from .config import Config
+from config import Config
 
 
 class Logger:
@@ -32,7 +32,7 @@ class Logger:
         Args:
             config: The configuration object.
         """
-        self.config = config or Config()
+        self.config = config or Config.get_sync()
         self.log_file = self.config.get_string("logging", "file", "amm.log")
         self.log_level = self.config.get_string("logging", "level", "INFO")
         self.log_format = "%(asctime)s - %(levelname)s - %(message)s"

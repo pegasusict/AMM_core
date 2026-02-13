@@ -11,7 +11,8 @@ from strawberry.subscriptions import GRAPHQL_WS_PROTOCOL
 from typing import AsyncGenerator
 from sqlalchemy import text
 
-from Singletons import Config, DBInstance, Logger
+from config import Config
+from Singletons import DBInstance, Logger
 from Singletons.env_config import env_config
 from Server.graphql import schema, get_context
 from Server.playerservice import PlayerService
@@ -22,9 +23,8 @@ from core.taskmanager import TaskManager
 from core.processor_loop import ProcessorLoop
 
 # Global shared config
-config = Config()
+config = Config.get_sync()
 logger = Logger(config)
-config.use_real_logger(logger)
 
 
 # ----------------------------

@@ -8,7 +8,8 @@ from core.task_base import TaskBase, register_task
 from core.types import DBInterface, DirectoryScannerProtocol, StackProtocol
 from core.enums import StageType, TaskType
 from core.dbmodels import DBFile
-from Singletons import Config, DBInstance, Logger
+from config import Config
+from Singletons import DBInstance, Logger
 
 
 @dataclass

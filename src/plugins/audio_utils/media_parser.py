@@ -11,7 +11,8 @@ from mutagen.flac import FLACNoHeaderError
 
 from core.audioutil_base import AudioUtilBase
 from core.audioutil_base import register_audioutil
-from Singletons import Config, Logger
+from config import Config
+from Singletons import Logger
 from core.file_utils import get_file_type, get_file_extension
 
 
@@ -34,7 +35,7 @@ class MediaParser(AudioUtilBase):
     heavy_io: ClassVar[bool] = True       # file I/O + mutagen parsing
 
     def __init__(self) -> None:
-        self.config = Config()
+        self.config = Config.get_sync()
         self.logger = logger
 
     # --------------------------

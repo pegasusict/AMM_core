@@ -4,7 +4,8 @@ from pathlib import Path
 from typing import Optional, Any, Protocol, ClassVar
 
 from core.audioutil_base import AudioUtilBase, register_audioutil
-from Singletons import Logger, Config
+from Singletons import Logger
+from config import Config
 from core.exceptions import FileError, OperationFailedError
 
 logger = Logger()  # singleton
@@ -37,12 +38,12 @@ class AcoustID(AudioUtilBase):
         dependencies listed in `depends` (tagger, media_parser). Optionally,
         another AudioUtil (acoustid_client) may be injected too.
         """
-        self.config = Config()
+        self.config = Config.get_sync()
         self.tagger = tagger
         self.parser = media_parser
         self._client = acoustid_client
         # API key may come from Config or environment — accept override in process()
-        self._default_api_key = (self.config._get("acoustid", "api_key", None) if hasattr(self.config, "_get") else None)
+        self._default_api_key = self.config.get("acoustid", "api_key", None)
 
     async def process(self, path: Path, api_key: Optional[str] = None) -> dict[str, Any]:
         """

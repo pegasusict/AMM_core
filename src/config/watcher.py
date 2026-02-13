@@ -6,7 +6,10 @@ from typing import Awaitable, Callable
 import logging
 from pathlib import Path
 
-from watchfiles import awatch
+try:
+    from watchfiles import awatch  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover
+    awatch = None
 
 logger = logging.getLogger("AMM.ConfigWatcher")
 
@@ -15,6 +18,9 @@ async def watch_file(path: Path, callback: Callable[[], Awaitable[None]]) -> Non
     """
     Watches config file and calls the callback on change.
     """
+    if awatch is None:
+        logger.warning("watchfiles not installed; config watching disabled.")
+        return
     async for _ in awatch(path):
         logger.info("Detected config change, reloading...")
         try:

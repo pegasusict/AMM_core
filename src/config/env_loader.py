@@ -5,9 +5,13 @@ from __future__ import annotations
 import os
 from typing import Any, Dict
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover
+    load_dotenv = None
 
-load_dotenv()   # executed on import
+if load_dotenv is not None:
+    load_dotenv()  # executed on import if available
 
 
 def apply_environment(cfg: Dict[str, Any]) -> Dict[str, Any]:

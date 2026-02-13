@@ -4,7 +4,8 @@ from typing import Any, Optional, Iterable, ClassVar
 
 from core.task_base import TaskBase, register_task
 from core.enums import TaskType, StageType
-from Singletons import DBInstance, Logger, Config
+from Singletons import DBInstance, Logger
+from config import Config
 from core.types import ConverterUtilProtocol, DBInterface
 
 
@@ -39,7 +40,7 @@ class ConverterTask(TaskBase):
     ) -> None:
         self.logger = Logger()
 
-        self.config = config or Config()
+        self.config = config or Config.get_sync()
         self.batch = list(batch or [])
 
         # injected util

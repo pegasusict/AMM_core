@@ -171,6 +171,36 @@ class AsyncConfigManager:
         attr = "import_" if key == "import" else key
         return base / getattr(self._config.paths, attr)
 
+    def get(self, section: str, key: Optional[str] = None, default: Any = None) -> Any:
+        """
+        Compatibility helper for legacy call sites.
+
+        Supports:
+        - get("section", "key", default)
+        - get("section.key", default)
+        - get("bare_key", default) which searches across top-level sections
+        """
+        if key is None:
+            # Support "section.key" or a bare key lookup across sections.
+            if "." in section:
+                sect, k = section.split(".", 1)
+                return self.get_value(sect, k, default)
+
+            data = self._config.model_dump(by_alias=True)
+
+            # top-level scalar field
+            if section in data and not isinstance(data[section], dict):
+                return data.get(section, default)
+
+            # search within sections
+            for sect, values in data.items():
+                if isinstance(values, dict) and section in values:
+                    return values.get(section, default)
+
+            return default
+
+        return self.get_value(section, key, default)
+
     def get_value(self, section: str, key: str, default: Optional[T] = None) -> Optional[T]:
         data = self._config.model_dump(by_alias=True)
         section_value = data.get(section)

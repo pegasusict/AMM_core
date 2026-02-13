@@ -7,7 +7,8 @@ from aiohttp import ClientError
 
 from core.audioutil_base import AudioUtilBase, register_audioutil
 from core.exceptions import OperationFailedError
-from Singletons import Logger, Config
+from Singletons import Logger
+from config import Config
 
 
 logger = Logger()  # singleton instance
@@ -38,7 +39,7 @@ class MusicBrainzClient(AudioUtilBase):
 
     def __init__(self, config: Optional[Config] = None) -> None:
         super().__init__(config=config)
-        self.config = config or Config()
+        self.config = config or Config.get_sync()
         self.logger = logger
 
         # Required User-Agent per MusicBrainz policy
