@@ -62,3 +62,9 @@ export DATABASE_URL="mysql+asyncmy://amm_user:amm_pass@127.0.0.1:3306/amm_db?cha
 # Bind to localhost-only by default.
 PYTHONPATH="$(pwd)/src" .venv/bin/python -m uvicorn main:app --app-dir src --host 127.0.0.1 --port 8000
 ```
+
+Run database migrations manually (optional; startup also runs `alembic upgrade head`):
+
+```bash
+make migrate-db
+```

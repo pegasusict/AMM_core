@@ -2,6 +2,7 @@
 #  This file is part of Audiophiles' Music Manager (AMM).
 #  Licensed under GPLv3+.
 
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_utils.tasks import repeat_every
@@ -22,6 +23,7 @@ from core.registry import registry
 from core.bootstrap import bootstrap_plugins
 from core.taskmanager import TaskManager
 from core.processor_loop import ProcessorLoop
+from core.alembic_runner import run_alembic_upgrade
 
 # Global shared config
 config = Config.get_sync()
@@ -98,6 +100,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Ensure DB schema exists in dev/local environments.
     await DBInstance.init_db()
     await ensure_sqlite_schema_columns()
+    await asyncio.to_thread(run_alembic_upgrade, env_config.DATABASE_URL)
     logger.info("Database schema check complete.")
 
     # Seed initial local admin account if AMM_BOOTSTRAP_ADMIN_* env vars are set.
