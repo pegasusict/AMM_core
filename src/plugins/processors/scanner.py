@@ -109,7 +109,7 @@ class ScannerProcessor(ProcessorBase):
 
     async def _detect_import_files(self) -> None:
         if any(f.is_file() for f in self.import_path.rglob("*")):
-            self.emit_task(TaskType.IMPORTER, batch=None)
+            self.emit_task(task_type=TaskType.IMPORTER, batch=None)
 
 
     # ---------------------------------------------------------
