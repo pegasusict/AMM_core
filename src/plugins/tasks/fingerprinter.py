@@ -183,5 +183,5 @@ class FingerPrinter(TaskBase):
         if not track.title and title:
             track.title = title
 
-        if not track.mbid and mbid:
+        if (not track.mbid or str(track.mbid).startswith("local_")) and mbid:
             track.mbid = mbid

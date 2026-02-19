@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime as dt
 from dataclasses import dataclass
 from pathlib import Path
 from typing import ClassVar, List
@@ -25,9 +26,13 @@ class ImporterConfig:
         raw_ext = config.get_list("extensions", "import")
 
         if isinstance(raw_ext, str):
-            extensions = [raw_ext.lower()]
+            ext = raw_ext.lower().strip()
+            extensions = [ext if ext.startswith(".") else f".{ext}"]
         elif isinstance(raw_ext, list):
-            extensions = [str(e).lower() for e in raw_ext]
+            extensions = []
+            for e in raw_ext:
+                ext = str(e).lower().strip()
+                extensions.append(ext if ext.startswith(".") else f".{ext}")
         else:
             extensions = []
 
@@ -166,7 +171,21 @@ class Importer(TaskBase):
                     )
                     continue
 
-                db_file = DBFile(file_path=str(destination), stage=self.stage_type)
+                now_utc = dt.datetime.now(dt.timezone.utc)
+                db_file = DBFile(
+                    file_path=str(destination),
+                    audio_ip=str(destination),
+                    imported=now_utc,
+                    processed=now_utc,
+                    bitrate=0,
+                    sample_rate=0,
+                    channels=0,
+                    file_type=destination.suffix.lower().lstrip("."),
+                    file_size=destination.stat().st_size if destination.exists() else 0,
+                    file_name=destination.stem,
+                    file_extension=destination.suffix.lower().lstrip("."),
+                    duration=0,
+                )
                 session.add(db_file)
                 self.stack.add_counter("imported_files")
 
