@@ -44,7 +44,13 @@ else:
 class DB:
     def __init__(self) -> None:
         """Initialize Async MySQL engine and session factory."""
-        self.engine: AsyncEngine = create_async_engine(env_config.DATABASE_URL, echo=env_config.DEBUG, future=True)
+        self.engine: AsyncEngine = create_async_engine(
+            env_config.DATABASE_URL,
+            echo=env_config.DEBUG,
+            future=True,
+            pool_pre_ping=True,
+            pool_recycle=1800,
+        )
         self.async_session_factory = sessionmaker(
             bind=self.engine,  # type: ignore
             class_=AsyncSession,

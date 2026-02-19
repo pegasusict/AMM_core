@@ -54,21 +54,21 @@ class TaskManager:
     async def _discover_and_register_plugins(self) -> None:
         await registry.init_all_audioutils()
         # task/classes mapping comes from registry
-        self.task_map = registry._task_classes
+        self.task_map = registry._task_classes # type: ignore
 
         self.logger.info("TaskManager: plugin discovery complete.")
 
     # ---------------- monitor ----------------
     async def _async_start_monitor(self) -> None:
-        if self._monitor_task and not self._monitor_task.done():
+        if self._monitor_task and not self._monitor_task.done(): # type: ignore
             return
         self._monitor_task = asyncio.create_task(self._monitor_loop(), name="task_manager.monitor")
 
     async def shutdown(self) -> None:
         self._shutdown = True
-        if self._monitor_task:
-            self._monitor_task.cancel()
-            await asyncio.gather(self._monitor_task, return_exceptions=True)
+        if self._monitor_task: # type: ignore
+            self._monitor_task.cancel() # type: ignore
+            await asyncio.gather(self._monitor_task, return_exceptions=True) # type: ignore
         pause_all = getattr(self, "pause_all_running_tasks", None)
         if pause_all is not None:
             await pause_all()
@@ -160,7 +160,7 @@ class TaskManager:
         self,
         task_class: Type[Any],
         batch: Any = None,
-        kwargs: Optional[dict] = None,
+        kwargs: Optional[dict[str, Any]] = None,
     ) -> str:
         """
         Instantiate and start (or queue) a task.
@@ -169,7 +169,7 @@ class TaskManager:
           - If non-exclusive: it will wait while an exclusive holder runs.
         """
 
-        kwargs = kwargs or {}
+        kwargs = kwargs or {} # type: ignore
         # instantiate via registry
         # registry.create_task returns an instance with audioutil deps injected
         task = await registry.create_task(
@@ -239,7 +239,7 @@ class TaskManager:
                 batch = record.get_batch()
                 kwargs = json.loads(record.kwargs or "{}")
                 task_class = self._get_task_class(task_type)
-                await self.start_task(task_class, batch=batch, kwargs=kwargs)
+                await self.start_task(task_class, batch=batch, kwargs=kwargs) # type: ignore
             except Exception as e:
                 self.logger.error(f"Failed to resume task {record.task_id}: {e}")
 
@@ -251,7 +251,7 @@ class TaskManager:
         # Prefer a direct mapping if available
         tm = getattr(self, "task_map", {})
         # search by TaskType member name or by string
-        for cls_name, cls in tm.items():
+        for cls_name, cls in tm.items(): # type: ignore
             if getattr(cls, "task_type", None) == task_type:
                 return cls
         raise ValueError(f"No task class mapped for {task_type}")
