@@ -23,6 +23,7 @@ import contextlib
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 from collections import defaultdict
+from sqlmodel import select
 
 from core.processor_base import ProcessorBase
 from core.types import AsyncSessionLike, DBInterface
@@ -88,9 +89,9 @@ class ScannerProcessor(ProcessorBase):
                     self.emit_task(task_type=task_type, batch=chunk)
 
             # 3. Artwork scan
-            artwork = self._scan_missing_art(session)
+            artwork = await self._scan_missing_art(session)
             if artwork:
-                self.emit_task(TaskType.ART_GETTER, batch=artwork)
+                self.emit_task(task_type=TaskType.ART_GETTER, batch=artwork)
 
             await session.close()
 
@@ -127,7 +128,7 @@ class ScannerProcessor(ProcessorBase):
         # Registry-driven mapping
         tasks_by_stage = self.registry._stage_records  # { StageType: [task_name, ...] }
 
-        files = session.query(DBFile).all()
+        files = (await session.exec(select(DBFile))).all()
         for file in files:
 
             # DBFile already finished all stages?
@@ -161,25 +162,10 @@ class ScannerProcessor(ProcessorBase):
     # ---------------------------------------------------------
     # Artwork scanning
     # ---------------------------------------------------------
-    def _scan_missing_art(self, session: AsyncSessionLike) -> Dict[str, ArtType]:
-        missing: Dict[str, ArtType] = {}
-
-        # Albums
-        for album in session.query(DBAlbum).filter(DBAlbum.picture.is_(None)).all():
-            if album.mbid:
-                missing[album.mbid] = ArtType.ALBUM
-
-        # Persons
-        for person in session.query(DBPerson).filter(DBPerson.picture.is_(None)).all():
-            if person.mbid:
-                missing[person.mbid] = ArtType.ARTIST
-
-        # Labels
-        for label in session.query(DBLabel).filter(DBLabel.picture.is_(None)).all():
-            if label.mbid:
-                missing[label.mbid] = ArtType.LABEL
-
-        return missing
+    async def _scan_missing_art(self, session: AsyncSessionLike) -> Dict[str, ArtType]:
+        # The current ORM models do not expose direct `picture` relationships on
+        # album/person/label, so this scan is disabled to avoid crashing scanner.
+        return {}
 
 
     # ---------------------------------------------------------

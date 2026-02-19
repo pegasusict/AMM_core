@@ -25,9 +25,10 @@ class DuplicateScanProcessor(ProcessorBase):
     version = "1.0.0"
     exclusive = True
     heavy_io = True
+    depends = []
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *, config: Any = None) -> None:
+        super().__init__(config=config)
         self.db = DBInstance
         self.logger = Logger()
 

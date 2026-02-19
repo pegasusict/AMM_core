@@ -188,10 +188,34 @@ class DBTask(AutoFetchable, SQLModel, table=True):
     # ---------------------------
 
     def _fill_required_fields(self, task: Task) -> None:
-        for field in self.required_fields:
-            if not hasattr(self, field) or getattr(self, field) in (None, "", []):
-                raise ValueError(f"Task is missing required attribute: {field}")
-            setattr(self, field, getattr(task, field))
+        # TaskBase stores many runtime values in private attrs/properties.
+        # Persist from those canonical values instead of assuming DBTask field names.
+        if not getattr(task, "task_id", None):
+            raise ValueError("Task is missing required attribute: task_id")
+        if not getattr(task, "task_type", None):
+            raise ValueError("Task is missing required attribute: task_type")
+
+        self.task_id = task.task_id
+        now_utc = dt.datetime.now(dt.timezone.utc)
+        self.start_time = (
+            dt.datetime.fromtimestamp(task._start_time, tz=dt.timezone.utc)
+            if getattr(task, "_start_time", 0)
+            else now_utc
+        )
+        self.end_time = (
+            dt.datetime.fromtimestamp(task._end_time, tz=dt.timezone.utc)
+            if getattr(task, "_end_time", 0)
+            else now_utc
+        )
+        self.duration = int(getattr(task, "duration", 0) or 0)
+        self.processed = int(getattr(task, "processed", 0) or 0)
+        self.progress = float(getattr(task, "progress", 0.0) or 0.0)
+        self.function = str(getattr(task, "name", "") or "")
+        self.kwargs = str(getattr(task, "kwargs", "") or "")
+        self.result = str(getattr(task, "result", "") or "")
+        self.error = str(getattr(task, "error", "") or "")
+        self.status = getattr(task, "status")
+        self.task_type = getattr(task, "task_type")
 
     def _handle_art_getter(self, task: Task) -> None:
         albums = []

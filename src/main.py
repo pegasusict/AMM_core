@@ -141,11 +141,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as e:
         logger.exception(f"PlayerService shutdown error: {e}")
 
-    try:
-        config.stop_watching()
-        logger.info("Stopped config watcher.")
-    except Exception as e:
-        logger.exception(f"Config watcher shutdown error: {e}")
+    # AsyncConfigManager currently has no shutdown watcher hook.
 
     logger.info("AMM shutdown complete.")
 

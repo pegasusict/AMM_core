@@ -251,9 +251,13 @@ class TaskManager:
         we use task_type.name lowercase to find the class, or rely on an explicit mapping if you provided one.
         """
         # Prefer a direct mapping if available
-        tm = getattr(self, "task_map", {})
+        tm = getattr(self, "task_map", {}) or {}
         # search by TaskType member name or by string
         for cls_name, cls in tm.items(): # type: ignore
+            if getattr(cls, "task_type", None) == task_type:
+                return cls
+        # Fallback: registry may already know task classes even if task_map init raced.
+        for cls_name, cls in registry._task_classes.items(): # type: ignore[attr-defined]
             if getattr(cls, "task_type", None) == task_type:
                 return cls
         raise ValueError(f"No task class mapped for {task_type}")

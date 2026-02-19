@@ -100,7 +100,8 @@ class TaskBase(PluginBase, metaclass=ABCMeta):
     # --- Status and lifecycle management ---
 
     def _make_id(self) -> str:
-        timestamp = dt.datetime.now(dt.timezone.utc).isoformat()
+        # Keep task IDs short enough for DBTask.task_id VARCHAR(40).
+        timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d%H%M%S%f")
         return f"{self.name}_{timestamp}"
 
     @property

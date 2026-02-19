@@ -7,7 +7,7 @@
 from __future__ import annotations
 import shutil
 from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, Optional
 
 import asyncio
 from pydub import AudioSegment
@@ -40,14 +40,16 @@ class Exporter(ProcessorBase):
     def __init__(
         self,
         *,
-        batch: list[int],
+        config: Optional[Config] = None,
+        batch: Optional[list[int]] = None,
     ) -> None:
+        super().__init__(config=config)
         self.logger = Logger()
 
-        self.config = Config.get_sync()
+        self.config = config or Config.get_sync()
         self.db: DBInterface = DBInstance
 
-        self.batch = batch
+        self.batch = batch or []
 
         self.export_dir = Path(self.config.get_path("export"))
         self.export_format = self.config.get_string("export", "format", "mp3").lower()
