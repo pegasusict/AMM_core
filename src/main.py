@@ -19,6 +19,7 @@ from Server.playerservice import PlayerService
 from auth.bootstrap import ensure_bootstrap_admin
 
 from core.registry import registry
+from core.bootstrap import bootstrap_plugins
 from core.taskmanager import TaskManager
 from core.processor_loop import ProcessorLoop
 
@@ -33,11 +34,13 @@ logger = Logger(config)
 
 async def initialize_system() -> None:
     """
-    Initializes AUDIOUTILS ONLY.
-    Tasks and processors are instantiated dynamically by
-    TaskManager and ProcessorLoop.
+    Bootstraps plugin modules and initializes audio utils.
     """
-    logger.info("Initializing audio utilities...")
+    logger.info("Bootstrapping plugin modules...")
+    await bootstrap_plugins()
+    logger.info("Plugin modules bootstrapped.")
+
+    logger.info("Initializing audio utility instances...")
     await registry.init_all_audioutils()
     logger.info("Audio utilities initialized.")
 

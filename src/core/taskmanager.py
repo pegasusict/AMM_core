@@ -7,6 +7,7 @@ from typing import Type, Optional, Any, Dict
 
 from Singletons import DBInstance, Logger
 from config import Config
+from .bootstrap import bootstrap_plugins
 from .registry import registry
 from .enums import TaskStatus, TaskType
 from .dbmodels import DBTask  # ORM model, NOT a task
@@ -52,6 +53,7 @@ class TaskManager:
         asyncio.create_task(self._async_start_monitor())
 
     async def _discover_and_register_plugins(self) -> None:
+        await bootstrap_plugins()
         await registry.init_all_audioutils()
         # task/classes mapping comes from registry
         self.task_map = registry._task_classes # type: ignore

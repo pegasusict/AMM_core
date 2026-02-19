@@ -9,7 +9,7 @@ from core.types import DBInterface, DirectoryScannerProtocol, StackProtocol
 from core.enums import StageType, TaskType
 from core.dbmodels import DBFile
 from config import Config
-from Singletons import DBInstance, Logger
+from Singletons import DBInstance, Logger, Stack
 
 
 @dataclass
@@ -65,19 +65,21 @@ class Importer(TaskBase):
         self,
         directory_scanner: DirectoryScannerProtocol,
         *,
-        config: Config,
-        stack: StackProtocol,
+        config: Config | None = None,
+        stack: StackProtocol | None = None,
+        batch: object | None = None,
+        **kwargs: object,
     ) -> None:
-        # no parent super(), new architecture handles base init
+        super().__init__(config=config, batch=batch, **kwargs)
         self.logger = Logger()
-        self.config = config
+        self.config = config or Config.get_sync()
         self.db: DBInterface = DBInstance
-        self.stack = stack
+        self.stack = stack or Stack()
         self.scanner = directory_scanner
 
         self.config_data = ImporterConfig.from_config(
-            config=config,
-            dry_run=config.get_bool("import", "dry_run", False),
+            config=self.config,
+            dry_run=self.config.get_bool("import", "dry_run", False),
         )
 
         # counters defined in legacy behaviour

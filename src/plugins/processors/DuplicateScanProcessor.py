@@ -20,6 +20,11 @@ class DuplicateScanProcessor(ProcessorBase):
 
     stage_type = StageType.PREPROCESS
     stage_name = "Duplicate Scan Processor"
+    name = "duplicate_scan_processor"
+    description = "Scans the database for duplicate files and emits a deduplication stage."
+    version = "1.0.0"
+    exclusive = True
+    heavy_io = True
 
     def __init__(self) -> None:
         super().__init__()
