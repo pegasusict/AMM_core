@@ -165,7 +165,7 @@ async def daily_stat_snapshot() -> None:
 
 
 @app.on_event("startup")
-@repeat_every(seconds=86400)
+@repeat_every(seconds=86400, wait_first=True)
 async def daily_task_retention_cleanup() -> None:
     if not env_config.TASK_RETENTION_ENABLED:
         return
