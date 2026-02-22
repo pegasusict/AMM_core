@@ -7,10 +7,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from core.dbmodels import DBUser
 from Singletons.database import DBInstance
-import os
-
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "super-secret")
-ALGORITHM = "HS256"
+from auth.jwt_utils import SECRET_KEY, ALGORITHM
 
 bearer_scheme = HTTPBearer(auto_error=False)
 

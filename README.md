@@ -83,3 +83,11 @@ mutation {
   runTaskRetentionCleanup(olderThanDays: 7)
 }
 ```
+
+## Security-related env vars
+
+- `JWT_SECRET_KEY` (required unless `ALLOW_INSECURE_DEFAULT_JWT_SECRET=true`)
+- `ALLOW_INSECURE_DEFAULT_JWT_SECRET` (default: `false`, dev-only fallback)
+- `GRAPHIQL_ENABLED` (default: `false`)
+- `CORS_ALLOW_ALL` (default: `false`)
+- `CORS_ORIGINS` (comma-separated allowlist)

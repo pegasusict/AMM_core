@@ -75,18 +75,12 @@ async def ensure_sqlite_schema_columns() -> None:
 graphql_app = GraphQLRouter(
     schema,
     subscription_protocols=[GRAPHQL_WS_PROTOCOL],
-    graphiql=True,
+    graphiql=env_config.GRAPHIQL_ENABLED,
     context_getter=get_context,
 )
 
 # CORS
-origins = [
-    "http://localhost",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    "*",
-    "http://localhost:3000",
-]
+origins = ["*"] if env_config.CORS_ALLOW_ALL else list(env_config.CORS_ORIGINS)
 
 
 # ----------------------------

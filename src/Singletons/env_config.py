@@ -35,13 +35,31 @@ def _as_bool(value: Optional[str], default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _as_csv(value: Optional[str], default: tuple[str, ...]) -> tuple[str, ...]:
+    if value is None:
+        return default
+    items = tuple(part.strip() for part in value.split(",") if part.strip())
+    return items or default
+
+
 @dataclass(frozen=True)
 class EnvConfig:
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///amm.db")
     DEBUG: bool = _as_bool(os.getenv("DEBUG", "false"), False)
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "").strip()
+    ALLOW_INSECURE_DEFAULT_JWT_SECRET: bool = _as_bool(
+        os.getenv("ALLOW_INSECURE_DEFAULT_JWT_SECRET", "false"),
+        False,
+    )
 
     TASK_RETENTION_ENABLED: bool = _as_bool(os.getenv("TASK_RETENTION_ENABLED", "true"), True)
     TASK_RETENTION_DAYS: int = int(os.getenv("TASK_RETENTION_DAYS", "30"))
+    GRAPHIQL_ENABLED: bool = _as_bool(os.getenv("GRAPHIQL_ENABLED", "false"), False)
+    CORS_ALLOW_ALL: bool = _as_bool(os.getenv("CORS_ALLOW_ALL", "false"), False)
+    CORS_ORIGINS: tuple[str, ...] = _as_csv(
+        os.getenv("CORS_ORIGINS"),
+        ("http://localhost", "http://localhost:8000", "http://127.0.0.1:8000"),
+    )
 
     ICECAST_HOST: str = os.getenv("ICECAST_HOST", "localhost")
     ICECAST_PORT: int = int(os.getenv("ICECAST_PORT", "8000"))

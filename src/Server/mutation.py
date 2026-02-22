@@ -205,6 +205,7 @@ class Mutation:
     @strawberry.mutation
     async def update_track(self, info: Info, track_id: int, data: TrackInput) -> bool:
         """Update an existing track using provided input fields."""
+        _require_admin(info)
         async for session in DBInstance.get_session():
             track = await session.get(DBTrack, track_id)
             if track:
@@ -217,6 +218,7 @@ class Mutation:
     @strawberry.mutation
     async def update_album(self, info: Info, album_id: int, data: AlbumInput) -> bool:
         """Update an existing album."""
+        _require_admin(info)
         async for session in DBInstance.get_session():
             album = await session.get(DBAlbum, album_id)
             if album:
@@ -229,6 +231,7 @@ class Mutation:
     @strawberry.mutation
     async def update_person(self, info: Info, person_id: int, data: PersonInput) -> bool:
         """Update an existing person (artist, performer, etc)."""
+        _require_admin(info)
         async for session in DBInstance.get_session():
             person = await session.get(DBPerson, person_id)
             if person:
@@ -241,6 +244,7 @@ class Mutation:
     @strawberry.mutation
     async def update_genre(self, info: Info, genre_id: int, data: GenreInput) -> bool:
         """Update an existing genre."""
+        _require_admin(info)
         async for session in DBInstance.get_session():
             genre = await session.get(DBGenre, genre_id)
             if genre:
@@ -253,6 +257,7 @@ class Mutation:
     @strawberry.mutation
     async def update_label(self, info: Info, label_id: int, data: LabelInput) -> Label:
         """Update an existing label."""
+        _require_admin(info)
         async for session in DBInstance.get_session():
             label = await session.get(DBLabel, label_id)
             if not label:
@@ -486,6 +491,7 @@ class Mutation:
     @strawberry.mutation
     async def update_file(self, info: Info, file_id: int, data: FileInput) -> bool:
         """Update file metadata (path, size, format, etc)."""
+        _require_admin(info)
         async for session in DBInstance.get_session():
             file = await session.get(DBFile, file_id)
             if file:
@@ -498,6 +504,7 @@ class Mutation:
     @strawberry.mutation
     async def delete_file(self, info: Info, file_id: int) -> bool:
         """Delete a file entry completely."""
+        _require_admin(info)
         async for session in DBInstance.get_session():
             file = await session.get(DBFile, file_id)
             if file:
@@ -509,4 +516,5 @@ class Mutation:
     @strawberry.mutation
     async def start_export(self, info: Info) -> bool:
         """Placeholder for future export task."""
+        _require_admin(info)
         return False

@@ -86,6 +86,23 @@ def _require_user(info: Info) -> DBUser:
     return user
 
 
+def _is_admin(user: DBUser) -> bool:
+    role = getattr(user, "role", None)
+    if isinstance(role, UserRole):
+        return role == UserRole.ADMIN
+    if isinstance(role, str):
+        normalized = role.strip().lower()
+        return normalized in {UserRole.ADMIN.value.lower(), UserRole.ADMIN.name.lower()}
+    return False
+
+
+def _require_admin(info: Info) -> DBUser:
+    user = _require_user(info)
+    if not _is_admin(user):
+        raise ValueError("Admin role required")
+    return user
+
+
 TModel = TypeVar("TModel")
 TGraph = TypeVar("TGraph")
 
@@ -127,16 +144,19 @@ class Query:
 
     @strawberry.field
     async def get_task(self, info: Info, task_id: int) -> Optional[Task]:
+        _require_admin(info)
         async for session in DBInstance.get_session():
             task = await session.get(DBTask, task_id)
             return map_dbtask_to_task(task) if task else None
 
     @strawberry.field
     async def tasks(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Task]:  # type: ignore
+        _require_admin(info)
         return await _paginate(DBTask, map_dbtask_to_task, limit, offset)
 
     @strawberry.field
     async def get_task_display(self, info: Info) -> Optional[list[DisplayTask]]:
+        _require_admin(info)
         async for session in DBInstance.get_session():
             result = await session.exec(select(DBTask))
             tasks = result.all()
@@ -144,6 +164,7 @@ class Query:
 
     @strawberry.field
     async def task_stats(self, info: Info, task_type: TaskType) -> Optional[TaskStats]:
+        _require_admin(info)
         stat = await DBInstance.get_task_stats(task_type)
         return TaskStats(**stat.dict()) if stat else None
 
@@ -155,6 +176,7 @@ class Query:
         limit: int = 25,
         offset: int = 0,
     ) -> Paginated[TaskStatSnapshot]:  # type: ignore
+        _require_admin(info)
         async for session in DBInstance.get_session():
             stmt = (
                 select(DBTaskStatSnapshot)
@@ -174,6 +196,7 @@ class Query:
 
     @strawberry.field
     async def task_stat_trend(self, info: Info, task_type: TaskType) -> Optional[TaskStatTrend]:
+        _require_admin(info)
         snapshots = await DBInstance.get_task_stat_snapshots(task_type)
         if not snapshots:
             return None
@@ -193,6 +216,7 @@ class Query:
 
     @strawberry.field
     async def task_stat_summary(self, info: Info, task_type: TaskType) -> Optional[TaskStatSummary]:
+        _require_admin(info)
         snapshots = await DBInstance.get_task_stat_snapshots(task_type)
         if len(snapshots) < 2:  # type: ignore
             return None
@@ -299,12 +323,14 @@ class Query:
 
     @strawberry.field
     async def get_file(self, info: Info, file_id: int) -> Optional[File]:
+        _require_admin(info)
         async for session in DBInstance.get_session():
             file = await session.get(DBFile, file_id)
             return map_dbfile_to_file(file) if file else None
 
     @strawberry.field
     async def files(self, info: Info, limit: int = 20, offset: int = 0) -> list[File]:  # type: ignore
+        _require_admin(info)
         async for session in DBInstance.get_session():
             result = await session.exec(select(DBFile).offset(offset).limit(limit))
             files = result.all()
@@ -312,6 +338,7 @@ class Query:
 
     @strawberry.field
     async def get_user(self, info: Info, user_id: int) -> Optional[User]:
+        _require_admin(info)
         async for session in DBInstance.get_session():
             user = await session.get(DBUser, user_id)
             return map_dbuser_to_user(user) if user else None
@@ -333,6 +360,7 @@ class Query:
         is_active: Optional[bool] = None,
         search: Optional[str] = None,
     ) -> Paginated[User]:  # type: ignore
+        _require_admin(info)
         stmt = select(DBUser)
         filters = []
         if username:
@@ -486,6 +514,7 @@ class Query:
 
     @strawberry.field
     async def start_import(self, info: Info) -> bool:
+        _require_admin(info)
         tm = TaskManager()
         task_cls = registry.get_task_class("importer")
         if task_cls is None:
