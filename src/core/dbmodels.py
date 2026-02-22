@@ -50,7 +50,7 @@ class DBUser(AutoFetchable, SQLModel, table=True):
     first_name: str = Field(default="", sa_type=String(40), max_length=40)
     middle_name: str = Field(default="", sa_type=String(16), max_length=16)
     last_name: str = Field(default="", sa_type=String(40), max_length=40)
-    date_of_birth: dt.datetime = Field(default=None)
+    date_of_birth: Optional[dt.datetime] = Field(default=None, sa_column_kwargs={"nullable": True})
     is_active: bool = Field(default=True)
     role: UserRole = Field(default=UserRole.USER.value)  # Default role is USER
     created_at: dt.datetime = Field(default_factory=lambda: dt.datetime.now(dt.timezone.utc))
@@ -127,7 +127,7 @@ class DBTask(AutoFetchable, SQLModel, table=True):
     id: int = Field(default=None, sa_type=Integer, primary_key=True, unique=True)
     task_id: str = Field(default="", nullable=False, sa_type=String(40), max_length=40)
     start_time: dt.datetime = Field(default=None)
-    end_time: dt.datetime = Field(default=None)
+    end_time: Optional[dt.datetime] = Field(default=None, sa_column_kwargs={"nullable": True})
     duration: int = Field(default=0, sa_type=Integer)
     processed: int = Field(default=0, sa_type=Integer)
     progress: float = Field(default=0, sa_type=Float)
@@ -205,7 +205,7 @@ class DBTask(AutoFetchable, SQLModel, table=True):
         self.end_time = (
             dt.datetime.fromtimestamp(task._end_time, tz=dt.timezone.utc)
             if getattr(task, "_end_time", 0)
-            else now_utc
+            else None
         )
         self.duration = int(getattr(task, "duration", 0) or 0)
         self.processed = int(getattr(task, "processed", 0) or 0)
