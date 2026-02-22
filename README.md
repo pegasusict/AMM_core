@@ -68,3 +68,10 @@ Run database migrations manually (optional; startup also runs `alembic upgrade h
 ```bash
 make migrate-db
 ```
+
+## Task retention
+
+Old task rows are cleaned up automatically once per day at startup interval.
+
+- `TASK_RETENTION_ENABLED` (default: `true`)
+- `TASK_RETENTION_DAYS` (default: `30`)

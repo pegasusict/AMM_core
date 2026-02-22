@@ -19,7 +19,7 @@ This module contains the DB class, which is used to manage the database connecti
 It uses the SQLModel library to connect to the database and perform operations on it.
 """
 
-from typing import Any, AsyncGenerator, Callable, Awaitable, Optional, TYPE_CHECKING
+from typing import Any, AsyncGenerator, Callable, Awaitable, Optional, TYPE_CHECKING, Sequence
 from pathlib import Path
 import datetime as dt
 import asyncio
@@ -28,7 +28,7 @@ from sqlmodel import SQLModel, select, func
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy import text
+from sqlalchemy import text, delete, update
 
 from core.exceptions import InvalidValueError
 from Enums import ArtType, Stage, TaskStatus, TaskType
@@ -295,6 +295,58 @@ class DB:
                 )
             )
             return result.all() if result else None  # type: ignore
+
+    async def prune_old_tasks(
+        self,
+        *,
+        older_than_days: int,
+        statuses: Optional[Sequence[TaskStatus]] = None,
+    ) -> int:
+        """Delete old task records and detach references from related tables."""
+        if older_than_days <= 0:
+            return 0
+
+        from dbmodels import (
+            DBTask,
+            DBFile,
+            DBTrack,
+            DBAlbum,
+            DBPerson,
+            DBLabel,
+            DBFileToConvert,
+        )
+
+        cleanup_statuses = tuple(statuses or (TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED))
+        cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=older_than_days)
+
+        async for session in self.get_session():
+            result = await session.exec(
+                select(DBTask.id).where(
+                    DBTask.start_time < cutoff,
+                    DBTask.status.in_(cleanup_statuses),
+                )
+            )
+            task_ids = list(result.all())
+            if not task_ids:
+                return 0
+
+            convert_result = await session.exec(select(DBFileToConvert.id).where(DBFileToConvert.task_id.in_(task_ids)))
+            convert_ids = list(convert_result.all())
+            if convert_ids:
+                await session.exec(update(DBFile).where(DBFile.batch_id.in_(convert_ids)).values(batch_id=None))
+
+            await session.exec(update(DBFile).where(DBFile.task_id.in_(task_ids)).values(task_id=None))
+            await session.exec(update(DBTrack).where(DBTrack.task_id.in_(task_ids)).values(task_id=None))
+            await session.exec(update(DBAlbum).where(DBAlbum.task_id.in_(task_ids)).values(task_id=None))
+            await session.exec(update(DBPerson).where(DBPerson.task_id.in_(task_ids)).values(task_id=None))
+            await session.exec(update(DBLabel).where(DBLabel.task_id.in_(task_ids)).values(task_id=None))
+
+            await session.exec(delete(DBFileToConvert).where(DBFileToConvert.task_id.in_(task_ids)))
+            await session.exec(delete(DBTask).where(DBTask.id.in_(task_ids)))
+            await session.commit()
+            return len(task_ids)
+
+        return 0
 
 
 # Instantiate globally

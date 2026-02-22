@@ -103,6 +103,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await asyncio.to_thread(run_alembic_upgrade, env_config.DATABASE_URL)
     logger.info("Database schema check complete.")
 
+    if env_config.TASK_RETENTION_ENABLED:
+        try:
+            removed = await DBInstance.prune_old_tasks(older_than_days=env_config.TASK_RETENTION_DAYS)
+            logger.info(
+                f"Task retention cleanup ran at startup: removed={removed}, days={env_config.TASK_RETENTION_DAYS}"
+            )
+        except Exception as e:
+            logger.exception(f"Task retention cleanup failed at startup: {e}")
+
     # Seed initial local admin account if AMM_BOOTSTRAP_ADMIN_* env vars are set.
     await ensure_bootstrap_admin(logger)
 
@@ -159,6 +168,17 @@ app = FastAPI(lifespan=lifespan)
 @repeat_every(seconds=86400)
 async def daily_stat_snapshot() -> None:
     await DBInstance.snapshot_task_stats()
+
+
+@app.on_event("startup")
+@repeat_every(seconds=86400)
+async def daily_task_retention_cleanup() -> None:
+    if not env_config.TASK_RETENTION_ENABLED:
+        return
+    removed = await DBInstance.prune_old_tasks(older_than_days=env_config.TASK_RETENTION_DAYS)
+    logger.info(
+        f"Task retention cleanup ran: removed={removed}, days={env_config.TASK_RETENTION_DAYS}"
+    )
 
 app.add_middleware(
     CORSMiddleware,

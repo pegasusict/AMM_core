@@ -40,6 +40,9 @@ class EnvConfig:
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///amm.db")
     DEBUG: bool = _as_bool(os.getenv("DEBUG", "false"), False)
 
+    TASK_RETENTION_ENABLED: bool = _as_bool(os.getenv("TASK_RETENTION_ENABLED", "true"), True)
+    TASK_RETENTION_DAYS: int = int(os.getenv("TASK_RETENTION_DAYS", "30"))
+
     ICECAST_HOST: str = os.getenv("ICECAST_HOST", "localhost")
     ICECAST_PORT: int = int(os.getenv("ICECAST_PORT", "8000"))
     ICECAST_MOUNT_TEMPLATE: str = os.getenv("ICECAST_MOUNT_TEMPLATE", "/stream/{username}")

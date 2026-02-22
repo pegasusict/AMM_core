@@ -5,6 +5,7 @@ import os
 import json
 from typing import Type, Optional, Any, Dict
 
+from sqlmodel import select
 from Singletons import DBInstance, Logger
 from config import Config
 from .bootstrap import bootstrap_plugins
@@ -45,6 +46,7 @@ class TaskManager:
         self._shutdown = False
         self._monitor_task: Optional[asyncio.Task] = None
         self._exclusive_holder_task_id: Optional[str] = None
+        self._runner_tasks: Dict[str, asyncio.Task[Any]] = {}
 
         # auto-discover plugins (async)
         asyncio.create_task(self._discover_and_register_plugins())
@@ -87,34 +89,49 @@ class TaskManager:
 
     async def _check_running_tasks(self) -> None:
         """
-        Inspect running tasks and update status; release exclusive lock if holder finished.
-        This expects each task instance to expose 'is_alive' or 'status' fields as before.
+        Inspect running tasks and persist lifecycle updates.
         """
-        for status, group in list(self.tasks.items()):
+        finalized_ids: set[str] = set()
+        for status_key, group in list(self.tasks.items()):
             for task_id, task in list(group.items()):
-                # if running but not alive -> finalize
-                if getattr(task, "status", None) == TaskStatus.RUNNING and not getattr(task, "is_alive", lambda: True)():
-                    try:
-                        # call task.wait() if present
-                        if hasattr(task, "wait"):
-                            await asyncio.get_event_loop().run_in_executor(None, task.wait)
-                    except Exception:
-                        pass
-
-                    self.running_tasks = max(self.running_tasks - 1, 0)
-                    # update status transition logic (task object should update its status)
+                status = getattr(task, "status", TaskStatus.PENDING)
+                status_value = status.value if isinstance(status, TaskStatus) else str(status)
+                if status_value != status_key:
                     self.update_task_status(task)
 
-                    # if this task held the exclusive lock, release it
-                    if getattr(task, "task_id", None) == self._exclusive_holder_task_id:
-                        self.logger.info(f"TaskManager: releasing exclusive lock held by {task.task_id}")
-                        release_exclusive()
-                        self._exclusive_holder_task_id = None
+                runner = self._runner_tasks.get(task_id)
+                if runner is None or task_id in finalized_ids or not runner.done():
+                    continue
+
+                finalized_ids.add(task_id)
+                try:
+                    await runner
+                except asyncio.CancelledError:
+                    if hasattr(task, "cancel"):
+                        task.cancel()
+                except Exception as exc:
+                    self.logger.exception(f"Task {task_id} raised an unhandled exception: {exc}")
+                    if getattr(task, "status", None) != TaskStatus.FAILED and hasattr(task, "set_error"):
+                        task.set_error(str(exc))
+                finally:
+                    self._runner_tasks.pop(task_id, None)
+
+                self.running_tasks = max(self.running_tasks - 1, 0)
+                self.update_task_status(task)
+                await self._save_task_to_db(task)
+
+                # if this task held the exclusive lock, release it
+                if getattr(task, "task_id", None) == self._exclusive_holder_task_id:
+                    self.logger.info(f"TaskManager: releasing exclusive lock held by {task.task_id}")
+                    release_exclusive()
+                    self._exclusive_holder_task_id = None
 
         # start new tasks from queue if possible
         while self.task_queue and self.running_tasks < self.max_concurrent_tasks:
             task = self.task_queue.pop(0)
             await self._start_task(task, "Queued task ")
+            await asyncio.sleep(0)
+            await self._save_task_to_db(task)
             self.update_task_status(task)
 
     # ---------------- persistence ----------------
@@ -123,26 +140,36 @@ class TaskManager:
             return
         if not getattr(task, "task_id", None):
             raise ValueError("Task must have task_id before saving")
-        db_task = DBTask()
-        db_task.import_task(task)
         async for session in self.db.get_session():
+            result = await session.exec(select(DBTask).where(DBTask.task_id == task.task_id))
+            db_task = result.first()
+            if db_task is None:
+                db_task = DBTask()
+            db_task.import_task(task)
             session.add(db_task)
             await session.commit()
-            await session.close()
 
     # ---------------- registration helpers ----------------
     def register_task(self, task: Any) -> None:
-        status = getattr(task, "status", TaskStatus.PENDING).value
-        if status not in self.tasks:
-            self.tasks[status] = {}
-        self.tasks[status][task.task_id] = task
+        task_id = getattr(task, "task_id", None)
+        if not task_id:
+            return
+
+        # Keep a single canonical location for each task_id.
+        for group in self.tasks.values():
+            group.pop(task_id, None)
+
+        status = getattr(task, "status", TaskStatus.PENDING)
+        status_key = status.value if isinstance(status, TaskStatus) else str(status)
+        if status_key not in self.tasks:
+            self.tasks[status_key] = {}
+        self.tasks[status_key][task_id] = task
 
     def unregister_task(self, task_id: str, status: TaskStatus) -> None:
         if status.value in self.tasks and task_id in self.tasks[status.value]:
             del self.tasks[status.value][task_id]
 
     def update_task_status(self, task: Any) -> None:
-        self.unregister_task(getattr(task, "task_id"), getattr(task, "old_status", TaskStatus.PENDING))
         self.register_task(task)
 
     def get_task(self, task_id: str) -> Optional[Any]:
@@ -193,6 +220,7 @@ class TaskManager:
             # if one of the task types is globally exclusive, queue if another instance running
             if self._exclusive_task_running(task.task_type):
                 self.task_queue.append(task)
+                await self._save_task_to_db(task)
                 self.logger.info(f"Task {task.task_id} queued (mutually exclusive running).")
                 return task.task_id
 
@@ -205,11 +233,14 @@ class TaskManager:
         # Queue on concurrency limits
         if self.running_tasks >= self.max_concurrent_tasks:
             self.task_queue.append(task)
+            await self._save_task_to_db(task)
             self.logger.info(f"Task {task.task_id} queued (concurrency limit).")
             return task.task_id
 
         # Start the task (non-blocking; task.start() should be implemented to run in background if needed)
         await self._start_task(task, "Task ")
+        await asyncio.sleep(0)
+        self.update_task_status(task)
         await self._save_task_to_db(task)
         return task.task_id
 
@@ -217,17 +248,25 @@ class TaskManager:
         """Start the task instance (in-process)."""
         # Implementation detail: if task.start is async, schedule it as a background task.
         start_fn = getattr(task, "start", None)
+        runner_task: asyncio.Task[Any]
         if start_fn is None:
             # maybe older callable interface
-            if hasattr(task, "run"):
-                # schedule run() in background
-                asyncio.create_task(task.run(), name=f"task:{task.task_id}")
+            run_fn = getattr(task, "run", None)
+            if run_fn is not None:
+                if asyncio.iscoroutinefunction(run_fn):
+                    runner_task = asyncio.create_task(run_fn(), name=f"task:{task.task_id}")
+                else:
+                    runner_task = asyncio.create_task(asyncio.to_thread(run_fn), name=f"task:{task.task_id}")
             else:
                 raise RuntimeError("Task object has no start/run method")
         else:
             # schedule start() as background task (don't await here)
-            asyncio.create_task(start_fn(), name=f"task:{task.task_id}")
+            if asyncio.iscoroutinefunction(start_fn):
+                runner_task = asyncio.create_task(start_fn(), name=f"task:{task.task_id}")
+            else:
+                runner_task = asyncio.create_task(asyncio.to_thread(start_fn), name=f"task:{task.task_id}")
 
+        self._runner_tasks[task.task_id] = runner_task
         self.running_tasks += 1
         self.logger.info(f"{task_desc}{getattr(task, 'task_id', '<unknown>')} started.")
 
