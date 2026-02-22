@@ -1335,3 +1335,9 @@ Traceback (most recent call last):
     pause_all = getattr(self, "pause_all_running_tasks", None)
           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 AttributeError: 'TaskManager' object has no attribute 'pause_all_running_tasks'
+2026-02-22 15:47:52,044 - WARNING - LyricsGetter: No Genius token configured (genius_api_token or GENIUS_ACCESS_TOKEN).
+2026-02-22 15:47:52,044 - WARNING - LyricsGetter: No Genius token configured (genius_api_token or GENIUS_ACCESS_TOKEN).
+2026-02-22 15:48:19,793 - WARNING - LyricsGetter: No Genius token configured (genius_api_token or GENIUS_ACCESS_TOKEN).
+2026-02-22 15:48:19,793 - WARNING - LyricsGetter: No Genius token configured (genius_api_token or GENIUS_ACCESS_TOKEN).
+2026-02-22 15:48:40,959 - WARNING - LyricsGetter: No Genius token configured (genius_api_token or GENIUS_ACCESS_TOKEN).
+2026-02-22 15:48:40,959 - WARNING - LyricsGetter: No Genius token configured (genius_api_token or GENIUS_ACCESS_TOKEN).

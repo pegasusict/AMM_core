@@ -43,7 +43,7 @@ class AcoustID(AudioUtilBase):
         self.parser = media_parser
         self._client = acoustid_client
         # API key may come from Config or environment — accept override in process()
-        self._default_api_key = self.config.get("acoustid", "api_key", None)
+        self._default_api_key = self.config.get("acoustid", "api_key", "6VzpxSvoia")
 
     async def process(self, path: Path, api_key: Optional[str] = None) -> dict[str, Any]:
         """

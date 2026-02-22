@@ -14,77 +14,73 @@
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
-import pytest
+from types import SimpleNamespace
 from unittest.mock import patch
-
-pytest.importorskip("aiohttp")
 
 from plugins.audio_utils.lyrics_getter_util import LyricsGetter
 
 
-class _MockResponse:
-    def __init__(self, status: int, payload: dict):
-        self.status = status
-        self._payload = payload
+class _FakeConfig:
+    def __init__(self, token: str | None) -> None:
+        self._token = token
 
-    async def json(self):
-        return self._payload
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb):
-        return False
-
-
-class _MockSession:
-    def __init__(self, response: _MockResponse):
-        self._response = response
-
-    def get(self, *args, **kwargs):
-        return self._response
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb):
-        return False
+    def get(
+        self,
+        section: str,
+        key: str | None = None,
+        default: object = None,
+    ) -> object:
+        if section in {"genius_api_token", "genius_access_token"} and key is None:
+            return self._token
+        return default
 
 
-def test_get_lyrics_success():
-    lg = LyricsGetter()
-    lg.provider_url = "http://example.com"
-
-    response = _MockResponse(200, {"lyrics": "Test lyrics"})
-    session = _MockSession(response)
-
-    with patch("aiohttp.ClientSession", return_value=session):
-        result = asyncio.run(lg.get_lyrics("Artist - Title"))
-
-    assert result == "Test lyrics"
+class _FakeSong:
+    def __init__(self, lyrics: str) -> None:
+        self.lyrics = lyrics
 
 
-def test_get_lyrics_not_found():
-    lg = LyricsGetter()
-    lg.provider_url = "http://example.com"
+class _FakeGeniusClient:
+    def __init__(self, song: _FakeSong | None) -> None:
+        self.song = song
+        self.calls: list[tuple[str, str | None]] = []
 
-    response = _MockResponse(200, {"lyrics": None})
-    session = _MockSession(response)
+    def search_song(self, title: str, artist: str | None = None) -> _FakeSong | None:
+        self.calls.append((title, artist))
+        return self.song
 
-    with patch("aiohttp.ClientSession", return_value=session):
-        result = asyncio.run(lg.get_lyrics("Artist - Missing"))
 
+def _build_lyrics_getter(
+    song: _FakeSong | None = None,
+    token: str | None = "token",
+) -> tuple[LyricsGetter, _FakeGeniusClient]:
+    fake_client = _FakeGeniusClient(song=song)
+    fake_module = SimpleNamespace(Genius=lambda *args, **kwargs: fake_client)
+    with (
+        patch(
+            "plugins.audio_utils.lyrics_getter_util.Config.get_sync",
+            return_value=_FakeConfig(token),
+        ),
+        patch("plugins.audio_utils.lyrics_getter_util.lyricsgenius", fake_module),
+    ):
+        lg = LyricsGetter()
+    return lg, fake_client
+
+
+def test_get_lyrics_success() -> None:
+    lg, fake_client = _build_lyrics_getter(_FakeSong("Line 1\nLine 2\n123Embed"))
+    result = asyncio.run(lg.get_lyrics("Artist - Title"))
+    assert result == "Line 1\nLine 2"
+    assert fake_client.calls[0] == ("Title", "Artist")
+
+
+def test_get_lyrics_not_found() -> None:
+    lg, _ = _build_lyrics_getter(song=None)
+    result = asyncio.run(lg.get_lyrics("Artist - Missing"))
     assert result is None
 
 
-def test_get_lyrics_http_error():
-    lg = LyricsGetter()
-    lg.provider_url = "http://example.com"
-
-    response = _MockResponse(500, {})
-    session = _MockSession(response)
-
-    with patch("aiohttp.ClientSession", return_value=session):
-        result = asyncio.run(lg.get_lyrics("Artist - Error"))
-
+def test_get_lyrics_without_token() -> None:
+    lg, _ = _build_lyrics_getter(_FakeSong("lyrics"), token=None)
+    result = asyncio.run(lg.get_lyrics("Artist - Title"))
     assert result is None

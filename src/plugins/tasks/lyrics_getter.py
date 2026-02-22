@@ -25,7 +25,7 @@ class LyricsGetter(TaskBase):
 
     name = "lyrics_getter"
     description = "Fetches lyrics online and stores them in the database."
-    version = "2.0.0"
+    version = "2.0.1"
     author = "Mattijs Snepvangers"
 
     task_type = TaskType.LYRICS_GETTER
@@ -35,8 +35,8 @@ class LyricsGetter(TaskBase):
     depends = ["lyricsgetter"]
 
     # required new flags
-    exclusive: ClassVar[bool] = False           # can run concurrently
-    heavy_io: ClassVar[bool] = True             # network + DB operations
+    exclusive: ClassVar = False           # can run concurrently
+    heavy_io: ClassVar = True             # network + DB operations
 
     def __init__(
         self,
@@ -85,7 +85,7 @@ class LyricsGetter(TaskBase):
                     lyrics = await self.lyricsgetter.get_lyrics(query)
 
                     if lyrics:
-                        obj = DBTrackLyric(Lyric=lyrics, track=track)
+                        obj = DBTrackLyric(lyric=lyrics, track=track)
                         session.add(obj)
 
                         # update stage for each related file

@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import time
 import datetime as dt
-from typing import Any, Optional, Callable, ClassVar
+from typing import Any, Optional, Callable, ClassVar, TypeVar
 from abc import ABCMeta, abstractmethod
+
+from src.Singletons.logger import Logger
 
 from .enums import PluginType, TaskStatus, StageType, TaskType
 from .plugin_base import PluginBase
@@ -30,17 +32,17 @@ class TaskBase(PluginBase, metaclass=ABCMeta):
     """
 
     # --- Static metadata ---
-    plugin_type: ClassVar[PluginType] = PluginType.TASK
-    name: ClassVar[str] = None
-    description: ClassVar[str] = None
+    plugin_type: ClassVar[PluginType | None] = PluginType.TASK
+    name: ClassVar[str | None] = None
+    description: ClassVar[str | None] = None
     depends: ClassVar[list[str]] = ()
-    stage_type: ClassVar[StageType] = None
-    stage_name: ClassVar[str] = None
-    task_type: ClassVar[TaskType] = None
-    version: ClassVar[str] = None
-    author: ClassVar[str] = None
-    exclusive: ClassVar[bool] = None
-    heavy_io: ClassVar[bool] = None
+    stage_type: ClassVar[StageType | None] = None
+    stage_name: ClassVar[str | None] = None
+    task_type: ClassVar[TaskType | None] = None
+    version: ClassVar[str | None] = None
+    author: ClassVar[str | None] = None
+    exclusive: ClassVar[bool | None] = None
+    heavy_io: ClassVar[bool | None] = None
 
     # --- Instance attributes ---
     _status: TaskStatus
@@ -66,30 +68,26 @@ class TaskBase(PluginBase, metaclass=ABCMeta):
         **kwargs: Any,
     ) -> None:
         self.config = config or Config.get_sync()
-        self.logger = logger
+        self.logger = logger or Logger()
         self.batch = batch
         self.kwargs = kwargs
 
-        self._status = TaskStatus.PENDING
-        self._old_status = TaskStatus.PENDING
-        self._start_time = 0.0
-        self._end_time = 0.0
-        self._duration = 0.0
-        self._result = False
-        self._error = ""
-        self._task_id = self._make_id()
+        self._status: TaskStatus = TaskStatus.PENDING
+        self._old_status: TaskStatus = TaskStatus.PENDING
+        self._start_time: float = 0.0
+        self._end_time: float = 0.0
+        self._duration: float = 0.0
+        self._result: str | bool = False
+        self._error: str = ""
+        self._task_id: str = self._make_id()
 
-        self.processed = 0
-        self._target: Optional[Callable] = None
-
-        # task name auto-set from class if not overridden
-        if not self.name:
-            self.name = self.__class__.__name__.lower()
+        self.processed: int = 0
+        self._target: Optional[Callable] = None # type: ignore
 
         # progress tracking
-        self._progress = 0.0
-        self._completed = False
-        self._status_message = ""
+        self._progress: float = 0.0
+        self._completed: bool = False
+        self._status_message: str = ""
 
     # --- Core API ---
 
@@ -240,14 +238,24 @@ class TaskBase(PluginBase, metaclass=ABCMeta):
             return ScannerProcessor.stage_order[i + 1]
         except (ValueError, IndexError):
             return None
+        
+    def update_file_stage(self, file_id: int, session: AsyncSessionLike) -> None:
+        """Mark this file as having completed this task, and update stage if needed."""
+        self.logger.debug(f"{self.name}: Updating file {file_id} stage...")
+        return self.finalize_file(file_id, session) # type: ignore
+
+    def set_completed(self, message: str = "No message given...") -> None:
+        self._result = True
+        self._progress = 100.0
+        self._status_message = message
+        self.logger.info(f"{self.name}: {message}")
 
 
-def register_task(cls) -> type:
-    cls._validate_classvars()
-    if getattr(cls, "plugin_type", None) != PluginType.TASK:
-        raise TypeError("Task class must set plugin_type == PluginType.TASK")
-    # Ensure stage_type is set (PluginBase already checks)
-    if getattr(cls, "stage_type", None) is None:
-        raise TypeError("Task class must define stage_type")
+TTask = TypeVar("TTask", bound="TaskBase")
+
+def register_task(cls: type[TTask]) -> type[TTask]:
+    """Class decorator to register a Task plugin."""
+    cls.validate_classvars(PluginType.TASK)
     registry.register_task(cls)
     return cls
+

@@ -32,11 +32,13 @@ class PluginBase(ABC):
         self.logger = Logger()
 
     @classmethod
-    def _validate_classvars(cls) -> None:
+    def validate_classvars(cls, type: Optional[PluginType] = None) -> None:
         """Validates all ClassVar fields. Raises ValueError with helpful message."""
         errors:list[str] = []
         if not cls._verify_plugin_type():
             errors.append("plugin_type must be a PluginType") # pyright: ignore[reportUnknownMemberType]
+        if type and cls.plugin_type != type:
+            errors.append(f"plugin_type must be {type}") # pyright: ignore[reportUnknownMemberType]
         if not cls._verify_name_var(cls.name):
             errors.append("name must be a valid identifier (see name rules)") # pyright: ignore[reportUnknownMemberType]
         if not cls._verify_description_var(cls.description):

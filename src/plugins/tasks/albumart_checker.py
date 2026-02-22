@@ -3,7 +3,7 @@ from __future__ import annotations
 from core.task_base import TaskBase, register_task
 from core.types import AlbumArtCheckerUtilProtocol, DBInterface
 from core.enums import StageType, TaskType
-from Singletons import Logger
+from Singletons import Logger, DBInstance
 
 
 @register_task

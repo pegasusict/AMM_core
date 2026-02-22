@@ -44,7 +44,7 @@ class AudioUtilBase(PluginBase, metaclass=ABCMeta):
 
 def register_audioutil(cls: type[AudioUtilBase]) -> type[AudioUtilBase]:
     # validate class vars early
-    cls._validate_classvars()
+    cls.validate_classvars()
     # also ensure plugin_type is AUDIOUTIL
     if getattr(cls, "plugin_type", None) != PluginType.AUDIOUTIL:
         raise TypeError("AudioUtil class must set plugin_type == PluginType.AUDIOUTIL")
