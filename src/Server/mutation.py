@@ -3,6 +3,7 @@ from strawberry.types import Info
 from sqlmodel import select
 
 from Singletons import DBInstance
+from Singletons.env_config import env_config
 from auth.jwt_utils import create_access_token, create_refresh_token
 from auth.passwords import hash_password, verify_password
 from core.enums import UserRole
@@ -191,6 +192,15 @@ class Mutation:
             return map_dbuser_to_user(user)
 
         raise ValueError("User deletion failed")
+
+    @strawberry.mutation
+    async def run_task_retention_cleanup(self, info: Info, older_than_days: int | None = None) -> int:
+        """Run task retention cleanup immediately (admin only)."""
+        _require_admin(info)
+        days = env_config.TASK_RETENTION_DAYS if older_than_days is None else older_than_days
+        if days <= 0:
+            raise ValueError("older_than_days must be greater than 0")
+        return await DBInstance.prune_old_tasks(older_than_days=days)
 
     @strawberry.mutation
     async def update_track(self, info: Info, track_id: int, data: TrackInput) -> bool:

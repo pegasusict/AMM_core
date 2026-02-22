@@ -75,3 +75,11 @@ Old task rows are cleaned up automatically once per day at startup interval.
 
 - `TASK_RETENTION_ENABLED` (default: `true`)
 - `TASK_RETENTION_DAYS` (default: `30`)
+
+Manual admin trigger via GraphQL mutation:
+
+```graphql
+mutation {
+  runTaskRetentionCleanup(olderThanDays: 7)
+}
+```
