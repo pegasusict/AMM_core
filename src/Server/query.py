@@ -4,6 +4,7 @@ import strawberry
 from strawberry.types import Info
 from sqlmodel import func, select
 from sqlalchemy import or_
+from sqlalchemy.orm import selectinload
 
 from Enums import TaskType, UserRole
 from core.dbmodels import (
@@ -89,14 +90,27 @@ TModel = TypeVar("TModel")
 TGraph = TypeVar("TGraph")
 
 
+TRACK_EAGER_OPTIONS = (
+    selectinload(DBTrack.files),
+    selectinload(DBTrack.album_tracks),
+    selectinload(DBTrack.task),
+    selectinload(DBTrack.lyric),
+    selectinload(DBTrack.tracktags),
+)
+
+
 async def _paginate(
     model: type[TModel],
     mapper: Any,
     limit: int,
     offset: int,
+    options: tuple[Any, ...] | None = None,
 ) -> Paginated[TGraph]:  # type: ignore
     async for session in DBInstance.get_session():
-        stmt = select(model).offset(offset).limit(limit)
+        stmt = select(model)
+        if options:
+            stmt = stmt.options(*options)
+        stmt = stmt.offset(offset).limit(limit)
         total_stmt = select(func.count()).select_from(model)
 
         results = await session.exec(stmt)
@@ -215,16 +229,21 @@ class Query:
     @strawberry.field
     async def get_track(self, info: Info, track_id: int) -> Optional[Track]:
         async for session in DBInstance.get_session():
-            track = await session.get(DBTrack, track_id)
+            result = await session.exec(
+                select(DBTrack)
+                .where(DBTrack.id == track_id)
+                .options(*TRACK_EAGER_OPTIONS)
+            )
+            track = result.first()
             return map_dbtrack_to_track(track) if track else None
 
     @strawberry.field
     async def tracks(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Track]:  # type: ignore
-        return await _paginate(DBTrack, map_dbtrack_to_track, limit, offset)
+        return await _paginate(DBTrack, map_dbtrack_to_track, limit, offset, options=TRACK_EAGER_OPTIONS)
 
     @strawberry.field
     async def get_tracks(self, info: Info, limit: int = 25, offset: int = 0) -> Paginated[Track]:  # type: ignore
-        return await _paginate(DBTrack, map_dbtrack_to_track, limit, offset)
+        return await _paginate(DBTrack, map_dbtrack_to_track, limit, offset, options=TRACK_EAGER_OPTIONS)
 
     @strawberry.field
     async def get_album(self, info: Info, album_id: int) -> Optional[Album]:

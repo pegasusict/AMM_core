@@ -76,7 +76,7 @@ class FingerPrinter(TaskBase):
         self.logger.info(f"FingerPrinter: processing {self._total} files")
 
         async for session in self.db.get_session():
-            for file_id in self.batch:
+            for file_id in self.batch: # type: ignore
                 await self._process_one(session, file_id)
                 self._processed += 1
                 self.set_progress(self._processed / self._total)

@@ -16,6 +16,8 @@
 
 from typing import Any, List, Optional
 from sqlmodel import SQLModel
+from sqlalchemy import inspect
+from sqlalchemy.orm.attributes import NO_VALUE
 
 from core.dbmodels import (
     DBAlbum,
@@ -64,7 +66,24 @@ from .schemas import (
 def _id_list(items: Any) -> list[int]:
     if not items:
         return []
-    return [item.id for item in items if getattr(item, "id", None) is not None]
+    if isinstance(items, (list, tuple, set)):
+        seq = items
+    else:
+        seq = [items]
+    return [item.id for item in seq if getattr(item, "id", None) is not None]
+
+
+def _loaded_rel(obj: Any, name: str, default: Any = None) -> Any:
+    if obj is None:
+        return default
+    try:
+        attr_state = inspect(obj).attrs[name]
+    except Exception:
+        return default
+
+    if attr_state.loaded_value is NO_VALUE:
+        return default
+    return attr_state.value
 
 
 def _enum_value(value: Any) -> Any:
@@ -73,13 +92,16 @@ def _enum_value(value: Any) -> Any:
 
 def map_dbtrack_to_playertrack(track: DBTrack) -> PlayerTrack:
     album_picture = None
-    if track.album_tracks:
-        first_album = track.album_tracks[0].album
+    album_tracks = _loaded_rel(track, "album_tracks", []) or []
+    if album_tracks:
+        first_album = album_tracks[0].album
         if first_album and first_album.picture:
             album_picture = str(first_album.picture.picture_path)
 
-    duration_seconds = track.files[0].duration if track.files else None
-    lyrics = track.lyric.lyric if track.lyric else None
+    files = _loaded_rel(track, "files", []) or []
+    lyric = _loaded_rel(track, "lyric")
+    duration_seconds = files[0].duration if files else None
+    lyrics = lyric.lyric if lyric else None
 
     return PlayerTrack(
         id=track.id,
@@ -114,13 +136,19 @@ def map_dbqueue_to_queue(queue: Optional[DBQueue]) -> Queue:
 
 
 def map_dbtrack_to_track(track: DBTrack) -> Track:
+    files = _loaded_rel(track, "files", []) or []
+    album_tracks = _loaded_rel(track, "album_tracks", []) or []
+    task = _loaded_rel(track, "task")
+    lyric = _loaded_rel(track, "lyric")
+    tracktags = _loaded_rel(track, "tracktags", []) or []
+
     return Track(
         id=track.id,
         composed=track.composed,
         release_date=track.release_date,
         mbid=track.mbid,
-        file_ids=_id_list(track.files),
-        album_track_ids=_id_list(track.album_tracks),
+        file_ids=_id_list(files),
+        album_track_ids=_id_list(album_tracks),
         key_id=track.key_id,
         genre_ids=[track.genre_id] if track.genre_id is not None else [],
         performer_ids=[],
@@ -128,9 +156,9 @@ def map_dbtrack_to_track(track: DBTrack) -> Track:
         composer_ids=[],
         lyricist_ids=[],
         producer_ids=[],
-        task_ids=[track.task.id] if track.task and track.task.id is not None else [],
-        lyric_id=track.lyric.id if track.lyric else None,
-        tracktag_ids=_id_list(track.tracktags),
+        task_ids=[task.id] if task and task.id is not None else [],
+        lyric_id=lyric.id if lyric else None,
+        tracktag_ids=_id_list(tracktags),
     )
 
 
