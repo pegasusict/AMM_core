@@ -54,6 +54,12 @@ class EnvConfig:
 
     TASK_RETENTION_ENABLED: bool = _as_bool(os.getenv("TASK_RETENTION_ENABLED", "true"), True)
     TASK_RETENTION_DAYS: int = int(os.getenv("TASK_RETENTION_DAYS", "30"))
+    LOGIN_RATE_LIMIT_ENABLED: bool = _as_bool(os.getenv("LOGIN_RATE_LIMIT_ENABLED", "true"), True)
+    LOGIN_RATE_LIMIT_MAX_ATTEMPTS: int = int(os.getenv("LOGIN_RATE_LIMIT_MAX_ATTEMPTS", "5"))
+    LOGIN_RATE_LIMIT_WINDOW_SECONDS: int = int(os.getenv("LOGIN_RATE_LIMIT_WINDOW_SECONDS", "60"))
+    REFRESH_RATE_LIMIT_ENABLED: bool = _as_bool(os.getenv("REFRESH_RATE_LIMIT_ENABLED", "true"), True)
+    REFRESH_RATE_LIMIT_MAX_ATTEMPTS: int = int(os.getenv("REFRESH_RATE_LIMIT_MAX_ATTEMPTS", "20"))
+    REFRESH_RATE_LIMIT_WINDOW_SECONDS: int = int(os.getenv("REFRESH_RATE_LIMIT_WINDOW_SECONDS", "60"))
     GRAPHIQL_ENABLED: bool = _as_bool(os.getenv("GRAPHIQL_ENABLED", "false"), False)
     CORS_ALLOW_ALL: bool = _as_bool(os.getenv("CORS_ALLOW_ALL", "false"), False)
     CORS_ORIGINS: tuple[str, ...] = _as_csv(

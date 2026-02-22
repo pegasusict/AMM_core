@@ -6,6 +6,7 @@ from Singletons import DBInstance
 from Singletons.env_config import env_config
 from auth.jwt_utils import create_access_token, create_refresh_token
 from auth.passwords import hash_password, verify_password
+from auth.rate_limit import auth_rate_limiter
 from core.enums import UserRole
 from core.dbmodels import (
     DBTrack,
@@ -67,6 +68,31 @@ def _require_admin(info: Info) -> DBUser:
     return user
 
 
+def _client_ip(info: Info) -> str:
+    request = getattr(info.context, "request", None)
+    if request is None:
+        return "unknown"
+    client = getattr(request, "client", None)
+    host = getattr(client, "host", None)
+    return str(host) if host else "unknown"
+
+
+async def _enforce_rate_limit(
+    *,
+    key: str,
+    max_attempts: int,
+    window_seconds: int,
+    message: str,
+) -> None:
+    allowed, retry_after = await auth_rate_limiter.allow(
+        key,
+        max_attempts=max_attempts,
+        window_seconds=window_seconds,
+    )
+    if not allowed:
+        raise ValueError(f"{message} Try again in {retry_after} seconds.")
+
+
 @strawberry.type
 class Mutation:
     """GraphQL Mutations to update metadata or control playback."""
@@ -79,6 +105,13 @@ class Mutation:
             raise ValueError("Username or email is required")
         if not password:
             raise ValueError("Password is required")
+        if env_config.LOGIN_RATE_LIMIT_ENABLED:
+            await _enforce_rate_limit(
+                key=f"login:{_client_ip(info)}",
+                max_attempts=env_config.LOGIN_RATE_LIMIT_MAX_ATTEMPTS,
+                window_seconds=env_config.LOGIN_RATE_LIMIT_WINDOW_SECONDS,
+                message="Too many login attempts.",
+            )
 
         async for session in DBInstance.get_session():
             stmt = select(DBUser).where(
@@ -106,6 +139,13 @@ class Mutation:
         refresh_token = (refresh_token or "").strip()
         if not refresh_token:
             raise ValueError("Refresh token is required")
+        if env_config.REFRESH_RATE_LIMIT_ENABLED:
+            await _enforce_rate_limit(
+                key=f"refresh_session:{_client_ip(info)}",
+                max_attempts=env_config.REFRESH_RATE_LIMIT_MAX_ATTEMPTS,
+                window_seconds=env_config.REFRESH_RATE_LIMIT_WINDOW_SECONDS,
+                message="Too many session refresh attempts.",
+            )
 
         from jose import jwt, JWTError
         from auth.jwt_utils import SECRET_KEY, ALGORITHM
