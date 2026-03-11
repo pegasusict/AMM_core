@@ -56,6 +56,7 @@ from .schemas import (
     TrackLyric,
     Picture,
     PlaylistTrack,
+    UserFilterInput,
 )
 from .mapping import (
     map_dbtask_to_displaytask,
@@ -101,6 +102,38 @@ def _require_admin(info: Info) -> DBUser:
     if not _is_admin(user):
         raise ValueError("Admin role required")
     return user
+
+
+def _build_user_filters(filters: Optional[UserFilterInput]) -> list[Any]:
+    clauses: list[Any] = []
+    if filters is None:
+        return clauses
+
+    if filters.username:
+        clauses.append(DBUser.username == filters.username)
+    if filters.email:
+        clauses.append(DBUser.email == filters.email)
+    if filters.role:
+        clauses.append(DBUser.role == filters.role.value)
+    if filters.is_active is not None:
+        clauses.append(DBUser.is_active == filters.is_active)
+    if filters.search:
+        like = f"%{filters.search}%"
+        clauses.append(
+            or_(
+                DBUser.username.ilike(like),
+                DBUser.email.ilike(like),
+                DBUser.first_name.ilike(like),
+                DBUser.last_name.ilike(like),
+            )
+        )
+    return clauses
+
+
+def _apply_filters(stmt: Any, filters: list[Any]) -> Any:
+    for f in filters:
+        stmt = stmt.where(f)
+    return stmt
 
 
 TModel = TypeVar("TModel")
@@ -354,40 +387,14 @@ class Query:
         info: Info,
         limit: int = 25,
         offset: int = 0,
-        username: Optional[str] = None,
-        email: Optional[str] = None,
-        role: Optional[UserRole] = None,
-        is_active: Optional[bool] = None,
-        search: Optional[str] = None,
+        filters: Optional[UserFilterInput] = None,
     ) -> Paginated[User]:  # type: ignore
         _require_admin(info)
-        stmt = select(DBUser)
-        filters = []
-        if username:
-            filters.append(DBUser.username == username)
-        if email:
-            filters.append(DBUser.email == email)
-        if role:
-            filters.append(DBUser.role == role.value)
-        if is_active is not None:
-            filters.append(DBUser.is_active == is_active)
-        if search:
-            like = f"%{search}%"
-            filters.append(
-                or_(
-                    DBUser.username.ilike(like),
-                    DBUser.email.ilike(like),
-                    DBUser.first_name.ilike(like),
-                    DBUser.last_name.ilike(like),
-                )
-            )
-        for f in filters:
-            stmt = stmt.where(f)
+        user_filters = _build_user_filters(filters)
+        stmt = _apply_filters(select(DBUser), user_filters)
 
         async for session in DBInstance.get_session():
-            total_stmt = select(func.count()).select_from(DBUser)
-            for f in filters:
-                total_stmt = total_stmt.where(f)
+            total_stmt = _apply_filters(select(func.count()).select_from(DBUser), user_filters)
             total = await session.exec(total_stmt)
             total_count = total.one() if total else 0
 

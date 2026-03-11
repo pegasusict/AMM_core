@@ -17,6 +17,7 @@ from Singletons import Logger, DBInstance
 from core.processor_base import ProcessorBase
 from core.types import DBInterface
 from core.registry import registry
+from core.dbmodels import DBTrack
 
 
 @registry.register_processor
@@ -62,7 +63,7 @@ class Exporter(ProcessorBase):
             for track_id in self.batch:
 
                 # Fetch DBTrack and its files
-                track = await session.get_one("DBTrack", id=track_id)
+                track = await session.get(DBTrack, track_id)
                 if track is None:
                     self.logger.warning(f"Exporter: Track {track_id} not found")
                     continue

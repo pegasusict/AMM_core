@@ -1,6 +1,7 @@
 # src/plugins/audioutil/acoustid.py
 from __future__ import annotations
 from pathlib import Path
+import os
 from typing import Optional, Any, Protocol, ClassVar
 
 from core.audioutil_base import AudioUtilBase, register_audioutil
@@ -17,7 +18,9 @@ class AcoustIDClient(Protocol):
     async def lookup(self, api_key: str, fingerprint: str, duration: int) -> Any:
         ...
 
-    def parse_lookup_result(self, response: Any) -> tuple[int, str, str, dict] | None:
+    def parse_lookup_result(
+        self, response: Any
+    ) -> tuple[float, str, str, list[dict[str, str]]] | None:
         ...
 
 
@@ -43,7 +46,8 @@ class AcoustID(AudioUtilBase):
         self.parser = media_parser
         self._client = acoustid_client
         # API key may come from Config or environment — accept override in process()
-        self._default_api_key = self.config.get("acoustid", "api_key", "6VzpxSvoia")
+        env_key = os.getenv("ACOUSTID_API_KEY") or os.getenv("ACOUSTID_KEY")
+        self._default_api_key = env_key or self.config.get("acoustid", "api_key", "")
 
     async def process(self, path: Path, api_key: Optional[str] = None) -> dict[str, Any]:
         """
@@ -52,60 +56,21 @@ class AcoustID(AudioUtilBase):
         """
         self._validate_extension(path)
 
-        # try tags first (if tagger supports it)
-        if hasattr(self.tagger, "get_mbid"):
-            try:
-                mbid = await self.tagger.get_mbid(path, "")
-                if mbid:
-                    logger.info(f"MBID from tags: {mbid}")
-                    return {"mbid": mbid}
-            except Exception:
-                # tagger failure shouldn't stop us
-                logger.debug("Tagger.get_mbid failed; falling back to acoustic lookup")
+        mbid = await self._try_get_mbid_from_tags(path)
+        if mbid:
+            return {"mbid": mbid}
 
-        # fingerprint / duration
-        fingerprint = None
-        duration = None
+        client = self._require_client()
+        duration, fingerprint = await self._fingerprint_file(client, path)
+        duration = await self._ensure_duration(duration, path)
+        key = self._resolve_api_key(api_key)
+        parsed = await self._lookup_metadata(client, key, fingerprint, duration)
+        if not parsed:
+            logger.info("AcoustID returned no matches for this file.")
+            return {}
 
-        # prefer client injected via DI
-        client = self._client
-        if client is None:
-            raise OperationFailedError("No AcoustID client available")
-
-        try:
-            duration, fingerprint = await client.fingerprint_file(path)
-            logger.debug(f"Generated fingerprint: {fingerprint} (duration {duration})")
-        except Exception as e:
-            logger.error(f"Fingerprint generation failed: {e}")
-            raise OperationFailedError("Could not generate fingerprint") from e
-
-        # ensure duration from parser if missing
-        if duration is None and self.parser is not None and hasattr(self.parser, "get_duration"):
-            try:
-                duration = await self.parser.get_duration(path)
-            except Exception as e:
-                logger.debug(f"Parser get_duration failed: {e}")
-
-        if duration is None:
-            raise OperationFailedError("Could not determine file duration")
-
-        # lookup
-        key = api_key or self._default_api_key
-        if not key:
-            raise OperationFailedError("AcoustID API key not configured")
-
-        try:
-            response = await client.lookup(key, fingerprint, duration)
-            parsed = client.parse_lookup_result(response)
-            if not parsed:
-                raise OperationFailedError("Lookup returned no results")
-            score, mbid, title, artists = parsed
-        except Exception as e:
-            logger.exception("AcoustID lookup failed")
-            raise OperationFailedError("Lookup failed") from e
-
-        if not all([score, mbid, title, artists]):
-            raise OperationFailedError("Incomplete metadata from AcoustID")
+        score, mbid, title, artists = parsed
+        self._validate_metadata(score, mbid, title, artists)
 
         return {"score": score, "mbid": mbid, "title": title, "artists": artists}
 
@@ -113,3 +78,72 @@ class AcoustID(AudioUtilBase):
         if not path.suffix:
             raise FileError(f"Invalid file extension: {path}")
         logger.debug(f"Validated extension for {path}")
+
+    async def _try_get_mbid_from_tags(self, path: Path) -> Optional[str]:
+        if not hasattr(self.tagger, "get_mbid"):
+            return None
+        try:
+            mbid = await self.tagger.get_mbid(path, "")
+        except Exception:
+            logger.debug("Tagger.get_mbid failed; falling back to acoustic lookup")
+            return None
+        if mbid:
+            logger.info(f"MBID from tags: {mbid}")
+        return mbid
+
+    def _require_client(self) -> AcoustIDClient:
+        if self._client is None:
+            raise OperationFailedError("No AcoustID client available")
+        return self._client
+
+    async def _fingerprint_file(self, client: AcoustIDClient, path: Path) -> tuple[int | None, str]:
+        try:
+            duration, fingerprint = await client.fingerprint_file(path)
+            logger.debug(f"Generated fingerprint: {fingerprint} (duration {duration})")
+            return duration, fingerprint
+        except Exception as e:
+            logger.error(f"Fingerprint generation failed: {e}")
+            raise OperationFailedError("Could not generate fingerprint") from e
+
+    async def _ensure_duration(self, duration: int | None, path: Path) -> int:
+        if duration is not None:
+            return duration
+        if self.parser is not None and hasattr(self.parser, "get_duration"):
+            try:
+                duration = await self.parser.get_duration(path)
+            except Exception as e:
+                logger.debug(f"Parser get_duration failed: {e}")
+        if duration is None:
+            raise OperationFailedError("Could not determine file duration")
+        return duration
+
+    def _resolve_api_key(self, api_key: Optional[str]) -> str:
+        key = api_key or self._default_api_key
+        if not key:
+            raise OperationFailedError("AcoustID API key not configured")
+        return key
+
+    async def _lookup_metadata(
+        self,
+        client: AcoustIDClient,
+        key: str,
+        fingerprint: str,
+        duration: int,
+    ) -> tuple[float, str, str, list[dict[str, str]]] | None:
+        try:
+            response = await client.lookup(key, fingerprint, duration)
+            parsed = client.parse_lookup_result(response)
+            return parsed
+        except Exception as e:
+            logger.exception("AcoustID lookup failed")
+            raise OperationFailedError("Lookup failed") from e
+
+    def _validate_metadata(
+        self,
+        score: float,
+        mbid: str,
+        title: str,
+        artists: list[dict[str, str]],
+    ) -> None:
+        if not (mbid or title or artists):
+            logger.info("AcoustID returned no usable metadata.")

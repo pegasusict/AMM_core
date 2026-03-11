@@ -52,15 +52,15 @@ class Tagger(AudioUtilBase):
         try:
             match file_type.upper():
                 case "FLAC":
-                    return FLAC(file=file_path)
+                    return FLAC(str(file_path))
                 case "OGG":
-                    return OggVorbis(file=file_path)
+                    return OggVorbis(str(file_path))
                 case "APE":
-                    return APEv2(file=file_path)
+                    return APEv2(str(file_path))
                 case "ASF":
-                    return ASF(file=file_path)
+                    return ASF(str(file_path))
                 case _:
-                    return ID3(file=file_path)
+                    return ID3(str(file_path))
 
         except MutagenError as e:
             self.logger.error(f"Failed to load tags for {file_path}: {e}")

@@ -47,6 +47,7 @@ class SpatializerTask(TaskBase):
         config: Optional[Config] = None,
         widen_percent: Optional[float] = None,
     ) -> None:
+        super().__init__(config=config, batch=batch)
         self.logger = Logger()
         self.config = config or Config.get_sync()
         self.db: DBInterface = DBInstance

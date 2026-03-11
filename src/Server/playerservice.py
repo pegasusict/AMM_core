@@ -18,6 +18,8 @@
 import subprocess
 from typing import Dict, List, Optional
 
+from sqlmodel import select
+
 from core.dbmodels import DBQueue, DBTrack
 from Singletons import EnvConfig
 from Singletons.database import DBInstance
@@ -46,15 +48,15 @@ class PlayerService:
     async def load_queue_from_db(self) -> None:
         """Load user's persistent queue from DB."""
         async for session in DBInstance.get_session():
-            result = await session.get_one(DBQueue, DBQueue.user_id == self.user_id)
-            if db_queue := result:
+            result = await session.exec(select(DBQueue).where(DBQueue.user_id == self.user_id))
+            if db_queue := result.one_or_none():
                 self.queue = db_queue.track_ids
 
     async def save_queue_to_db(self) -> None:
         """Persist queue to DB."""
         async for session in DBInstance.get_session():
-            result = await session.get_one(DBQueue, DBQueue.user_id == self.user_id)
-            if db_queue := result:
+            result = await session.exec(select(DBQueue).where(DBQueue.user_id == self.user_id))
+            if db_queue := result.one_or_none():
                 db_queue.track_ids = self.queue
             else:
                 db_queue = DBQueue(user_id=self.user_id, track_ids=self.queue)
@@ -87,7 +89,7 @@ class PlayerService:
     async def get_track_file_path(self, track_id: int) -> Optional[str]:
         """Resolve best file path for given track_id."""
         async for session in DBInstance.get_session():
-            track = await session.get_one(DBTrack, DBTrack.id == track_id)
+            track = await session.get(DBTrack, track_id)
 
             if not track or not track.files:
                 return None

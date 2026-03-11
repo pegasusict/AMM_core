@@ -29,7 +29,7 @@ class FingerPrinter(TaskBase):
       - extract_fp_entities
     """
 
-    name = "FingerPrinter"
+    name = "fingerprinter"
     description = "Identifies audio files using AcoustID and enriches metadata."
     version = "2.0.0"
     author = "Mattijs Snepvangers"
@@ -56,9 +56,12 @@ class FingerPrinter(TaskBase):
         extract_fp_entities: ExtractFPEntitiesProtocol,
         *,
         batch: List[int],
+        config: Config | None = None,
+        **kwargs: Any,
     ) -> None:
+        super().__init__(config=config, batch=batch, **kwargs)
         self.logger = Logger()
-        self.config = Config.get_sync()
+        self.config = config or Config.get_sync()
         self.batch = batch
 
         # injected utils
@@ -155,6 +158,9 @@ class FingerPrinter(TaskBase):
         artists: List[Dict[str, str]],
     ) -> None:
         """Create missing DBPerson entries and attach to track.performers."""
+        if not hasattr(track, "performers"):
+            self.logger.debug("DBTrack has no performers relationship; skipping artist linkage.")
+            return
         for a in artists:
             name = a.get("name")
             mbid = a.get("mbid")
@@ -180,8 +186,9 @@ class FingerPrinter(TaskBase):
         title = entities.get("title")
         mbid = entities.get("mbid")
 
-        if not track.title and title:
-            track.title = title
+        if title and hasattr(track, "title"):
+            if not getattr(track, "title"):
+                setattr(track, "title", title)
 
         if (not track.mbid or str(track.mbid).startswith("local_")) and mbid:
             track.mbid = mbid

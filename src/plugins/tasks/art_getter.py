@@ -49,13 +49,16 @@ class ArtGetter(TaskBase):
 
     def __init__(
         self,
-        batch: dict[str, ArtType],
-        config: Config,
         MusicBrainzClient: MusicBrainzClientProtocol,
+        *,
+        batch: dict[str, ArtType],
+        config: Config | None = None,
+        **kwargs: object,
     ) -> None:
+        super().__init__(config=config, batch=batch, **kwargs)
         self.logger = Logger()
         self.batch = batch
-        self.config = config
+        self.config = config or Config.get_sync()
         self.db: DBInterface = DBInstance
         self.mbc = MusicBrainzClient
 

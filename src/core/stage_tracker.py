@@ -1,6 +1,6 @@
 # src/core/stage_tracker.py
 import datetime as dt
-from typing import Sequence
+from typing import Any, Sequence
 from sqlmodel import select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -33,66 +33,74 @@ class StageTracker:
         Appends stage_name to DBFile.substages if missing and marks parent StageType completed
         when all stages are done.
         """
-        # minimal select to fetch needed columns
-        stmt = select(DBFile.id, DBFile.substages, DBFile.stage).where(DBFile.id == file_id)
-        res = await self.session.exec(stmt)
-        row = res.one_or_none()
+        row = await self._fetch_file_row(file_id)
         if not row:
             logger.error(f"StageTracker: DBFile id={file_id} not found")
             return
 
-        _, existing_substages, current_stage_value = row
-        existing_substages = existing_substages or []
-
-        # find Stage metadata
-        stage_obj = stage_registry.find_stage(stage_name)
+        existing_substages, current_stage_value = row
+        stage_obj = self._get_stage(stage_name)
         if not stage_obj:
             logger.error(f"StageTracker: stage '{stage_name}' not registered")
             return
 
-        # Append stage_name if not present
-        if stage_name not in existing_substages:
-            new_substages = list(existing_substages) + [stage_name]
-        else:
-            new_substages = existing_substages
+        new_substages = self._append_substage(existing_substages, stage_name)
+        file_stage_type = self._resolve_stage_type(current_stage_value, stage_obj.stage_type)
+        stage_completed = self._is_stage_completed(file_stage_type, new_substages)
 
-        # Determine the stage_type to check. Prefer the current file.stage if set,
-        # otherwise use the stage object's stage_type.
+        await self._apply_stage_update(file_id, new_substages, file_stage_type, stage_completed)
+        logger.info(f"Completed stage '{stage_name}' for file_id={file_id}; stage_done={stage_completed}")
+
+    async def _fetch_file_row(self, file_id: int) -> tuple[list[str], int | None] | None:
+        stmt = select(DBFile.id, DBFile.substages, DBFile.stage).where(DBFile.id == file_id)
+        res = await self.session.exec(stmt)
+        row = res.one_or_none()
+        if not row:
+            return None
+        _, existing_substages, current_stage_value = row
+        return (existing_substages or []), current_stage_value
+
+    def _get_stage(self, stage_name: str) -> Any:
+        return stage_registry.find_stage(stage_name)
+
+    def _append_substage(self, existing: list[str], stage_name: str) -> list[str]:
+        if stage_name in existing:
+            return existing
+        return list(existing) + [stage_name]
+
+    def _resolve_stage_type(self, current_stage_value: int | None, fallback: StageType) -> StageType:
         try:
-            file_stage_type = StageType(current_stage_value) if current_stage_value else stage_obj.stage_type
+            return StageType(current_stage_value) if current_stage_value else fallback
         except Exception:
-            file_stage_type = stage_obj.stage_type
+            return fallback
 
-        # Evaluate completion: gather all stage names under this stage_type
-        required_stage_objs = stage_registry.get_stages(file_stage_type)
+    def _is_stage_completed(self, stage_type: StageType, substages: list[str]) -> bool:
+        required_stage_objs = stage_registry.get_stages(stage_type)
         required_names = {s.name for s in required_stage_objs}
+        if not required_names:
+            return True
+        return required_names.issubset(set(substages))
 
-        stage_completed = False
-        if required_names:
-            if required_names.issubset(set(new_substages)):
-                stage_completed = True
-        else:
-            # if no registered stages under that StageType, the act of completing this stage marks it done
-            stage_completed = True
-
+    async def _apply_stage_update(
+        self,
+        file_id: int,
+        substages: list[str],
+        stage_type: StageType,
+        stage_completed: bool,
+    ) -> None:
         now = dt.datetime.now(dt.timezone.utc)
-
-        # Build update statement
         upd = (
             update(DBFile)
             .where(DBFile.id == file_id)
             .values(
-                substages=new_substages,
+                substages=substages,
                 processed=now,
             )
         )
-
         if stage_completed:
-            upd = upd.values(stage=int(file_stage_type), stage_completed=True)
-
+            upd = upd.values(stage=int(stage_type), stage_completed=True)
         await self.session.exec(upd)
         await self.session.commit()
-        logger.info(f"Completed stage '{stage_name}' for file_id={file_id}; stage_done={stage_completed}")
 
     async def batch_complete_stage(self, file_ids: Sequence[int], stage_name: str) -> None:
         """

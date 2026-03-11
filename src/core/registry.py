@@ -60,33 +60,41 @@ class PluginRegistry:
     # ---------------- audio util instantiation ----------------
     async def _instantiate_audioutil(self, name: str) -> Optional[Any]:
         name = name.lower()
-        if name in self._audioutil_instances:
-            return self._audioutil_instances[name]
+        existing = self._audioutil_instances.get(name)
+        if existing is not None:
+            return existing
 
         lock = self._util_locks.setdefault(name, asyncio.Lock())
         async with lock:
-            if name in self._audioutil_instances:
-                return self._audioutil_instances[name]
+            existing = self._audioutil_instances.get(name)
+            if existing is not None:
+                return existing
             cls = self._audioutil_classes.get(name)
             if not cls:
                 logger.error(f"AudioUtil class not found: {name}")
                 return None
-            try:
-                # prefer class.create_async() if present
-                create_async = getattr(cls, "create_async", None)
-                if create_async and inspect.iscoroutinefunction(create_async):
-                    inst = await create_async()
-                else:
-                    inst = cls()  # normal ctor
-                    init_fn = getattr(inst, "init", None)
-                    if init_fn and inspect.iscoroutinefunction(init_fn):
-                        await init_fn()
-                self._audioutil_instances[name] = inst
-                logger.info(f"Initialized AudioUtil instance: {name}")
-                return inst
-            except Exception as e:
-                logger.error(f"Failed to initialize audioutil {name}: {e}")
+            inst = await self._build_audioutil_instance(cls, name)
+            if inst is None:
                 return None
+            self._audioutil_instances[name] = inst
+            logger.info(f"Initialized AudioUtil instance: {name}")
+            return inst
+
+    async def _build_audioutil_instance(self, cls: Type[Any], name: str) -> Optional[Any]:
+        try:
+            # prefer class.create_async() if present
+            create_async = getattr(cls, "create_async", None)
+            if create_async and inspect.iscoroutinefunction(create_async):
+                inst = await create_async()
+            else:
+                inst = cls()  # normal ctor
+                init_fn = getattr(inst, "init", None)
+                if init_fn and inspect.iscoroutinefunction(init_fn):
+                    await init_fn()
+            return inst
+        except Exception as e:
+            logger.error(f"Failed to initialize audioutil {name}: {e}")
+            return None
 
     async def init_all_audioutils(self) -> None:
         """Instantiate all declared audio utils in parallel (async)."""
@@ -117,20 +125,35 @@ class PluginRegistry:
 
         # Build kwargs for ctor
         ctor_kwargs = dict(batch=batch, **kwargs)
-        # Instantiate: alphapositional injection of audio utils then kwargs
+        # Instantiate: alpha positional injection of audio utils then kwargs
         try:
             instance = cls(*audio_args, **ctor_kwargs)
         except TypeError:
-            # fallback: try to instantiate without args (for tasks expecting later injection)
-            instance = cls(**ctor_kwargs)
-            # allow post-injection
-            for i, dep_name in enumerate(requires):
-                setter = getattr(instance, f"set_{dep_name}", None)
-                if callable(setter):
-                    setter(audio_args[i])
+            filtered_kwargs = self._filter_ctor_kwargs(cls, ctor_kwargs)
+            try:
+                instance = cls(*audio_args, **filtered_kwargs)
+            except TypeError:
+                # fallback: try to instantiate without args (for tasks expecting later injection)
+                instance = cls(**filtered_kwargs)
+                # allow post-injection
+                for i, dep_name in enumerate(requires):
+                    setter = getattr(instance, f"set_{dep_name}", None)
+                    if callable(setter):
+                        setter(audio_args[i])
         # attach registry reference for potential later use
         setattr(instance, "_registry", self)
         return instance
+
+    def _filter_ctor_kwargs(self, cls: Type[Any], kwargs: dict[str, Any]) -> dict[str, Any]:
+        try:
+            sig = inspect.signature(cls.__init__)
+        except (TypeError, ValueError):
+            return kwargs
+        for param in sig.parameters.values():
+            if param.kind == inspect.Parameter.VAR_KEYWORD:
+                return kwargs
+        allowed = {name for name in sig.parameters if name != "self"}
+        return {key: value for key, value in kwargs.items() if key in allowed}
 
     async def create_processor(
         self,

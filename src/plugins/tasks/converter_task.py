@@ -38,6 +38,7 @@ class ConverterTask(TaskBase):
         batch: Optional[Iterable[int]] = None,
         config: Optional[Config] = None,
     ) -> None:
+        super().__init__(config=config, batch=batch)
         self.logger = Logger()
 
         self.config = config or Config.get_sync()

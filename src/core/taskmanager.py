@@ -94,39 +94,66 @@ class TaskManager:
         finalized_ids: set[str] = set()
         for status_key, group in list(self.tasks.items()):
             for task_id, task in list(group.items()):
-                status = getattr(task, "status", TaskStatus.PENDING)
-                status_value = status.value if isinstance(status, TaskStatus) else str(status)
-                if status_value != status_key:
-                    self.update_task_status(task)
+                await self._process_task_lifecycle(status_key, task_id, task, finalized_ids)
 
-                runner = self._runner_tasks.get(task_id)
-                if runner is None or task_id in finalized_ids or not runner.done():
-                    continue
+        await self._drain_task_queue()
 
-                finalized_ids.add(task_id)
-                try:
-                    await runner
-                except asyncio.CancelledError:
-                    if hasattr(task, "cancel"):
-                        task.cancel()
-                except Exception as exc:
-                    self.logger.exception(f"Task {task_id} raised an unhandled exception: {exc}")
-                    if getattr(task, "status", None) != TaskStatus.FAILED and hasattr(task, "set_error"):
-                        task.set_error(str(exc))
-                finally:
-                    self._runner_tasks.pop(task_id, None)
+    async def _process_task_lifecycle(
+        self,
+        status_key: str,
+        task_id: str,
+        task: Any,
+        finalized_ids: set[str],
+    ) -> None:
+        self._sync_task_status(status_key, task)
+        runner = self._runner_tasks.get(task_id)
+        if not self._runner_ready(task_id, runner, finalized_ids):
+            return
 
-                self.running_tasks = max(self.running_tasks - 1, 0)
-                self.update_task_status(task)
-                await self._save_task_to_db(task)
+        finalized_ids.add(task_id)
+        await self._await_runner(task_id, task, runner)
+        self._runner_tasks.pop(task_id, None)
+        self._finalize_task(task)
+        await self._save_task_to_db(task)
 
-                # if this task held the exclusive lock, release it
-                if getattr(task, "task_id", None) == self._exclusive_holder_task_id:
-                    self.logger.info(f"TaskManager: releasing exclusive lock held by {task.task_id}")
-                    release_exclusive()
-                    self._exclusive_holder_task_id = None
+    def _sync_task_status(self, status_key: str, task: Any) -> None:
+        status = getattr(task, "status", TaskStatus.PENDING)
+        status_value = status.value if isinstance(status, TaskStatus) else str(status)
+        if status_value != status_key:
+            self.update_task_status(task)
 
-        # start new tasks from queue if possible
+    def _runner_ready(
+        self,
+        task_id: str,
+        runner: Optional[asyncio.Task],
+        finalized_ids: set[str],
+    ) -> bool:
+        return runner is not None and task_id not in finalized_ids and runner.done()
+
+    async def _await_runner(self, task_id: str, task: Any, runner: asyncio.Task) -> None:
+        try:
+            await runner
+        except asyncio.CancelledError:
+            if hasattr(task, "cancel"):
+                task.cancel()
+        except Exception as exc:
+            self.logger.exception(f"Task {task_id} raised an unhandled exception: {exc}")
+            if getattr(task, "status", None) != TaskStatus.FAILED and hasattr(task, "set_error"):
+                task.set_error(str(exc))
+
+    def _finalize_task(self, task: Any) -> None:
+        self.running_tasks = max(self.running_tasks - 1, 0)
+        self.update_task_status(task)
+        self._release_exclusive_if_holder(task)
+
+    def _release_exclusive_if_holder(self, task: Any) -> None:
+        if getattr(task, "task_id", None) != self._exclusive_holder_task_id:
+            return
+        self.logger.info(f"TaskManager: releasing exclusive lock held by {task.task_id}")
+        release_exclusive()
+        self._exclusive_holder_task_id = None
+
+    async def _drain_task_queue(self) -> None:
         while self.task_queue and self.running_tasks < self.max_concurrent_tasks:
             task = self.task_queue.pop(0)
             await self._start_task(task, "Queued task ")
@@ -145,7 +172,7 @@ class TaskManager:
             db_task = result.first()
             if db_task is None:
                 db_task = DBTask()
-            db_task.import_task(task)
+            db_task.import_task(task, attach_relations=False)
             session.add(db_task)
             await session.commit()
 

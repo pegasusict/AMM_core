@@ -34,11 +34,34 @@ class PluginBase(ABC):
     @classmethod
     def validate_classvars(cls, type: Optional[PluginType] = None) -> None:
         """Validates all ClassVar fields. Raises ValueError with helpful message."""
-        errors:list[str] = []
+        errors = []
+        errors.extend(cls._base_validation_errors(type))
+        errors.extend(cls._processor_validation_errors())
+        errors.extend(cls._task_validation_errors())
+
+        if errors:
+            raise ValueError(f"Plugin class validation failed for {cls.__name__}: " + "; ".join(errors))
+
+    @classmethod
+    def _base_validation_errors(cls, expected_type: Optional[PluginType]) -> list[str]:
+        errors: list[str] = []
+        errors.extend(cls._type_validation_errors(expected_type))
+        errors.extend(cls._metadata_validation_errors())
+        errors.extend(cls._depends_validation_errors())
+        return errors
+
+    @classmethod
+    def _type_validation_errors(cls, expected_type: Optional[PluginType]) -> list[str]:
+        errors: list[str] = []
         if not cls._verify_plugin_type():
             errors.append("plugin_type must be a PluginType") # pyright: ignore[reportUnknownMemberType]
-        if type and cls.plugin_type != type:
-            errors.append(f"plugin_type must be {type}") # pyright: ignore[reportUnknownMemberType]
+        if expected_type and cls.plugin_type != expected_type:
+            errors.append(f"plugin_type must be {expected_type}") # pyright: ignore[reportUnknownMemberType]
+        return errors
+
+    @classmethod
+    def _metadata_validation_errors(cls) -> list[str]:
+        errors: list[str] = []
         if not cls._verify_name_var(cls.name):
             errors.append("name must be a valid identifier (see name rules)") # pyright: ignore[reportUnknownMemberType]
         if not cls._verify_description_var(cls.description):
@@ -47,24 +70,38 @@ class PluginBase(ABC):
             errors.append("author invalid or missing") # pyright: ignore[reportUnknownMemberType]
         if not cls._verify_version():
             errors.append("version must follow semver X.Y.Z") # pyright: ignore[reportUnknownMemberType]
-        dep_ok, dep_err = cls._verify_depends()
-        if not dep_ok:
-            errors.append(f"depends invalid: {dep_err}") # pyright: ignore[reportUnknownMemberType]
-        if cls.plugin_type == PluginType.PROCESSOR or cls.plugin_type == PluginType.TASK:
-            if not cls._verify_task_type():
-                errors.append("Plugin must define a valid TaskType") # pyright: ignore[reportUnknownMemberType]
-            if not cls._validate_bool(cls.exclusive):
-                errors.append("exclusive must be a boolean") # pyright: ignore[reportUnknownMemberType]
-            if not cls._validate_bool(cls.heavy_io):
-                errors.append("heavy_io must be a boolean") # pyright: ignore[reportUnknownMemberType]
-        if cls.plugin_type == PluginType.TASK:
-            if not cls._verify_name_var(cls.stage_name):
-                errors.append("TASK plugin must define a valid stage_name") # pyright: ignore[reportUnknownMemberType]
-            if not cls._verify_stage_type():
-                errors.append("TASK plugin must define a valid StageType") # pyright: ignore[reportUnknownMemberType]
+        return errors
 
-        if errors:
-            raise ValueError(f"Plugin class validation failed for {cls.__name__}: " + "; ".join(errors))
+    @classmethod
+    def _depends_validation_errors(cls) -> list[str]:
+        dep_ok, dep_err = cls._verify_depends()
+        if dep_ok:
+            return []
+        return [f"depends invalid: {dep_err}"] # pyright: ignore[reportUnknownMemberType]
+
+    @classmethod
+    def _processor_validation_errors(cls) -> list[str]:
+        if cls.plugin_type not in {PluginType.PROCESSOR, PluginType.TASK}:
+            return []
+        errors: list[str] = []
+        if not cls._verify_task_type():
+            errors.append("Plugin must define a valid TaskType") # pyright: ignore[reportUnknownMemberType]
+        if not cls._validate_bool(cls.exclusive):
+            errors.append("exclusive must be a boolean") # pyright: ignore[reportUnknownMemberType]
+        if not cls._validate_bool(cls.heavy_io):
+            errors.append("heavy_io must be a boolean") # pyright: ignore[reportUnknownMemberType]
+        return errors
+
+    @classmethod
+    def _task_validation_errors(cls) -> list[str]:
+        if cls.plugin_type != PluginType.TASK:
+            return []
+        errors: list[str] = []
+        if not cls._verify_name_var(cls.stage_name):
+            errors.append("TASK plugin must define a valid stage_name") # pyright: ignore[reportUnknownMemberType]
+        if not cls._verify_stage_type():
+            errors.append("TASK plugin must define a valid StageType") # pyright: ignore[reportUnknownMemberType]
+        return errors
 
     @classmethod
     def _validate_bool(cls, var: object) -> bool:

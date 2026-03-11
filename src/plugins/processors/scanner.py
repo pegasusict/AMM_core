@@ -131,13 +131,15 @@ class ScannerProcessor(ProcessorBase):
         files = (await session.exec(select(DBFile))).all()
         for file in files:
 
-            # DBFile already finished all stages?
-            next_stage = self._next_stage(file.stage_type)
-            if not next_stage:
+            # Use current stage; if NONE, start from the first available stage.
+            stage = file.stage_type
+            if stage == StageType.NONE:
+                stage = self._next_stage(stage)
+            if not stage:
                 continue
 
             # Get all tasks declared for that stage
-            task_names = tasks_by_stage.get(next_stage, [])
+            task_names = tasks_by_stage.get(stage, [])
 
             # Determine which tasks still need to run
             for tname in task_names:
@@ -153,10 +155,14 @@ class ScannerProcessor(ProcessorBase):
         Return the next StageType after the file’s current stage.
         """
         try:
-            i = self.stage_order.index(current)
-            return self.stage_order[i + 1]
-        except (ValueError, IndexError):
-            return None
+            start_index = self.stage_order.index(current)
+        except ValueError:
+            start_index = -1
+
+        for stage in self.stage_order[start_index + 1 :]:
+            if self.registry._stage_records.get(stage):
+                return stage
+        return None
 
 
     # ---------------------------------------------------------

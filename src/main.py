@@ -10,7 +10,6 @@ from contextlib import asynccontextmanager
 from strawberry.fastapi import GraphQLRouter
 from strawberry.subscriptions import GRAPHQL_WS_PROTOCOL
 from typing import AsyncGenerator
-from sqlalchemy import text
 
 from config import Config
 from Singletons import DBInstance, Logger
@@ -62,13 +61,13 @@ async def ensure_sqlite_schema_columns() -> None:
 
     async with DBInstance.engine.begin() as conn:
         for table_name, column_defs in required_columns.items():
-            info = await conn.execute(text(f"PRAGMA table_info({table_name})"))
+            info = await conn.exec_driver_sql(f"PRAGMA table_info({table_name})")
             existing = {row[1] for row in info.fetchall()}
             for column_def in column_defs:
                 column_name = column_def.split()[0]
                 if column_name in existing:
                     continue
-                await conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_def}"))
+                await conn.exec_driver_sql(f"ALTER TABLE {table_name} ADD COLUMN {column_def}")
 
 
 # GraphQL
@@ -80,7 +79,8 @@ graphql_app = GraphQLRouter(
 )
 
 # CORS
-origins = ["*"] if env_config.CORS_ALLOW_ALL else list(env_config.CORS_ORIGINS)
+origins = list(env_config.CORS_ORIGINS)
+origin_regex = ".*" if env_config.CORS_ALLOW_ALL else None
 
 
 # ----------------------------
@@ -177,6 +177,7 @@ async def daily_task_retention_cleanup() -> None:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=origin_regex,
     allow_methods=["*"],
     allow_headers=["*"],
 )

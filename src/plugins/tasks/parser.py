@@ -95,7 +95,7 @@ class Parser(TaskBase):
                     metadata = await self.media_parse(Path(file_path))
 
                     # Load DBFile
-                    db_file = await session.get_one(DBFile, DBFile.id == file_id)
+                    db_file = await session.get(DBFile, file_id)
                     if db_file is None:
                         raise DatabaseError(f"DBFile {file_id} not found")
 
@@ -103,7 +103,7 @@ class Parser(TaskBase):
                     set_fields(metadata, db_file)
 
                     # Update stage
-                    self.update_file_stage(file_id, session)
+                    await self.update_file_stage(file_id, session)
 
                     session.add(db_file)
                     self.logger.debug(f"Parsed file {file_path}")

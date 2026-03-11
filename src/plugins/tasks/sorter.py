@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from pathlib import Path
-from typing import ClassVar, Iterable, Optional, Tuple
+from typing import Any, ClassVar, Iterable, Optional
 
 from sqlmodel import select
 from sqlalchemy.orm import selectinload
@@ -40,6 +40,7 @@ class SorterTask(TaskBase):
         batch: Optional[Iterable[int]] = None,
         config: Optional[Config] = None,
     ) -> None:
+        super().__init__(config=config, batch=batch)
         self.logger = Logger()
         self.config = config or Config.get_sync()
         self.db: DBInterface = DBInstance
@@ -51,41 +52,50 @@ class SorterTask(TaskBase):
     async def run(self) -> None:
         async for session in self.db.get_session():
             for track_id in self.batch:
-                track = await self._load_track(session, track_id)
-                if track is None or not track.files:
-                    continue
-
-                file = track.files[0]
-                if not file.file_path:
-                    continue
-
-                input_path = Path(file.file_path)
-                if not input_path.exists():
-                    self.logger.warning(f"Sorter: input missing {input_path}")
-                    continue
-
-                metadata = self._build_metadata(track)
-                target_path = self._build_target_path(metadata)
-
-                if target_path.exists():
-                    self.logger.warning(f"Sorter: target exists {target_path}")
-                    continue
-
-                try:
-                    target_path.parent.mkdir(parents=True, exist_ok=True)
-                    input_path.rename(target_path)
-                    await self.update_file_stage(file.id, session)
-                except Exception as e:
-                    self.logger.error(f"Sorter failed for {input_path}: {e}")
-
-                self._processed += 1
-                if self._total:
-                    self.set_progress(self._processed / self._total)
+                await self._process_track(session, track_id)
 
             await session.commit()
             await session.close()
 
         self.logger.info("Sorter task completed.")
+
+    async def _process_track(self, session: AsyncSessionLike, track_id: int) -> None:
+        track = await self._load_track(session, track_id)
+        if track is None or not track.files:
+            return
+
+        resolved = self._resolve_input_file(track)
+        if resolved is None:
+            return
+        file, input_path = resolved
+
+        metadata = self._build_metadata(track)
+        target_path = self._build_target_path(metadata)
+
+        if target_path.exists():
+            self.logger.warning(f"Sorter: target exists {target_path}")
+            return
+
+        try:
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            input_path.rename(target_path)
+            await self.update_file_stage(file.id, session)
+        except Exception as e:
+            self.logger.error(f"Sorter failed for {input_path}: {e}")
+
+        self._tick_progress()
+
+    def _resolve_input_file(self, track: DBTrack) -> Optional[tuple[Any, Path]]:
+        file = track.files[0]
+        if not file.file_path:
+            return None
+
+        input_path = Path(file.file_path)
+        if not input_path.exists():
+            self.logger.warning(f"Sorter: input missing {input_path}")
+            return None
+
+        return file, input_path
 
     async def _load_track(self, session: AsyncSessionLike, track_id: int) -> Optional[DBTrack]:
         result = await session.exec(
@@ -93,39 +103,53 @@ class SorterTask(TaskBase):
             .where(DBTrack.id == track_id)
             .options(
                 selectinload(DBTrack.files),
-                selectinload(DBTrack.performers),
                 selectinload(DBTrack.album_tracks),
             )
         )
         return result.one_or_none()
 
     def _build_metadata(self, track: DBTrack) -> dict:
+        album_title, year, disc_number, track_number = self._album_info(track)
+        performers = getattr(track, "performers", None) or []
+        artist = performers[0].full_name if performers else "Unknown Artist"
+        title = getattr(track, "title", None)
+        if not title and track.files:
+            title = track.files[0].file_name
+
+        return {
+            "album": album_title,
+            "artist_sort": artist,
+            "title": title or "Unknown Track",
+            "year": year,
+            "disc_number": disc_number,
+            "track_number": track_number,
+        }
+
+    def _album_info(self, track: DBTrack) -> tuple[str, str, str, str]:
         album_title = "[compilations]"
         year = "0000"
         disc_number = "1"
         track_number = "1"
 
-        if track.album_tracks:
-            album_track = track.album_tracks[0]
-            if isinstance(album_track, DBAlbumTrack) and album_track.album:
-                album_title = album_track.album.title or album_title
-                if album_track.album.release_date:
-                    year = str(album_track.album.release_date.year)
-            if album_track.track_number:
-                track_number = str(album_track.track_number)
-            if album_track.disc_number:
-                disc_number = str(album_track.disc_number)
+        if not track.album_tracks:
+            return album_title, year, disc_number, track_number
 
-        artist = track.performers[0].full_name if track.performers else "Unknown Artist"
+        album_track = track.album_tracks[0]
+        if isinstance(album_track, DBAlbumTrack) and album_track.album:
+            album_title = album_track.album.title or album_title
+            if album_track.album.release_date:
+                year = str(album_track.album.release_date.year)
+        if album_track.track_number:
+            track_number = str(album_track.track_number)
+        if album_track.disc_number:
+            disc_number = str(album_track.disc_number)
 
-        return {
-            "album": album_title,
-            "artist_sort": artist,
-            "title": track.title or "Unknown Track",
-            "year": year,
-            "disc_number": disc_number,
-            "track_number": track_number,
-        }
+        return album_title, year, disc_number, track_number
+
+    def _tick_progress(self) -> None:
+        self._processed += 1
+        if self._total:
+            self.set_progress(self._processed / self._total)
 
     def _build_target_path(self, metadata: dict) -> Path:
         base_path = Path(self.config.get_path("base"))

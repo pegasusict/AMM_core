@@ -27,7 +27,7 @@ class AsyncConfigManager:
     _instance_lock: ClassVar[Lock] = Lock()
 
     @classmethod
-    async def get(cls, config_file: Optional[Path] = None) -> "AsyncConfigManager":
+    async def get_async(cls, config_file: Optional[Path] = None) -> "AsyncConfigManager":
         """Async-safe singleton getter."""
         if cls._instance is not None:
             return cls._instance

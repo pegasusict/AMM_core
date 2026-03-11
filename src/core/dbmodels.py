@@ -14,7 +14,6 @@
 
 """Database Models for the application."""
 
-from __future__ import annotations
 import datetime as dt
 from pathlib import Path
 from typing import Optional, List, Any, ClassVar
@@ -59,8 +58,8 @@ class DBUser(AutoFetchable, SQLModel, table=True):
         sa_column_kwargs={"onupdate": lambda: dt.datetime.now(dt.timezone.utc)},
     )
 
-    queue: DBQueue = Relationship(back_populates="user")
-    playlists: DBPlaylist = Relationship(back_populates="user")
+    queue: "DBQueue" = Relationship(back_populates="user")
+    playlists: "DBPlaylist" = Relationship(back_populates="user")
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, username={self.username}, email={self.email}, role={self.role})>"
@@ -73,7 +72,7 @@ class DBQueue(AutoFetchable, SQLModel, table=True):
     user_id: int = Field(foreign_key="users.id", nullable=False)
     track_ids: List[int] = Field(default_factory=list, sa_type=JSON)
 
-    user: DBUser = Relationship(back_populates="queue")
+    user: "DBUser" = Relationship(back_populates="queue")
 
 
 class DBPlaylist(AutoFetchable, SQLModel, table=True):
@@ -83,8 +82,8 @@ class DBPlaylist(AutoFetchable, SQLModel, table=True):
     name: str = Field(sa_type=String(255), max_length=255)
     user_id: int = Field(foreign_key="users.id", nullable=False)
 
-    user: DBUser = Relationship(back_populates="playlists")
-    tracks: DBPlaylistTrack = Relationship(back_populates="playlist")
+    user: "DBUser" = Relationship(back_populates="playlists")
+    tracks: "DBPlaylistTrack" = Relationship(back_populates="playlist")
 
 
 class DBPlaylistTrack(AutoFetchable, SQLModel, table=True):
@@ -95,8 +94,8 @@ class DBPlaylistTrack(AutoFetchable, SQLModel, table=True):
     track_id: int = Field(foreign_key="tracks.id", nullable=False)
     position: int = Field(default=0)
 
-    playlist: DBPlaylist = Relationship(back_populates="tracks")
-    track: DBTrack = Relationship()
+    playlist: "DBPlaylist" = Relationship(back_populates="tracks")
+    track: "DBTrack" = Relationship()
 
 
 #######################################################################
@@ -110,10 +109,10 @@ class DBFileToConvert(AutoFetchable, SQLModel, table=True):
     file_id: int = Field(foreign_key="files.id")
     task_id: int = Field(foreign_key="tasks.id")
 
-    file: DBFile = Relationship(
+    file: "DBFile" = Relationship(
         sa_relationship_kwargs={"foreign_keys": "[DBFileToConvert.file_id]"},
     )
-    task: DBTask = Relationship(back_populates="batch_convert")
+    task: "DBTask" = Relationship(back_populates="batch_convert")
 
     def __repr__(self) -> str:
         return f"<DBFileToConvert(file_id={self.file_id}, codec={self.codec})>"
@@ -138,12 +137,12 @@ class DBTask(AutoFetchable, SQLModel, table=True):
     status: TaskStatus = Field(default=TaskStatus.PENDING)
     task_type: TaskType = Field(default=TaskType.CUSTOM)
 
-    batch_files: DBFile = Relationship(back_populates="task")
-    batch_tracks: DBTrack = Relationship(back_populates="task")
-    batch_albums: DBAlbum = Relationship(back_populates="task")
-    batch_persons: DBPerson = Relationship(back_populates="task")
-    batch_labels: DBLabel = Relationship(back_populates="task")
-    batch_convert: DBFileToConvert = Relationship(back_populates="task")
+    batch_files: list["DBFile"] = Relationship(back_populates="task")
+    batch_tracks: list["DBTrack"] = Relationship(back_populates="task")
+    batch_albums: list["DBAlbum"] = Relationship(back_populates="task")
+    batch_persons: list["DBPerson"] = Relationship(back_populates="task")
+    batch_labels: list["DBLabel"] = Relationship(back_populates="task")
+    batch_convert: list["DBFileToConvert"] = Relationship(back_populates="task")
 
     def __repr__(self) -> str:
         return f"<DBTask(id={self.id}, task_id={self.task_id}, status={self.status})>"
@@ -162,9 +161,12 @@ class DBTask(AutoFetchable, SQLModel, table=True):
         "task_type",
     )
 
-    def import_task(self, task: Task) -> None:
+    def import_task(self, task: Task, attach_relations: bool = True) -> None:
         """Imports a task into the database."""
         self._fill_required_fields(task)
+
+        if not attach_relations:
+            return
 
         # Dispatch table for handlers
         task_handlers = {
@@ -190,23 +192,12 @@ class DBTask(AutoFetchable, SQLModel, table=True):
     def _fill_required_fields(self, task: Task) -> None:
         # TaskBase stores many runtime values in private attrs/properties.
         # Persist from those canonical values instead of assuming DBTask field names.
-        if not getattr(task, "task_id", None):
-            raise ValueError("Task is missing required attribute: task_id")
-        if not getattr(task, "task_type", None):
-            raise ValueError("Task is missing required attribute: task_type")
+        self.task_id = self._require_task_attr(task, "task_id")
+        self.task_type = self._require_task_attr(task, "task_type")
 
-        self.task_id = task.task_id
         now_utc = dt.datetime.now(dt.timezone.utc)
-        self.start_time = (
-            dt.datetime.fromtimestamp(task._start_time, tz=dt.timezone.utc)
-            if getattr(task, "_start_time", 0)
-            else now_utc
-        )
-        self.end_time = (
-            dt.datetime.fromtimestamp(task._end_time, tz=dt.timezone.utc)
-            if getattr(task, "_end_time", 0)
-            else None
-        )
+        self.start_time = self._timestamp_or_default(getattr(task, "_start_time", 0), now_utc)
+        self.end_time = self._timestamp_or_none(getattr(task, "_end_time", 0))
         self.duration = int(getattr(task, "duration", 0) or 0)
         self.processed = int(getattr(task, "processed", 0) or 0)
         self.progress = float(getattr(task, "progress", 0.0) or 0.0)
@@ -216,6 +207,22 @@ class DBTask(AutoFetchable, SQLModel, table=True):
         self.error = str(getattr(task, "error", "") or "")
         self.status = getattr(task, "status")
         self.task_type = getattr(task, "task_type")
+
+    def _require_task_attr(self, task: Task, name: str) -> Any:
+        value = getattr(task, name, None)
+        if not value:
+            raise ValueError(f"Task is missing required attribute: {name}")
+        return value
+
+    def _timestamp_or_default(self, timestamp: float, default: dt.datetime) -> dt.datetime:
+        if timestamp:
+            return dt.datetime.fromtimestamp(timestamp, tz=dt.timezone.utc)
+        return default
+
+    def _timestamp_or_none(self, timestamp: float) -> Optional[dt.datetime]:
+        if timestamp:
+            return dt.datetime.fromtimestamp(timestamp, tz=dt.timezone.utc)
+        return None
 
     def _handle_art_getter(self, task: Task) -> None:
         albums = []
@@ -290,37 +297,40 @@ class DBTask(AutoFetchable, SQLModel, table=True):
         self,
     ) -> list[str] | list[int] | list[Path] | dict[str, ArtType] | dict[int, Codec] | None:
         """Gets the correctly formatted Batch List/Dict."""
+        if self.task_type == TaskType.ART_GETTER:
+            return self._get_art_batch()
+        if self.task_type == TaskType.CONVERTER:
+            return self._get_codec_batch()  # type: ignore
+        if self.task_type in self._file_id_tasks() | self._file_dict_tasks():
+            return self._get_batch_ids(self.batch_files)  # type: ignore
+        if self.task_type in self._track_tasks():
+            return self._get_batch_ids(self.batch_tracks)  # type: ignore
+        return None
 
-        def is_populated_list(subject: list[Any]) -> bool:
-            return isinstance(subject, list) and len(subject) > 0
+    @staticmethod
+    def _is_populated_list(subject: list[Any]) -> bool:
+        return isinstance(subject, list) and len(subject) > 0
 
-        def get_ids(items: list[Any]) -> list[int]:
-            return [item.id for item in items]
+    @classmethod
+    def _get_batch_ids(cls, items: list[Any] | None) -> list[int] | None:
+        if not items or not cls._is_populated_list(items):
+            return None
+        return [item.id for item in items]
 
-        def get_art_batch() -> dict[str, ArtType] | None:
-            result: dict[str, ArtType] = {}
-            if is_populated_list(self.batch_albums):
-                result.update({album.mbid: ArtType.ALBUM for album in self.batch_albums})
-            if is_populated_list(self.batch_persons):
-                result.update({person.mbid: ArtType.ARTIST for person in self.batch_persons})
-            if is_populated_list(self.batch_labels):
-                result.update({label.mbid: ArtType.LABEL for label in self.batch_labels})
-            return result or None
+    def _get_art_batch(self) -> dict[str, ArtType] | None:
+        result: dict[str, ArtType] = {}
+        if self._is_populated_list(self.batch_albums):
+            result.update({album.mbid: ArtType.ALBUM for album in self.batch_albums})
+        if self._is_populated_list(self.batch_persons):
+            result.update({person.mbid: ArtType.ARTIST for person in self.batch_persons})
+        if self._is_populated_list(self.batch_labels):
+            result.update({label.mbid: ArtType.LABEL for label in self.batch_labels})
+        return result or None
 
-        def get_codec_batch() -> dict[int, Codec] | None:
-            return {file.file.id: file.codec for file in self.batch_convert} if is_populated_list(self.batch_convert) else None
-
-        match self.task_type:
-            case TaskType.ART_GETTER:
-                return get_art_batch()
-            case TaskType.CONVERTER:
-                return get_codec_batch()  # type: ignore
-            case TaskType.FINGERPRINTER | TaskType.NORMALIZER | TaskType.EXPORTER | TaskType.TRIMMER | TaskType.PARSER:
-                return get_ids(self.batch_files) if is_populated_list(self.batch_files) else None  # type: ignore
-            case TaskType.TAGGER | TaskType.EXPORTER | TaskType.LYRICS_GETTER | TaskType.DEDUPER | TaskType.SORTER:
-                return get_ids(self.batch_tracks) if is_populated_list(self.batch_tracks) else None  # type: ignore
-            case _:
-                return None
+    def _get_codec_batch(self) -> dict[int, Codec] | None:
+        if not self._is_populated_list(self.batch_convert):
+            return None
+        return {file.file.id: file.codec for file in self.batch_convert}
 
 
 class DBTaskStat(SQLModel, table=True):
@@ -418,8 +428,8 @@ class DBFile(ItemBase, table=True):
     )
     completed_tasks: List[str] = Field(default_factory=list, sa_type=JSON)
 
-    track: DBTrack = Relationship(back_populates="files")
-    task: DBTask = Relationship(back_populates="batch_files")
+    track: "DBTrack" = Relationship(back_populates="files")
+    task: "DBTask" = Relationship(back_populates="batch_files")
 
     def mark_task_completed(self, task_name: str) -> bool:
         """
@@ -427,9 +437,22 @@ class DBFile(ItemBase, table=True):
         Returns True if task was newly added, False if it was already there.
         """
         if task_name not in self.completed_tasks:
-            self.completed_tasks.append(task_name)
+            # Reassign to ensure SQLAlchemy detects JSON list mutation.
+            self.completed_tasks = list(self.completed_tasks) + [task_name]
             return True
         return False
+
+
+class DBTrackPerson(AutoFetchable, SQLModel, table=True):
+    """Association table for Track <-> Person (performers)."""
+
+    __tablename__ = "track_persons"  # type: ignore
+
+    track_id: int = Field(foreign_key="tracks.id", primary_key=True)
+    person_id: int = Field(foreign_key="persons.id", primary_key=True)
+
+    track: "DBTrack" = Relationship()
+    person: "DBPerson" = Relationship()
 
 
 class DBTrack(ItemBase, table=True):
@@ -437,19 +460,25 @@ class DBTrack(ItemBase, table=True):
 
     __tablename__ = "tracks"  # type: ignore
 
+    title: str = Field(default="", sa_type=String(255), max_length=255)
+    subtitle: Optional[str] = Field(default=None, sa_type=String(255), max_length=255)
+    title_sort: str = Field(default="", sa_type=String(255), max_length=255)
     composed: dt.date = Field(default=dt.date.min, sa_column_kwargs={"nullable": False})
     release_date: dt.date = Field(default=dt.date.min, sa_column_kwargs={"nullable": False})
     mbid: str = Field(default="", sa_type=String(40), unique=True, max_length=40)
     task_id: int = Field(default=None, foreign_key="tasks.id")
     key_id: Optional[int] = Field(default=None, foreign_key="keys.id")
     genre_id: Optional[int] = Field(default=None, foreign_key="genres.id")
-    files: DBFile = Relationship(back_populates="track")
-    album_tracks: DBAlbumTrack = Relationship(back_populates="track")
-    key: DBKey = Relationship(back_populates="tracks")
-    genres: DBGenre = Relationship(back_populates="tracks")
-    task: DBTask = Relationship(back_populates="batch_tracks")
-    lyric: DBTrackLyric = Relationship(back_populates="track")
-    tracktags: DBTrackTag = Relationship(back_populates="track")
+    files: "DBFile" = Relationship(back_populates="track")
+    album_tracks: "DBAlbumTrack" = Relationship(back_populates="track")
+    performers: list["DBPerson"] = Relationship(
+        back_populates="tracks", link_model=DBTrackPerson
+    )
+    key: "DBKey" = Relationship(back_populates="tracks")
+    genres: "DBGenre" = Relationship(back_populates="tracks")
+    task: "DBTask" = Relationship(back_populates="batch_tracks")
+    lyric: "DBTrackLyric" = Relationship(back_populates="track")
+    tracktags: "DBTrackTag" = Relationship(back_populates="track")
 
 
 class DBTrackTag(ItemBase, table=True):
@@ -458,7 +487,7 @@ class DBTrackTag(ItemBase, table=True):
     __tablename__ = "track_tags"  # type: ignore
 
     track_id: int = Field(default=None, foreign_key="tracks.id")
-    track: DBTrack = Relationship(back_populates="tracktags")
+    track: "DBTrack" = Relationship(back_populates="tracktags")
     tag_type: TagType = Field(default=TagType.UNKNOWN)
     data: str = Field(default="", sa_type=String(255), max_length=255)
 
@@ -480,10 +509,10 @@ class DBAlbum(ItemBase, table=True):
     label_id: Optional[int] = Field(default=None, foreign_key="labels.id")
     genre_id: Optional[int] = Field(default=None, foreign_key="genres.id")
 
-    task: DBTask = Relationship(back_populates="batch_albums")
-    label: DBLabel = Relationship(back_populates="albums")
-    album_tracks: DBAlbumTrack = Relationship(back_populates="album")
-    genres: DBGenre = Relationship(back_populates="albums")
+    task: "DBTask" = Relationship(back_populates="batch_albums")
+    label: "DBLabel" = Relationship(back_populates="albums")
+    album_tracks: "DBAlbumTrack" = Relationship(back_populates="album")
+    genres: "DBGenre" = Relationship(back_populates="albums")
 
 
 class DBAlbumTrack(ItemBase, table=True):
@@ -496,8 +525,8 @@ class DBAlbumTrack(ItemBase, table=True):
     disc_number: int = Field(default=1)
     track_number: int = Field(default=1)
 
-    album: DBAlbum = Relationship(back_populates="album_tracks")
-    track: DBTrack = Relationship(back_populates="album_tracks")
+    album: "DBAlbum" = Relationship(back_populates="album_tracks")
+    track: "DBTrack" = Relationship(back_populates="album_tracks")
 
 
 class DBPerson(ItemBase, table=True):
@@ -516,8 +545,11 @@ class DBPerson(ItemBase, table=True):
     date_of_birth: dt.date = Field(default=None, sa_column_kwargs={"nullable": True})
     date_of_death: Optional[dt.date] = Field(default=None, sa_column_kwargs={"nullable": True})
     task_id: int = Field(default=None, foreign_key="tasks.id")
-    task: DBTask = Relationship(back_populates="batch_persons")
-    labels: DBLabel = Relationship(back_populates="owner")
+    task: "DBTask" = Relationship(back_populates="batch_persons")
+    labels: "DBLabel" = Relationship(back_populates="owner")
+    tracks: list["DBTrack"] = Relationship(
+        back_populates="performers", link_model=DBTrackPerson
+    )
 
 
 class DBLabel(ItemBase, table=True):
@@ -540,14 +572,14 @@ class DBLabel(ItemBase, table=True):
     parent_id: Optional[int] = Field(default=None, foreign_key="labels.id")
     task_id: int = Field(default=None, foreign_key="tasks.id")
 
-    parent: DBLabel = Relationship(
+    parent: "DBLabel" = Relationship(
         back_populates="children",
         sa_relationship_kwargs={"remote_side": "DBLabel.id"},
     )
-    children: DBLabel = Relationship(back_populates="parent")
-    albums: DBAlbum = Relationship(back_populates="label")
-    owner: DBPerson = Relationship(back_populates="labels")
-    task: DBTask = Relationship(back_populates="batch_labels")
+    children: "DBLabel" = Relationship(back_populates="parent")
+    albums: "DBAlbum" = Relationship(back_populates="label")
+    owner: "DBPerson" = Relationship(back_populates="labels")
+    task: "DBTask" = Relationship(back_populates="batch_labels")
 
 
 class DBKey(ItemBase, table=True):
@@ -557,7 +589,7 @@ class DBKey(ItemBase, table=True):
 
     key: str = Field(sa_type=String(16), max_length=16, unique=True, nullable=False)
 
-    tracks: DBTrack = Relationship(back_populates="key")
+    tracks: "DBTrack" = Relationship(back_populates="key")
 
 
 class DBGenre(ItemBase, table=True):
@@ -568,8 +600,8 @@ class DBGenre(ItemBase, table=True):
     genre: str = Field(default="", sa_type=String(64), max_length=64)
     description: str = Field(default="", sa_type=String(1024), max_length=1024)
 
-    tracks: DBTrack = Relationship(back_populates="genres")
-    albums: DBAlbum = Relationship(back_populates="genres")
+    tracks: "DBTrack" = Relationship(back_populates="genres")
+    albums: "DBAlbum" = Relationship(back_populates="genres")
 
 
 #######################################################################
@@ -581,7 +613,7 @@ class DBTrackLyric(OptFieldBase, table=True):
     track_id: int = Field(default=None, foreign_key="tracks.id")
     lyric: str = Field(sa_type=String(2048), max_length=2048)
 
-    track: DBTrack = Relationship(back_populates="lyric")
+    track: "DBTrack" = Relationship(back_populates="lyric")
 
 
 class DBPicture(OptFieldBase, table=True):
@@ -594,6 +626,6 @@ class DBPicture(OptFieldBase, table=True):
     person_id: Optional[int] = Field(default=None, foreign_key="persons.id")
     label_id: Optional[int] = Field(default=None, foreign_key="labels.id")
 
-    album: DBAlbum = Relationship()
-    person: DBPerson = Relationship()
-    label: DBLabel = Relationship()
+    album: "DBAlbum" = Relationship()
+    person: "DBPerson" = Relationship()
+    label: "DBLabel" = Relationship()

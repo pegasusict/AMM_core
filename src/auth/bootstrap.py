@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import os
 
+from typing import Any
+
 from sqlmodel import select
 
 from Singletons import DBInstance, Logger
@@ -17,22 +19,55 @@ from core.enums import UserRole
 from .passwords import hash_password
 
 
-async def ensure_bootstrap_admin(logger: Logger | None = None) -> None:
+def _bootstrap_credentials() -> tuple[str, str, str] | None:
     username = (os.getenv("AMM_BOOTSTRAP_ADMIN_USERNAME") or "").strip()
     email = (os.getenv("AMM_BOOTSTRAP_ADMIN_EMAIL") or "").strip()
     password = os.getenv("AMM_BOOTSTRAP_ADMIN_PASSWORD") or ""
-
     if not (username and email and password):
+        return None
+    return username, email, password
+
+
+async def _find_user(session: Any, *, username: str, email: str) -> DBUser | None:
+    existing = (await session.exec(select(DBUser).where(DBUser.username == username))).first()
+    if existing:
+        return existing
+    return (await session.exec(select(DBUser).where(DBUser.email == email))).first()
+
+
+def _set_if_different(obj: Any, attr: str, value: Any) -> bool:
+    if getattr(obj, attr) == value:
+        return False
+    setattr(obj, attr, value)
+    return True
+
+
+def _is_admin_role(role: Any) -> bool:
+    return str(role).upper() == str(UserRole.ADMIN.value).upper()
+
+
+def _apply_bootstrap_updates(user: DBUser, *, email: str, pwd_hash: str) -> bool:
+    changed = False
+    changed |= _set_if_different(user, "email", email)
+    changed |= _set_if_different(user, "password_hash", pwd_hash)
+    changed |= _set_if_different(user, "is_active", True)
+    if not _is_admin_role(user.role):
+        user.role = UserRole.ADMIN
+        changed = True
+    return changed
+
+
+async def ensure_bootstrap_admin(logger: Logger | None = None) -> None:
+    creds = _bootstrap_credentials()
+    if not creds:
         return
+    username, email, password = creds
 
     pwd_hash = hash_password(password)
 
     async for session in DBInstance.get_session():
-        existing = (await session.exec(select(DBUser).where(DBUser.username == username))).first()
-        if not existing:
-            existing = (await session.exec(select(DBUser).where(DBUser.email == email))).first()
-
-        if not existing:
+        existing = await _find_user(session, username=username, email=email)
+        if existing is None:
             user = DBUser(
                 username=username,
                 email=email,
@@ -49,19 +84,7 @@ async def ensure_bootstrap_admin(logger: Logger | None = None) -> None:
                 logger.info(f"Bootstrapped admin user '{username}'.")
             return
 
-        changed = False
-        if existing.email != email:
-            existing.email = email
-            changed = True
-        if existing.password_hash != pwd_hash:
-            existing.password_hash = pwd_hash
-            changed = True
-        if not existing.is_active:
-            existing.is_active = True
-            changed = True
-        if str(existing.role).upper() != str(UserRole.ADMIN.value).upper():
-            existing.role = UserRole.ADMIN
-            changed = True
+        changed = _apply_bootstrap_updates(existing, email=email, pwd_hash=pwd_hash)
 
         if changed:
             session.add(existing)
@@ -69,4 +92,3 @@ async def ensure_bootstrap_admin(logger: Logger | None = None) -> None:
             if logger:
                 logger.info(f"Updated bootstrapped admin user '{existing.username}'.")
         return
-

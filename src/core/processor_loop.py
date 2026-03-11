@@ -49,39 +49,47 @@ class ProcessorLoop:
         concurrency coordination.
         """
         while not self._shutdown:
-            try:
-                acquired = await inst.acquire_concurrency()
-                if not acquired:
-                    await asyncio.sleep(0.1)
-                    continue
-                try:
-                    await inst()
-                finally:
-                    inst.release_concurrency()
-
-            except asyncio.CancelledError:
-                # graceful shutdown
+            if await self._run_once(inst):
                 break
-            except Exception as e:
-                logger.exception(f"Processor {getattr(inst, 'name', repr(inst))} crashed: {e}")
-
-            # After each run(), pick up emitted tasks and schedule them
-            try:
-                emitted = getattr(inst, "collect_emitted_tasks", lambda: [])()
-                for rec in emitted:
-                    try:
-                        task_type = rec["task_type"]
-                        batch = rec.get("batch")
-                        extra = rec.get("extra", {})
-                        task_cls = self.task_manager._get_task_class(task_type)
-                        await self.task_manager.start_task(task_cls, batch=batch, kwargs=extra)
-                    except Exception as e:
-                        logger.error(f"ProcessorLoop: Failed to schedule emitted task {rec}: {e}")
-            except Exception as e:
-                logger.debug(f"ProcessorLoop: error while handling emitted tasks: {e}")
+            await self._handle_emitted_tasks(inst)
 
             # small sleep to avoid tight loop; processors choose to sleep inside run() as needed
             await asyncio.sleep(0.1)
+
+    async def _run_once(self, inst: Any) -> bool:
+        try:
+            acquired = await inst.acquire_concurrency()
+            if not acquired:
+                await asyncio.sleep(0.1)
+                return False
+            try:
+                await inst()
+            finally:
+                inst.release_concurrency()
+            return False
+        except asyncio.CancelledError:
+            return True
+        except Exception as e:
+            logger.exception(f"Processor {getattr(inst, 'name', repr(inst))} crashed: {e}")
+            return False
+
+    async def _handle_emitted_tasks(self, inst: Any) -> None:
+        try:
+            emitted = getattr(inst, "collect_emitted_tasks", lambda: [])()
+            for rec in emitted:
+                await self._schedule_emitted(rec)
+        except Exception as e:
+            logger.debug(f"ProcessorLoop: error while handling emitted tasks: {e}")
+
+    async def _schedule_emitted(self, rec: Any) -> None:
+        try:
+            task_type = rec["task_type"]
+            batch = rec.get("batch")
+            extra = rec.get("extra", {})
+            task_cls = self.task_manager._get_task_class(task_type)
+            await self.task_manager.start_task(task_cls, batch=batch, kwargs=extra)
+        except Exception as e:
+            logger.error(f"ProcessorLoop: Failed to schedule emitted task {rec}: {e}")
 
     async def shutdown(self) -> None:
         self._shutdown = True

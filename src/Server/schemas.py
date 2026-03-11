@@ -319,6 +319,15 @@ class UserUpdateInput:
 
 
 @strawberry.input
+class UserFilterInput:
+    username: Optional[str] = None
+    email: Optional[str] = None
+    role: Optional[UserRole] = None
+    is_active: Optional[bool] = None
+    search: Optional[str] = None
+
+
+@strawberry.input
 class TrackInput:
     composed: Optional[date] = None
     release_date: Optional[date] = None

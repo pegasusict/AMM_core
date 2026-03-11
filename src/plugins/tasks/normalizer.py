@@ -81,7 +81,7 @@ class Normalizer(TaskBase):
                     await self.normalize(file=p, file_type=str(file_type))
 
                     # Update DB stage
-                    self.update_file_stage(file_id, session)
+                    await self.update_file_stage(file_id, session)
 
                 except Exception as e:
                     self.logger.error(f"Normalization error for {path}: {e}")

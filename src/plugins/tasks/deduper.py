@@ -7,6 +7,7 @@ from core.types import DBInterface, DedupeFilesProtocol
 from core.enums import TaskType, StageType
 from Singletons import Logger, DBInstance
 from core.dbmodels import DBTrack
+from config import Config
 
 
 @register_task
@@ -15,7 +16,7 @@ class Deduper(TaskBase):
     Eliminates duplicate files based on audio quality.
     """
 
-    name = "Deduper"
+    name = "deduper"
     description = "Eliminates duplicate files based on audio quality."
     version = "2.0.0"
     author = "Mattijs Snepvangers"
@@ -30,7 +31,15 @@ class Deduper(TaskBase):
 
     depends = ["dedupe_files"]
 
-    def __init__(self, dedupe_files: DedupeFilesProtocol, *, batch: list[int]) -> None:
+    def __init__(
+        self,
+        dedupe_files: DedupeFilesProtocol,
+        *,
+        batch: list[int],
+        config: Config | None = None,
+        **kwargs: object,
+    ) -> None:
+        super().__init__(config=config, batch=batch, **kwargs)
         self.logger = Logger()
         self.batch = batch
 

@@ -90,27 +90,35 @@ def _enum_value(value: Any) -> Any:
     return value.value if hasattr(value, "value") else value
 
 
-def map_dbtrack_to_playertrack(track: DBTrack) -> PlayerTrack:
-    album_picture = None
+def _album_picture_from_track(track: DBTrack) -> Optional[str]:
     album_tracks = _loaded_rel(track, "album_tracks", []) or []
-    if album_tracks:
-        first_album = album_tracks[0].album
-        if first_album and first_album.picture:
-            album_picture = str(first_album.picture.picture_path)
+    if not album_tracks:
+        return None
+    first_album = album_tracks[0].album
+    if not first_album or not first_album.picture:
+        return None
+    return str(first_album.picture.picture_path)
 
+
+def _track_duration_seconds(track: DBTrack) -> Optional[int]:
     files = _loaded_rel(track, "files", []) or []
-    lyric = _loaded_rel(track, "lyric")
-    duration_seconds = files[0].duration if files else None
-    lyrics = lyric.lyric if lyric else None
+    return files[0].duration if files else None
 
+
+def _track_lyrics(track: DBTrack) -> Optional[str]:
+    lyric = _loaded_rel(track, "lyric")
+    return lyric.lyric if lyric else None
+
+
+def map_dbtrack_to_playertrack(track: DBTrack) -> PlayerTrack:
     return PlayerTrack(
         id=track.id,
         title=getattr(track, "title", None) or track.mbid or f"Track {track.id}",
         subtitle=getattr(track, "subtitle", None),
         artists=["Unknown Artist"],
-        album_picture=album_picture,
-        duration_seconds=duration_seconds,
-        lyrics=lyrics,
+        album_picture=_album_picture_from_track(track),
+        duration_seconds=_track_duration_seconds(track),
+        lyrics=_track_lyrics(track),
     )
 
 
@@ -389,28 +397,36 @@ def update_model_from_input(model: SQLModel, input_data: Any) -> SQLModel:
     Generic mapper: Updates DB model fields from GraphQL input.
     Only sets attributes that exist in the model and are not None in the input.
     """
-    field_map = {}
+    field_map = _field_map_for_model(model)
+    for field_name, value in input_data.__dict__.items():
+        target_name = field_map.get(field_name, field_name)
+        if value is None or not hasattr(model, target_name):
+            continue
+        if target_name == "codec" and isinstance(value, str):
+            value = _coerce_codec(value)
+        setattr(model, target_name, value)
+    return model
+
+
+def _field_map_for_model(model: SQLModel) -> dict[str, str]:
     if isinstance(model, DBFile):
-        field_map = {
+        return {
             "path": "file_path",
             "extension": "file_extension",
             "size": "file_size",
         }
-    elif isinstance(model, DBGenre):
-        field_map = {
+    if isinstance(model, DBGenre):
+        return {
             "name": "genre",
         }
+    return {}
 
-    for field_name, value in input_data.__dict__.items():
-        target_name = field_map.get(field_name, field_name)
-        if value is not None and hasattr(model, target_name):
-            if target_name == "codec" and isinstance(value, str):
-                try:
-                    value = Codec[value]
-                except KeyError:
-                    try:
-                        value = Codec(value)
-                    except Exception:
-                        pass
-            setattr(model, target_name, value)
-    return model
+
+def _coerce_codec(value: str) -> Any:
+    try:
+        return Codec[value]
+    except KeyError:
+        try:
+            return Codec(value)
+        except Exception:
+            return value

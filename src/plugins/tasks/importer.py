@@ -185,6 +185,8 @@ class Importer(TaskBase):
                     file_name=destination.stem,
                     file_extension=destination.suffix.lower().lstrip("."),
                     duration=0,
+                    stage_type=StageType.IMPORT,
+                    completed_tasks=[self.name],
                 )
                 session.add(db_file)
                 self.stack.add_counter("imported_files")

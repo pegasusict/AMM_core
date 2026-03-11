@@ -12,12 +12,12 @@
 #  You should have received a copy of the GNU General Public License
 #   along with AMM.  If not, see <https://www.gnu.org/licenses/>.
 
-from __future__ import annotations
-
 """
 This module contains the DB class, which is used to manage the database connection.
 It uses the SQLModel library to connect to the database and perform operations on it.
 """
+
+from __future__ import annotations
 
 from typing import Any, AsyncGenerator, Callable, Awaitable, Optional, TYPE_CHECKING, Sequence
 from pathlib import Path

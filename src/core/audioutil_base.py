@@ -42,6 +42,14 @@ class AudioUtilBase(PluginBase, metaclass=ABCMeta):
         """Optional instance-level async init; default no-op."""
         return None
 
+    async def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        run_fn = getattr(self, "run", None)
+        if run_fn is None:
+            raise TypeError(f"{self.__class__.__name__} is not callable and has no 'run' method")
+        if asyncio.iscoroutinefunction(run_fn):
+            return await run_fn(*args, **kwargs)
+        return run_fn(*args, **kwargs)
+
 def register_audioutil(cls: type[AudioUtilBase]) -> type[AudioUtilBase]:
     # validate class vars early
     cls.validate_classvars()

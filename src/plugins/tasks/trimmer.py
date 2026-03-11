@@ -38,6 +38,7 @@ class TrimmerTask(TaskBase):
         batch: Optional[Iterable[int]] = None,
         config: Optional[Config] = None,
     ) -> None:
+        super().__init__(config=config, batch=batch)
         self.logger = Logger()
         self.config = config or Config.get_sync()
         self.db: DBInterface = DBInstance
@@ -50,36 +51,53 @@ class TrimmerTask(TaskBase):
     async def run(self) -> None:
         async for session in self.db.get_session():
             for file_id in self.batch:
-                result = await session.exec(select(DBFile).where(DBFile.id == file_id))
-                dbfile = result.one_or_none()
-                if dbfile is None:
-                    self.logger.warning(f"Trimmer: file {file_id} not found")
-                    continue
-
-                if not dbfile.file_path:
-                    self.logger.warning(f"Trimmer: file {file_id} missing path")
-                    continue
-
-                file_path = Path(dbfile.file_path)
-                codec = dbfile.codec
-                if codec is None and file_path.suffix:
-                    codec = Codec.__members__.get(file_path.suffix[1:].upper(), None)
-
-                if codec is None:
-                    self.logger.warning(f"Trimmer: unsupported codec for {file_path}")
-                    continue
-
-                try:
-                    await self.trimmer.trim(file_path, codec)
-                    await self.update_file_stage(dbfile.id, session)
-                except Exception as e:
-                    self.logger.error(f"Trimmer failed for {file_path}: {e}")
-
-                self._processed += 1
-                if self._total:
-                    self.set_progress(self._processed / self._total)
+                await self._process_file(session, file_id)
 
             await session.commit()
             await session.close()
 
         self.logger.info("Trimmer task completed.")
+
+    async def _process_file(self, session: AsyncSessionLike, file_id: int) -> None:
+        dbfile = await self._load_file(session, file_id)
+        if dbfile is None:
+            self.logger.warning(f"Trimmer: file {file_id} not found")
+            return
+
+        resolved = self._resolve_file_codec(dbfile, file_id)
+        if resolved is None:
+            return
+        file_path, codec = resolved
+
+        try:
+            await self.trimmer.trim(file_path, codec)
+            await self.update_file_stage(dbfile.id, session)
+        except Exception as e:
+            self.logger.error(f"Trimmer failed for {file_path}: {e}")
+
+        self._tick_progress()
+
+    async def _load_file(self, session: AsyncSessionLike, file_id: int) -> Optional[DBFile]:
+        result = await session.exec(select(DBFile).where(DBFile.id == file_id))
+        return result.one_or_none()
+
+    def _resolve_file_codec(self, dbfile: DBFile, file_id: int) -> Optional[tuple[Path, Codec]]:
+        if not dbfile.file_path:
+            self.logger.warning(f"Trimmer: file {file_id} missing path")
+            return None
+
+        file_path = Path(dbfile.file_path)
+        codec = dbfile.codec
+        if codec is None and file_path.suffix:
+            codec = Codec.__members__.get(file_path.suffix[1:].upper(), None)
+
+        if codec is None:
+            self.logger.warning(f"Trimmer: unsupported codec for {file_path}")
+            return None
+
+        return file_path, codec
+
+    def _tick_progress(self) -> None:
+        self._processed += 1
+        if self._total:
+            self.set_progress(self._processed / self._total)

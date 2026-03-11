@@ -1,3 +1,5 @@
+from typing import Any
+
 import strawberry
 from strawberry.types import Info
 from sqlmodel import select
@@ -93,6 +95,54 @@ async def _enforce_rate_limit(
         raise ValueError(f"{message} Try again in {retry_after} seconds.")
 
 
+def _normalize_identifier(value: str | None) -> str:
+    return (value or "").strip()
+
+
+def _build_auth_payload(user: DBUser) -> AuthPayload:
+    access_token = create_access_token({"sub": str(user.id), "email": str(user.email)})
+    refresh_token = create_refresh_token({"sub": str(user.id)})
+    return AuthPayload(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=map_dbuser_to_user(user),
+    )
+
+
+def _ensure_active_user(user: DBUser | None) -> DBUser:
+    if not user or not user.is_active:
+        raise ValueError("Invalid username/email or password")
+    return user
+
+
+async def _find_user_by_login(session: Any, username_or_email: str) -> DBUser | None:
+    stmt = select(DBUser).where(
+        (DBUser.username == username_or_email) | (DBUser.email == username_or_email)
+    )
+    return (await session.exec(stmt)).first()
+
+
+def _decode_refresh_token(refresh_token: str) -> dict:
+    from jose import jwt, JWTError
+    from auth.jwt_utils import SECRET_KEY, ALGORITHM
+
+    try:
+        return jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError as exc:
+        raise ValueError("Invalid refresh token") from exc
+
+
+def _refresh_user_id(payload: dict) -> int:
+    token_type = payload.get("type")
+    if token_type is not None and str(token_type) != "refresh":
+        raise ValueError("Invalid refresh token")
+
+    sub = payload.get("sub")
+    if not sub:
+        raise ValueError("Invalid refresh token")
+    return int(sub)
+
+
 @strawberry.type
 class Mutation:
     """GraphQL Mutations to update metadata or control playback."""
@@ -100,7 +150,7 @@ class Mutation:
     @strawberry.mutation
     async def login(self, info: Info, username_or_email: str, password: str) -> AuthPayload:
         """Local username/email + password login."""
-        username_or_email = (username_or_email or "").strip()
+        username_or_email = _normalize_identifier(username_or_email)
         if not username_or_email:
             raise ValueError("Username or email is required")
         if not password:
@@ -114,29 +164,18 @@ class Mutation:
             )
 
         async for session in DBInstance.get_session():
-            stmt = select(DBUser).where(
-                (DBUser.username == username_or_email) | (DBUser.email == username_or_email)
-            )
-            user = (await session.exec(stmt)).first()
-            if not user or not user.is_active:
-                raise ValueError("Invalid username/email or password")
+            user = await _find_user_by_login(session, username_or_email)
+            user = _ensure_active_user(user)
             if not verify_password(password, user.password_hash):
                 raise ValueError("Invalid username/email or password")
-
-            access_token = create_access_token({"sub": str(user.id), "email": str(user.email)})
-            refresh_token = create_refresh_token({"sub": str(user.id)})
-            return AuthPayload(
-                access_token=access_token,
-                refresh_token=refresh_token,
-                user=map_dbuser_to_user(user),
-            )
+            return _build_auth_payload(user)
 
         raise ValueError("Login failed")
 
     @strawberry.mutation
     async def refresh_session(self, info: Info, refresh_token: str) -> AuthPayload:
         """Exchange a refresh token for a new session."""
-        refresh_token = (refresh_token or "").strip()
+        refresh_token = _normalize_identifier(refresh_token)
         if not refresh_token:
             raise ValueError("Refresh token is required")
         if env_config.REFRESH_RATE_LIMIT_ENABLED:
@@ -147,34 +186,14 @@ class Mutation:
                 message="Too many session refresh attempts.",
             )
 
-        from jose import jwt, JWTError
-        from auth.jwt_utils import SECRET_KEY, ALGORITHM
-
-        try:
-            payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
-        except JWTError as exc:
-            raise ValueError("Invalid refresh token") from exc
-
-        token_type = payload.get("type")
-        if token_type is not None and str(token_type) != "refresh":
-            raise ValueError("Invalid refresh token")
-
-        sub = payload.get("sub")
-        if not sub:
-            raise ValueError("Invalid refresh token")
-        user_id = int(sub)
+        payload = _decode_refresh_token(refresh_token)
+        user_id = _refresh_user_id(payload)
 
         async for session in DBInstance.get_session():
             user = await session.get(DBUser, user_id)
             if not user or not user.is_active:
                 raise ValueError("Inactive user")
-            access_token = create_access_token({"sub": str(user.id), "email": str(user.email)})
-            new_refresh = create_refresh_token({"sub": str(user.id)})
-            return AuthPayload(
-                access_token=access_token,
-                refresh_token=new_refresh,
-                user=map_dbuser_to_user(user),
-            )
+            return _build_auth_payload(user)
 
     @strawberry.mutation
     async def create_user(self, info: Info, data: UserCreateInput) -> User:

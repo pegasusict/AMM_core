@@ -4,6 +4,8 @@ from core.task_base import TaskBase, register_task
 from core.types import AlbumArtCheckerUtilProtocol, DBInterface
 from core.enums import StageType, TaskType
 from Singletons import Logger, DBInstance
+from config import Config
+from typing import Optional, Iterable
 
 
 @register_task
@@ -25,7 +27,15 @@ class AlbumArtChecker(TaskBase):
     exclusive = False
     heavy_io = False
 
-    def __init__(self, AlbumArtCheckerUtil: AlbumArtCheckerUtilProtocol) -> None:
+    def __init__(
+        self,
+        AlbumArtCheckerUtil: AlbumArtCheckerUtilProtocol,
+        *,
+        batch: Optional[Iterable[int]] = None,
+        config: Config | None = None,
+        **kwargs: object,
+    ) -> None:
+        super().__init__(config=config, batch=batch, **kwargs)
         self.logger = Logger()
         self.util = AlbumArtCheckerUtil
         self.db: DBInterface = DBInstance
@@ -38,7 +48,7 @@ class AlbumArtChecker(TaskBase):
 
         async for session in self.db.get_session():
             for i, file in enumerate(files):
-                self.update_file_stage(file.id, session)
+                await self.update_file_stage(file.id, session)
                 self.set_progress((i + 1) / total)
 
             await session.commit()

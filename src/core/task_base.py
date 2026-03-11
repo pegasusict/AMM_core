@@ -190,7 +190,7 @@ class TaskBase(PluginBase, metaclass=ABCMeta):
         """
         from core.dbmodels import DBFile
 
-        dbfile = await session.get_one(DBFile, DBFile.id == file_id)
+        dbfile = await session.get(DBFile, file_id)
         if not dbfile:
             self.logger.error(f"{self.name}: File {file_id} not found.")
             return
@@ -239,10 +239,10 @@ class TaskBase(PluginBase, metaclass=ABCMeta):
         except (ValueError, IndexError):
             return None
         
-    def update_file_stage(self, file_id: int, session: AsyncSessionLike) -> None:
+    async def update_file_stage(self, file_id: int, session: AsyncSessionLike) -> None:
         """Mark this file as having completed this task, and update stage if needed."""
         self.logger.debug(f"{self.name}: Updating file {file_id} stage...")
-        return self.finalize_file(file_id, session) # type: ignore
+        await self.finalize_file(file_id, session) # type: ignore
 
     def set_completed(self, message: str = "No message given...") -> None:
         self._result = True
@@ -258,4 +258,3 @@ def register_task(cls: type[TTask]) -> type[TTask]:
     cls.validate_classvars(PluginType.TASK)
     registry.register_task(cls)
     return cls
-

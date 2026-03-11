@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from typing import ClassVar, List
+from typing import Any, ClassVar, List, Optional
 
 from config import Config
 from Singletons import DBInstance, Logger
@@ -42,11 +42,13 @@ class LyricsGetter(TaskBase):
         self,
         lyricsgetter: LyricsGetterProtocol,
         *,
-        batch: List[int]
+        batch: List[int],
+        config: Config | None = None,
+        **kwargs: Any,
     ) -> None:
-        # No super() call — TaskBase handles base initialization automatically
+        super().__init__(config=config, batch=batch, **kwargs)
         self.logger = Logger()
-        self.config = Config.get_sync()
+        self.config = config or Config.get_sync()
         self.db: DBInterface = DBInstance
 
         self.batch = batch
@@ -57,45 +59,7 @@ class LyricsGetter(TaskBase):
         async for session in self.db.get_session():
             try:
                 for track_id in self.batch:
-
-                    # --------------------------------------------------
-                    # Load track
-                    # --------------------------------------------------
-                    track = await session.get_one(DBTrack, DBTrack.id == int(track_id))
-                    if track is None:
-                        raise DatabaseError(f"Invalid track id: {track_id}")
-
-                    artist = (
-                        track.performers[0].full_name
-                        if track.performers else None
-                    )
-                    title = track.title
-
-                    if not artist or not title:
-                        self.logger.warning(
-                            f"LyricsGetter: Track {track_id} missing artist/title"
-                        )
-                        continue
-
-                    query = f"{artist} - {title}"
-
-                    # --------------------------------------------------
-                    # Fetch lyrics using injected util
-                    # --------------------------------------------------
-                    lyrics = await self.lyricsgetter.get_lyrics(query)
-
-                    if lyrics:
-                        obj = DBTrackLyric(lyric=lyrics, track=track)
-                        session.add(obj)
-
-                        # update stage for each related file
-                        for f in track.files:
-                            self.update_file_stage(f.id, session)
-
-                        self.set_progress()
-
-                    else:
-                        self.logger.info(f"No lyrics found for '{query}'")
+                    await self._process_track(session, track_id)
 
                 await session.commit()
 
@@ -106,3 +70,41 @@ class LyricsGetter(TaskBase):
 
             finally:
                 await session.close()
+
+    async def _process_track(self, session: Any, track_id: int) -> None:
+        track = await session.get(DBTrack, int(track_id))
+        if track is None:
+            raise DatabaseError(f"Invalid track id: {track_id}")
+
+        query = self._build_query(track, track_id)
+        if query is None:
+            return
+
+        lyrics = await self.lyricsgetter.get_lyrics(query)
+        if lyrics:
+            self._store_lyrics(session, track, lyrics)
+            await self._update_track_files(track, session)
+            self.set_progress()
+        else:
+            self.logger.info(f"No lyrics found for '{query}'")
+
+    def _build_query(self, track: DBTrack, track_id: int) -> Optional[str]:
+        performers = getattr(track, "performers", None) or []
+        artist = performers[0].full_name if performers else None
+        title = getattr(track, "title", None)
+        if not title and track.files:
+            title = track.files[0].file_name
+        if not artist or not title:
+            self.logger.warning(
+                f"LyricsGetter: Track {track_id} missing artist/title"
+            )
+            return None
+        return f"{artist} - {title}"
+
+    def _store_lyrics(self, session: Any, track: DBTrack, lyrics: str) -> None:
+        obj = DBTrackLyric(lyric=lyrics, track=track)
+        session.add(obj)
+
+    async def _update_track_files(self, track: DBTrack, session: Any) -> None:
+        for f in track.files:
+            await self.update_file_stage(f.id, session)
